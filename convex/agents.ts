@@ -1,0 +1,138 @@
+import { v } from "convex/values";
+import { query, mutation } from "./_generated/server";
+
+/**
+ * Agent Management
+ * CRUD operations for the 10-agent squad
+ */
+
+// Get all agents with their current status
+export const getAll = query({
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").collect();
+    return agents;
+  },
+});
+
+// Get single agent by ID
+export const getById = query({
+  args: { id: v.id("agents") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
+// Get agent by name (case-insensitive)
+export const getByName = query({
+  args: { name: v.string() },
+  handler: async (ctx, { name }) => {
+    // Try lowercase first (agents query with lowercase names)
+    const lowerName = name.toLowerCase();
+    const agent = await ctx.db
+      .query("agents")
+      .withIndex("by_name", (q) => q.eq("name", lowerName))
+      .first();
+    if (agent) return agent;
+    
+    // Fallback: try exact match (for legacy capitalized names)
+    return await ctx.db
+      .query("agents")
+      .withIndex("by_name", (q) => q.eq("name", name))
+      .first();
+  },
+});
+
+// Update agent status
+export const updateStatus = mutation({
+  args: {
+    id: v.id("agents"),
+    status: v.union(v.literal("idle"), v.literal("active"), v.literal("blocked")),
+    currentTaskId: v.optional(v.id("tasks")),
+  },
+  handler: async (ctx, { id, status, currentTaskId }) => {
+    const agent = await ctx.db.get(id);
+    if (!agent) throw new Error("Agent not found");
+
+    await ctx.db.patch(id, {
+      status,
+      currentTaskId,
+      lastHeartbeat: Date.now(),
+    });
+
+    // Log activity
+    await ctx.db.insert("activities", {
+      type: "agent_status_changed",
+      agentId: id,
+      agentName: agent.name,
+      message: `${agent.name} is now ${status}`,
+      taskId: currentTaskId,
+      createdAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Heartbeat ping from agent
+export const heartbeat = mutation({
+  args: {
+    agentId: v.id("agents"),
+    currentTaskId: v.optional(v.id("tasks")),
+  },
+  handler: async (ctx, { agentId, currentTaskId }) => {
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    await ctx.db.patch(agentId, {
+      lastHeartbeat: Date.now(),
+      currentTaskId,
+    });
+
+    return { success: true, timestamp: Date.now() };
+  },
+});
+
+// Get agent with current task details
+export const getWithCurrentTask = query({
+  args: { id: v.id("agents") },
+  handler: async (ctx, { id }) => {
+    const agent = await ctx.db.get(id);
+    if (!agent) return null;
+
+    let currentTask = null;
+    if (agent.currentTaskId) {
+      currentTask = await ctx.db.get(agent.currentTaskId);
+    }
+
+    return { ...agent, currentTask };
+  },
+});
+
+// Update agent name (for lowercase migration)
+export const updateName = mutation({
+  args: {
+    id: v.id("agents"),
+    name: v.string(),
+  },
+  handler: async (ctx, { id, name }) => {
+    await ctx.db.patch(id, { name });
+    return { success: true, id, name };
+  },
+});
+
+// Lowercase all agent names (one-time migration)
+export const lowercaseAllNames = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").collect();
+    let updated = 0;
+    for (const agent of agents) {
+      const lowerName = agent.name.toLowerCase();
+      if (agent.name !== lowerName) {
+        await ctx.db.patch(agent._id, { name: lowerName });
+        updated++;
+      }
+    }
+    return { updated, total: agents.length };
+  },
+});

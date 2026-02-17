@@ -1,0 +1,39 @@
+# Mission Control Cron Jobs
+# Add to system crontab: crontab -e
+
+# Daily Standup — 11:30 PM IST (6:00 PM UTC)
+0 18 * * * cd /Users/arana/dev/arana198/mission-control && /usr/local/bin/node scripts/daily-standup.js >> logs/standup.log 2>&1
+
+# Auto-claim polling — every minute
+* * * * * cd /Users/arana/dev/arana198/mission-control && npx convex run tasks:autoClaim 2>/dev/null >> logs/auto-claim.log 2>&1
+
+# Heartbeat staggered — every 15 minutes with offset
+# Jarvis (lead) — :00, :15, :30, :45
+0,15,30,45 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js jarvis >> logs/heartbeat.log 2>&1
+
+# Shuri — :02, :17, :32, :47
+2,17,32,47 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js shuri >> logs/heartbeat.log 2>&1
+
+# Fury — :04, :19, :34, :49
+4,19,34,49 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js fury >> logs/heartbeat.log 2>&1
+
+# Vision — :06, :21, :36, :51
+6,21,36,51 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js vision >> logs/heartbeat.log 2>&1
+
+# Loki — :08, :23, :38, :53
+8,23,38,53 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js loki >> logs/heartbeat.log 2>&1
+
+# Quill — :10, :25, :40, :55
+10,25,40,55 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js quill >> logs/heartbeat.log 2>&1
+
+# Wanda — :07, :22, :37, :52
+7,22,37,52 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js wanda >> logs/heartbeat.log 2>&1
+
+# Pepper — :00, :15, :30, :45
+0,15,30,45 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js pepper >> logs/heartbeat.log 2>&1
+
+# Friday — :05, :20, :35, :50
+5,20,35,50 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js friday >> logs/heartbeat.log 2>&1
+
+# Wong — :12, :27, :42, :57
+12,27,42,57 * * * * cd /Users/arana/.openclaw/workspace && node scripts/agent-heartbeat.js wong >> logs/heartbeat.log 2>&1

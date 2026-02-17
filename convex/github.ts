@@ -1,0 +1,279 @@
+import { query, mutation, action } from "./_generated/server";
+import { v } from "convex/values";
+import { api } from "./_generated/api";
+
+/**
+ * GitHub Integration - Commit Linking
+ * Fetches commits and matches against ticket patterns
+ */
+
+// Default pattern - matches CORE-01, PERF-01, spot-001, EPUK-1, etc.
+const DEFAULT_TICKET_PATTERN = "[A-Za-z]+-\\d+";
+
+/**
+ * Extract ticket IDs from text using pattern
+ */
+export function extractTicketIds(message: string, pattern: string): string[] {
+  try {
+    const regex = new RegExp(pattern, "gi");
+    const matches = message.match(regex);
+    return matches ? [...new Set(matches.map((m: string) => m.toUpperCase()))] : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Internal: fetch commits from local git (using spawnSync to avoid shell injection)
+ */
+async function fetchLocalCommitsInternal(repoPath: string, limit: number): Promise<any[]> {
+  try {
+    const { spawnSync } = await import("child_process");
+    const result = spawnSync("git",
+      ["log", `--oneline`, `-${limit}`, `--format=%H|%s|%an|%ai`],
+      { cwd: repoPath, encoding: "utf-8" }
+    );
+
+    if (result.error || result.status !== 0) {
+      return [];
+    }
+
+    const output = result.stdout || "";
+    return output
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line: string) => {
+        const [sha, message, author, date] = line.split("|");
+        return { sha: sha.slice(0, 7), fullSha: sha, message, author, date };
+      });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save settings value
+ */
+export const setSetting = mutation({
+  args: {
+    key: v.string(),
+    value: v.string(),
+  },
+  handler: async (ctx, { key, value }) => {
+    const existing = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q: any) => q.eq("key", key))
+      .first();
+    
+    if (existing) {
+      await ctx.db.patch(existing._id, { value, updatedAt: Date.now() });
+      return existing._id;
+    } else {
+      return await ctx.db.insert("settings", { key, value, updatedAt: Date.now() });
+    }
+  },
+});
+
+/**
+ * Get setting value
+ */
+export const getSetting = query({
+  args: {
+    key: v.string(),
+  },
+  handler: async (ctx, { key }) => {
+    const setting = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q: any) => q.eq("key", key))
+      .first();
+    
+    return setting?.value || null;
+  },
+});
+
+/**
+ * Get ticket pattern (with default fallback)
+ */
+export const getTicketPattern = query({
+  handler: async (ctx) => {
+    const setting = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q: any) => q.eq("key", "ticketPattern"))
+      .first();
+    return setting?.value || DEFAULT_TICKET_PATTERN;
+  },
+});
+
+/**
+ * Fetch commits from GitHub API
+ * GH-01: Robust JSON parsing with error handling
+ * GH-02: Commit message caching to reduce API calls
+ * GH-03: Rate limiting to prevent hitting API limits
+ */
+export const fetchGitHubCommits: any = action({
+  args: {
+    repo: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    skipCache: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { repo, limit = 50, skipCache = false }) => {
+    // Get repo from settings if not provided
+    if (!repo) {
+      const setting = await ctx.runQuery(api.github.getSetting, { key: "githubRepo" });
+      repo = setting || undefined;
+    }
+
+    if (!repo) {
+      return { error: "No GitHub repo configured. Set via settings table." };
+    }
+
+    // Validate repo format to prevent shell injection: must be "owner/repo"
+    if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repo)) {
+      return { error: "Invalid repo format. Must be 'owner/repo'." };
+    }
+
+    // GH-03: Check rate limit - enforce minimum 2 seconds between API calls
+    const rateLimitKey = "github_last_api_call";
+    const lastCallStr = await ctx.runQuery(api.github.getSetting, { key: rateLimitKey });
+    const lastCall = lastCallStr ? parseInt(lastCallStr) : 0;
+    const timeSinceLastCall = Date.now() - lastCall;
+    const minIntervalMs = 2000; // 2 second minimum between API calls
+
+    if (timeSinceLastCall < minIntervalMs && !skipCache) {
+      // Within rate limit window, return cached result if available
+      const cacheKey = `github_commits_${repo}_${limit}`;
+      const cached = await ctx.runQuery(api.github.getSetting, { key: cacheKey });
+      if (cached) {
+        try {
+          const cacheEntry = JSON.parse(cached);
+          return { commits: cacheEntry.commits, source: "cache", fromCache: true, rateLimited: true };
+        } catch {
+          // Fall through to fetch
+        }
+      }
+      return { error: `Rate limited. Please wait ${Math.ceil((minIntervalMs - timeSinceLastCall) / 1000)}s before retrying.`, rateLimited: true };
+    }
+
+    // GH-02: Check cache first (5-minute TTL)
+    const cacheKey = `github_commits_${repo}_${limit}`;
+    if (!skipCache) {
+      const cached = await ctx.runQuery(api.github.getSetting, { key: cacheKey });
+      if (cached) {
+        try {
+          const cacheEntry = JSON.parse(cached);
+          if (Date.now() - cacheEntry.timestamp < 5 * 60 * 1000) {
+            return { commits: cacheEntry.commits, source: "cache", fromCache: true };
+          }
+        } catch {
+          // Invalid cache, continue to fetch
+        }
+      }
+    }
+
+    try {
+      const { spawnSync } = await import("child_process");
+      const jqFilter = '.[] | {sha: .sha, message: .commit.message, author: .commit.author.name, date: .commit.author.date}';
+      const result = spawnSync("gh",
+        ["api", `repos/${repo}/commits`, "--jq", jqFilter, "--limit", String(limit)],
+        { encoding: "utf-8" }
+      );
+
+      if (result.error || result.status !== 0) {
+        return { error: "Failed to fetch from GitHub API" };
+      }
+
+      const output = result.stdout || "";
+      const commits: any[] = [];
+
+      // GH-01: Parse JSON objects line by line to handle incomplete output
+      const lines = output.split("\n").filter((l: string) => l.trim());
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          commits.push(parsed);
+        } catch {
+          // Skip invalid JSON lines instead of failing entire request
+          continue;
+        }
+      }
+
+      // GH-02: Cache the result
+      await ctx.runMutation(api.github.setSetting, {
+        key: cacheKey,
+        value: JSON.stringify({ commits, timestamp: Date.now() }),
+      });
+
+      // GH-03: Update last API call timestamp
+      await ctx.runMutation(api.github.setSetting, {
+        key: rateLimitKey,
+        value: String(Date.now()),
+      });
+
+      return { commits, source: "github", fromCache: false };
+    } catch (e) {
+      return { error: "Failed to fetch from GitHub API" };
+    }
+  },
+});
+
+/**
+ * Fetch commits from local git
+ */
+export const fetchLocalCommits = action({
+  args: {
+    repoPath: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { repoPath, limit = 50 }) => {
+    const path = repoPath || process.cwd();
+    const commits = await fetchLocalCommitsInternal(path, limit);
+    return { commits, source: "local" };
+  },
+});
+
+/**
+ * Get commits for a task - fetches commits then filters by ticket ID in task
+ */
+export const getCommitsForTask = action({
+  args: {
+    taskId: v.id("tasks"),
+    repoPath: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { taskId, repoPath, limit = 20 }) => {
+    // Get task
+    const task = await ctx.runQuery(api.tasks.getById, { id: taskId });
+    if (!task) return { commits: [] };
+    
+    // Get pattern
+    const pattern = await ctx.runQuery(api.github.getTicketPattern) || DEFAULT_TICKET_PATTERN;
+    
+    // Extract ticket IDs from task
+    const ticketIds = extractTicketIds(task.title, pattern);
+    for (const tag of task.tags || []) {
+      ticketIds.push(...extractTicketIds(tag, pattern));
+    }
+    
+    if (ticketIds.length === 0) {
+      return { commits: [], message: "No ticket ID in task" };
+    }
+    
+    // Fetch commits
+    const path = repoPath || process.cwd();
+    if (!path) {
+      return { commits: [], message: "No repository path configured. Set via settings." };
+    }
+    const commits = await fetchLocalCommitsInternal(path, 100);
+    
+    // Filter by ticket IDs
+    const matched = commits
+      .filter((c: any) => {
+        const txt = c.message.toLowerCase();
+        return ticketIds.some((id: string) => txt.includes(id.toLowerCase()));
+      })
+      .slice(0, limit);
+    
+    return { commits: matched, source: "local", matchedTicketIds: ticketIds };
+  },
+});

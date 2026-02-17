@@ -1,0 +1,120 @@
+import { cron } from "./_generated/server";
+import { api } from "./_generated/api";
+
+/**
+ * Cron Jobs for Mission Control
+ * Automated background tasks
+ */
+
+/**
+ * Auto-Claim Cron
+ * Runs every minute to check for tasks in "ready" status 
+ * and notifies assigned agents
+ */
+export const autoClaimCron = cron({
+  name: "auto-claim-tasks",
+  schedule: { kind: "every", everyMs: 60 * 1000 }, // Every 60 seconds
+  handler: async (ctx) => {
+    console.log("[Cron] Running auto-claim check...");
+    const result = await ctx.runAction(api.tasks.autoClaim, {});
+    console.log(`[Cron] Auto-claim result: ${result.notified} agents notified`);
+    return result;
+  },
+});
+
+/**
+ * Agent Heartbeat Monitor
+ * Runs every 5 minutes to check for stale agents
+ * Updates agent status to "idle" if no heartbeat > 5 min
+ */
+export const heartbeatMonitorCron = cron({
+  name: "agent-heartbeat-monitor",
+  schedule: { kind: "every", everyMs: 5 * 60 * 1000 }, // Every 5 minutes
+  handler: async (ctx) => {
+    console.log("[Cron] Checking agent heartbeats...");
+
+    // AUTO-01: Find agents with no heartbeat in the last 5 minutes
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const allAgents = await ctx.db.query("agents").collect();
+
+    const staleAgents = allAgents.filter(
+      (a) => a.lastHeartbeat < fiveMinutesAgo && a.status === "active"
+    );
+
+    // Mark stale agents as idle
+    for (const agent of staleAgents) {
+      await ctx.db.patch(agent._id, { status: "idle" });
+
+      // Log activity
+      await ctx.db.insert("activities", {
+        type: "agent_status_changed",
+        agentId: agent._id,
+        agentName: agent.name,
+        message: `Agent status changed to idle (heartbeat stale)`,
+        oldValue: "active",
+        newValue: "idle",
+        createdAt: Date.now(),
+      });
+    }
+
+    console.log(`[Cron] Heartbeat monitor: checked ${allAgents.length} agents, marked ${staleAgents.length} as idle`);
+    return { checked: allAgents.length, stale: staleAgents.length };
+  },
+});
+
+/**
+ * Escalation Check Cron
+ * Runs every 15 minutes to check for long-blocked tasks
+ * Notifies lead agents of tasks blocked > 24 hours
+ */
+export const escalationCheckCron = cron({
+  name: "escalation-check",
+  schedule: { kind: "every", everyMs: 15 * 60 * 1000 }, // Every 15 minutes
+  handler: async (ctx) => {
+    console.log("[Cron] Running escalation check...");
+
+    // AUTO-01: Find tasks blocked for > 24 hours
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const blockedTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_status", (q) => q.eq("status", "blocked"))
+      .take(100);
+
+    const escalatedTasks = blockedTasks.filter((t) => t.updatedAt < oneDayAgo).slice(0, 10); // Max 10 per run
+
+    // Get lead agents
+    const allAgents = await ctx.db.query("agents").collect();
+    const leadAgents = allAgents.filter((a) => a.level === "lead");
+
+    // Create notifications for leads
+    for (const task of escalatedTasks) {
+      for (const lead of leadAgents) {
+        await ctx.db.insert("notifications", {
+          recipientId: lead._id,
+          type: "assignment",
+          content: `🚨 ESCALATED: "${task.title}" has been blocked for 24+ hours`,
+          taskId: task._id,
+          taskTitle: task.title,
+          fromId: "system",
+          fromName: "System",
+          read: false,
+          createdAt: Date.now(),
+        });
+      }
+
+      // Log escalation activity
+      await ctx.db.insert("activities", {
+        type: "task_blocked",
+        agentId: "system",
+        agentName: "system",
+        message: `Task "${task.title}" escalated (blocked > 24 hours)`,
+        taskId: task._id,
+        taskTitle: task.title,
+        createdAt: Date.now(),
+      });
+    }
+
+    console.log(`[Cron] Escalation check: found ${escalatedTasks.length} long-blocked tasks`);
+    return { escalatedTasks: escalatedTasks.length };
+  },
+});
