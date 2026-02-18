@@ -11,8 +11,8 @@
  */
 export function isOverdue(dueDate?: number): boolean {
   if (!dueDate) return false;
-  const ONE_DAY = 86400000; // 24 hours in ms
-  return Date.now() > dueDate && Date.now() - dueDate >= ONE_DAY;
+  const ONE_DAY_IN_MS = 86400000; // 24 hours in milliseconds
+  return Date.now() > dueDate && Date.now() - dueDate >= ONE_DAY_IN_MS;
 }
 
 /**
@@ -22,7 +22,7 @@ export function isOverdue(dueDate?: number): boolean {
  */
 export function isDueSoon(dueDate?: number): boolean {
   if (!dueDate) return false;
-  const TWO_DAYS = 86400000 * 2; // 48 hours in ms
+  const TWO_DAYS_IN_MS = 86400000 * 2; // 48 hours in milliseconds
   const diff = dueDate - Date.now();
-  return diff > 0 && diff <= TWO_DAYS;
+  return diff > 0 && diff <= TWO_DAYS_IN_MS;
 }

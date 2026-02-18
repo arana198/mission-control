@@ -955,12 +955,12 @@ async function findBestAgent(ctx: any, agents: any[], task: any) {
     }
   }
 
-  // Score = keyword_score - (workload_penalty_factor * active_tasks)
+  // Score = keyword_score - (workload_penalty_per_task * active_tasks)
   // Workload penalty: each active task reduces score by 0.2
-  const WORKLOAD_PENALTY = 0.2;
+  const WORKLOAD_PENALTY_PER_TASK = 0.2;
   matchedAgents.sort((a, b) => {
-    const scoreA = a.score - a.workload * WORKLOAD_PENALTY;
-    const scoreB = b.score - b.workload * WORKLOAD_PENALTY;
+    const scoreA = a.score - a.workload * WORKLOAD_PENALTY_PER_TASK;
+    const scoreB = b.score - b.workload * WORKLOAD_PENALTY_PER_TASK;
     return scoreB - scoreA;
   });
 
