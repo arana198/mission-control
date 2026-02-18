@@ -7,7 +7,7 @@ import { z } from "zod";
 import { TASK_STATUS, TASK_PRIORITY } from "@/lib/constants/business";
 
 const convexId = () =>
-  z.string().regex(/^[a-z0-9]+$/, "Invalid Convex ID format");
+  z.string().regex(/^[a-z0-9-]+$/, "Invalid Convex ID format");
 
 /**
  * Schema for adding comment to task

@@ -9,10 +9,10 @@ import { AGENT_STATUS, AGENT_LEVEL } from "@/lib/constants/business";
 
 /**
  * VAL-01: Convex ID validator
- * Convex generates IDs in format: alphanumeric strings like j97abc123def456
+ * Convex generates IDs in format: alphanumeric with hyphens (e.g., agent-123, task-456)
  */
 const convexId = () =>
-  z.string().regex(/^[a-z0-9]+$/, "Invalid Convex ID format");
+  z.string().regex(/^[a-z0-9-]+$/, "Invalid Convex ID format");
 
 /**
  * Schema for agent registration
