@@ -16,9 +16,9 @@ import { useMemo } from "react";
  */
 export function useDashboardQueries() {
   // Core queries - only called once per component mount
-  const agents = useQuery(api.agents.getAll);
-  const tasks = useQuery(api.tasks.getAll);
-  const epics = useQuery(api.epics.getAll);
+  const agents = useQuery(api.agents.getAllAgents);
+  const tasks = useQuery(api.tasks.getAllTasks);
+  const epics = useQuery(api.epics.getAllEpics);
   const activities = useQuery(api.activities.getRecent, { limit: 10 });
   const notifications = useQuery(api.notifications.getAll);
 

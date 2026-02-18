@@ -59,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
     // Optionally update status
     if (input.status) {
       await convex.mutation(api.agents.updateStatus, {
-        id: agentId,
+        agentId,
         status: input.status,
         currentTaskId: input.currentTaskId as Id<"tasks"> | undefined,
       });

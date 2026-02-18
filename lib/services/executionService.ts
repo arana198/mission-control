@@ -48,7 +48,7 @@ class ExecutionService {
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
     // Get task details
-    const task = await this.client.query(api.tasks.getById, { id: taskId });
+    const task = await this.client.query(api.tasks.getTaskById, { taskId });
     if (!task) {
       return {
         success: false,
@@ -60,7 +60,7 @@ class ExecutionService {
 
     // Mark as in progress
     await this.client.mutation(api.tasks.moveStatus, {
-      id: taskId,
+      taskId,
       fromStatus: task.status,
       toStatus: 'in_progress',
     });
@@ -120,7 +120,7 @@ class ExecutionService {
     when: 'now' | 'today' | 'tomorrow' | number,
     estimatedHours: number = 1
   ): Promise<{ eventId: Id<'calendarEvents'>; scheduledFor: number }> {
-    const task = await this.client.query(api.tasks.getById, { id: taskId });
+    const task = await this.client.query(api.tasks.getTaskById, { taskId });
     if (!task) {
       throw new Error('Task not found');
     }
@@ -176,7 +176,7 @@ class ExecutionService {
     reason: string,
     delayMinutes: number = 30
   ): Promise<void> {
-    const task = await this.client.query(api.tasks.getById, { id: taskId });
+    const task = await this.client.query(api.tasks.getTaskById, { taskId });
     if (!task) throw new Error('Task not found');
 
     // Log retry attempt

@@ -631,7 +631,7 @@ function CreateEpicModal({ agents, onClose }: { agents: Agent[]; onClose: () => 
 
   let createEpic: any;
   try {
-    createEpic = useMutation(api.epics.create);
+    createEpic = useMutation(api.epics.createEpic);
   } catch (e) {}
 
   const handleSubmit = async (e: React.FormEvent) => {

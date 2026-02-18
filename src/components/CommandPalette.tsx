@@ -48,8 +48,8 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
   const memoryService = getMemoryService();
   const goals = useQuery(api.goals.getByProgress);
-  const tasks = useQuery(api.tasks.getAll);
-  const agents = useQuery(api.agents.getAll);
+  const tasks = useQuery(api.tasks.getAllTasks);
+  const agents = useQuery(api.agents.getAllAgents);
 
   // Keyboard shortcut: Cmd+K or Ctrl+K
   useEffect(() => {

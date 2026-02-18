@@ -55,7 +55,7 @@ interface AgentCardsProps {
 }
 
 export function AgentCards({ compact = false }: AgentCardsProps) {
-  const agents = useQuery(api.agents.getAll);
+  const agents = useQuery(api.agents.getAllAgents);
 
   if (!agents) {
     return compact ? (

@@ -29,8 +29,8 @@ const CRITICAL_RISK_PROGRESS = 10;
 
 export function BottleneckVisualizer() {
   const goals = useQuery(api.goals.getByProgress);
-  const tasks = useQuery(api.tasks.getAll);
-  const agents = useQuery(api.agents.getAll);
+  const tasks = useQuery(api.tasks.getAllTasks);
+  const agents = useQuery(api.agents.getAllAgents);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [view, setView] = useState<"heatmap" | "graph" | "path" | "agents">("heatmap");
 

@@ -41,7 +41,7 @@ export function TaskDetailModal({
   const updateTask = useMutation(api.tasks.update);
 
   // Subscribe to live task data
-  const liveTask = useQuery(api.tasks.getById, { id: task._id as any });
+  const liveTask = useQuery(api.tasks.getTaskById, { taskId: task._id as any });
   const currentTask = liveTask ?? task;
 
   // Find blocking tasks

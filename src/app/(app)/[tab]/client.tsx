@@ -42,9 +42,9 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
   const [autoAssigning, setAutoAssigning] = useState(false);
 
   // Fetch all required data
-  const agents = useQuery(api.agents.getAll);
-  const tasks = useQuery(api.tasks.getAll);
-  const epics = useQuery(api.epics.getAll);
+  const agents = useQuery(api.agents.getAllAgents);
+  const tasks = useQuery(api.tasks.getAllTasks);
+  const epics = useQuery(api.epics.getAllEpics);
   const activities = useQuery(api.activities.getRecent, { limit: 10 });
   const notifications = useQuery(api.notifications.getAll);
   const unreadCount = notifications?.filter(n => !n.read).length || 0;

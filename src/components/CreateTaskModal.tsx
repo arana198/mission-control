@@ -90,7 +90,7 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
 
   const createTaskMutation = useMutation(api.tasks.createTask);
   const createSubtaskMutation = useMutation(api.tasks.createSubtask);
-  const createEpicMutation = useMutation(api.epics.create);
+  const createEpicMutation = useMutation(api.epics.createEpic);
 
   // Epic creation handler with notifications
   const { execute: execCreateEpic, isLoading: isCreatingEpic } = useMutationWithNotification(
