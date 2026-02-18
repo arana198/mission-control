@@ -91,9 +91,6 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
     }
   );
 
-  // Find orphaned tasks
-  const orphanedTasks = tasks.filter(t => !t.epicId);
-
   // Sort epics
   const sortedEpics = [...epics].sort((a, b) => {
     const statusOrder = { active: 0, planning: 1, completed: 2 };
@@ -146,94 +143,6 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
           <p className="text-sm text-muted-foreground mt-1">
             Create your first epic to group related tasks
           </p>
-        </div>
-      )}
-
-      {/* Orphaned Tasks Section */}
-      {orphanedTasks.length > 0 && (
-        <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-              <h3 className="font-semibold text-amber-900">
-                {orphanedTasks.length} Task{orphanedTasks.length > 1 ? "s" : ""} Without Epic
-              </h3>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowMigration(!showMigration)}
-                className="btn btn-secondary text-sm"
-              >
-                {showMigration ? "Hide" : "Manage"}
-              </button>
-              {orphanedTasks.length >= 3 && (
-                <button
-                  onClick={() => execSmartAssign({})}
-                  disabled={isSmartAssigning}
-                  className="btn btn-primary text-sm disabled:opacity-50"
-                  title="Match tasks to epics based on content keywords"
-                >
-                  {isSmartAssigning ? (
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4 mr-1" />
-                  )}
-                  {isSmartAssigning ? "Assigning..." : "Smart Assign"}
-                </button>
-              )}
-              <button
-                onClick={() => execMigrateTasks({})}
-                disabled={isMigrating}
-                className="btn btn-secondary text-sm disabled:opacity-50"
-                title="Move all to General Tasks epic"
-              >
-                {isMigrating ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <ArrowRight className="w-4 h-4 mr-1" />
-                )}
-                {isMigrating ? "Migrating..." : "Migrate All"}
-              </button>
-            </div>
-          </div>
-          
-          {showMigration && (
-            <div className="space-y-2 mt-4">
-              <p className="text-sm text-amber-800 mb-2">
-                Assign each task to an epic, or use "Auto-Migrate All" to move them all to a "General Tasks" epic.
-              </p>
-              {orphanedTasks.map((task) => (
-                <div key={task._id} className="flex items-center justify-between p-2 bg-surface rounded border">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`badge badge-priority-${task.priority.toLowerCase()} text-xs`}>
-                      {task.priority}
-                    </span>
-                    <span className="text-sm truncate">{task.title}</span>
-                    <span className={`badge badge-status-${task.status} text-xs`}>
-                      {task.status.replace("_", " ")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value=""
-                      onChange={async (e) => {
-                        if (!e.target.value) return;
-                        await execAssignEpic({ taskId: task._id, epicId: e.target.value, updatedBy: "user" });
-                        e.target.value = "";
-                      }}
-                      disabled={isAssigningEpic}
-                      className="input text-sm w-40 disabled:opacity-50"
-                    >
-                      <option value="">Move to...</option>
-                      {epics.map((epic) => (
-                        <option key={epic._id} value={epic._id}>{epic.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

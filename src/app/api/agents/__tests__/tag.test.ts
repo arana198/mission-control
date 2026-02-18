@@ -11,7 +11,14 @@ jest.mock("@/convex/_generated/api", () => ({
   },
 }));
 jest.mock("@/lib/agent-auth");
-jest.mock("@/lib/utils/logger");
+jest.mock("@/lib/utils/logger", () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
 
 import { POST } from "../tasks/tag/route";
 import { ConvexHttpClient } from "convex/browser";
@@ -31,13 +38,14 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockMutation.mockClear();
     process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
     (ConvexHttpClient as any).mockImplementation(() => mockConvex);
     (verifyAgent as jest.Mock).mockResolvedValue(mockAgent);
   });
 
   it("adds tag to task", async () => {
-    mockMutation.mockResolvedValueOnce({ success: true, tags: ["bug", "urgent"] });
+    mockMutation.mockResolvedValueOnce({ tags: ["bug", "urgent"] });
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
       method: "POST",

@@ -64,7 +64,7 @@ export const createTask = mutation({
     tags: v.optional(v.array(v.string())),
     timeEstimate: v.optional(v.union(v.literal("XS"), v.literal("S"), v.literal("M"), v.literal("L"), v.literal("XL"))),
     dueDate: v.optional(v.number()),
-    epicId: v.optional(v.id("epics")),
+    epicId: v.id("epics"),  // REQUIRED: all tasks must belong to an epic
   },
   handler: async (
     ctx,

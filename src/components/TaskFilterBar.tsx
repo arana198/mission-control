@@ -1,6 +1,8 @@
 "use client";
 
 import { AlertCircle, X } from "lucide-react";
+import { Agent } from "@/types/agent";
+import { Epic } from "@/types/epic";
 
 interface TaskFilterBarProps {
   searchQuery: string;
@@ -8,8 +10,8 @@ interface TaskFilterBarProps {
   filterAssignee: string;
   filterEpic: string;
   showBlockedOnly: boolean;
-  agents: any[];
-  epics: any[];
+  agents: Agent[];
+  epics: Epic[];
   onSearchChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;

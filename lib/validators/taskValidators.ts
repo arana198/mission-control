@@ -44,7 +44,7 @@ export const CreateTaskSchema = z.object({
     .positive("Due date must be in the future")
     .optional(),
 
-  epicId: convexId().optional(),
+  epicId: convexId(),  // REQUIRED: all tasks must belong to an epic
 
   timeEstimate: z
     .enum([
@@ -117,6 +117,8 @@ export const UpdateTaskSchema = z.object({
       TIME_ESTIMATES.XL,
     ])
     .optional(),
+
+  epicId: convexId().optional(),  // Allow moving task to different epic
 });
 
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;

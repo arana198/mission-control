@@ -34,17 +34,17 @@ const notificationStore = {
 
 export function useNotification() {
   const notify = useCallback((type: NotificationType, message: string, duration = 4000) => {
-    const id = `notif_${Date.now()}_${Math.random()}`;
-    const notification: Notification = { id, type, message, duration };
+    const notificationId = `notif_${Date.now()}_${Math.random()}`;
+    const notification: Notification = { id: notificationId, type, message, duration };
     notificationStore.notify(notification);
 
     if (duration > 0) {
       setTimeout(() => {
-        notificationStore.dismiss(id);
+        notificationStore.dismiss(notificationId);
       }, duration);
     }
 
-    return id;
+    return notificationId;
   }, []);
 
   return {

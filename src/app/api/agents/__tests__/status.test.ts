@@ -11,7 +11,14 @@ jest.mock("@/convex/_generated/api", () => ({
   },
 }));
 jest.mock("@/lib/agent-auth");
-jest.mock("@/lib/utils/logger");
+jest.mock("@/lib/utils/logger", () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
 
 import { POST } from "../tasks/status/route";
 import { ConvexHttpClient } from "convex/browser";

@@ -89,7 +89,7 @@ export default defineSchema({
     ),
     
     // Hierarchy
-    epicId: v.optional(v.id("epics")),
+    epicId: v.id("epics"),  // REQUIRED: all tasks must belong to an epic
     parentId: v.optional(v.id("tasks")),
     subtaskIds: v.array(v.id("tasks")),
     

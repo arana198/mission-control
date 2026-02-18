@@ -7,8 +7,12 @@
 
 import { getMemoryService, type MemorySection } from './memoryService';
 import { ConvexClient } from 'convex/browser';
+import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+
+/** Convex client type - accepts both browser and HTTP clients */
+type ConvexClientType = ConvexClient | ConvexHttpClient;
 
 interface Goal {
   _id: Id<'goals'>;
@@ -71,10 +75,10 @@ interface WeeklyPlan {
 
 class TaskGenerationService {
   private memoryService = getMemoryService();
-  private client: any; // Accept both ConvexClient and ConvexHttpClient
+  private convexClient: ConvexClientType;
 
-  constructor(client: any) {
-    this.client = client;
+  constructor(convexClient: ConvexClientType) {
+    this.convexClient = convexClient;
   }
 
   /**

@@ -16,6 +16,10 @@ import {
   ValidationError,
 } from '../taskValidators';
 
+// Valid Convex IDs for testing
+const VALID_EPIC_ID = 'j97epic123def4560';
+const VALID_AGENT_ID = 'j97agent123def4560';
+
 describe('Task Validators', () => {
   describe('CreateTaskSchema', () => {
     it('should accept valid task input', () => {
@@ -25,6 +29,7 @@ describe('Task Validators', () => {
         priority: 'P2',
         assigneeIds: [],
         tags: [],
+        epicId: VALID_EPIC_ID,
       };
 
       const result = CreateTaskSchema.parse(input);
@@ -36,6 +41,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'AB', // Too short (< 3 chars)
         description: 'Valid description text here',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -45,6 +51,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'a'.repeat(201), // Too long (> 200 chars)
         description: 'Valid description text here',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -54,6 +61,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'Valid Title',
         description: 'short', // Too short (< 10 chars)
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -63,6 +71,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'Valid Title',
         description: 'a'.repeat(5001), // Too long (> 5000 chars)
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -73,6 +82,7 @@ describe('Task Validators', () => {
         title: 'Valid Title',
         description: 'Valid description text here',
         priority: 'P5', // Invalid priority
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -86,6 +96,7 @@ describe('Task Validators', () => {
           title: 'Valid Title',
           description: 'Valid description text here',
           priority,
+          epicId: VALID_EPIC_ID,
         };
 
         expect(() => CreateTaskSchema.parse(input)).not.toThrow();
@@ -97,6 +108,7 @@ describe('Task Validators', () => {
         title: 'Valid Title',
         description: 'Valid description text here',
         timeEstimate: 'XXL', // Invalid estimate
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -110,6 +122,7 @@ describe('Task Validators', () => {
           title: 'Valid Title',
           description: 'Valid description text here',
           timeEstimate: estimate,
+          epicId: VALID_EPIC_ID,
         };
 
         expect(() => CreateTaskSchema.parse(input)).not.toThrow();
@@ -121,6 +134,7 @@ describe('Task Validators', () => {
         title: 'Valid Title',
         description: 'Valid description text here',
         assigneeIds: ['not-valid-!!!'],
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -133,6 +147,7 @@ describe('Task Validators', () => {
         assigneeIds: Array(11)
           .fill(0)
           .map((_, i) => `j97abc${String(i).padStart(10, '0')}`),
+        epicId: VALID_EPIC_ID,
       };
 
       // Max 10 assignees is enforced by AssignTaskSchema, not CreateTaskSchema
@@ -148,6 +163,7 @@ describe('Task Validators', () => {
         assigneeIds: Array(10)
           .fill(0)
           .map((_, i) => `j97abc${String(i).padStart(10, '0')}`),
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).not.toThrow();
@@ -157,6 +173,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'Valid Title',
         description: 'Valid description text here',
+        epicId: VALID_EPIC_ID,
       };
 
       const result = CreateTaskSchema.parse(input);
@@ -400,6 +417,7 @@ describe('Task Validators', () => {
         priority: 'P1',
         assigneeIds: [],
         tags: [],
+        epicId: VALID_EPIC_ID,
       };
 
       const result = validateTaskInput(CreateTaskSchema, input);
@@ -410,6 +428,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'AB', // Too short
         description: 'Valid description',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => validateTaskInput(CreateTaskSchema, input)).toThrow(ValidationError);
@@ -419,6 +438,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'AB',
         description: 'Valid description',
+        epicId: VALID_EPIC_ID,
       };
 
       try {
@@ -438,6 +458,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'AB',
         description: 'Valid description',
+        epicId: VALID_EPIC_ID,
       };
 
       try {
@@ -480,6 +501,7 @@ describe('Task Validators', () => {
       const input = {
         title: '   Valid Title   ',
         description: 'Valid description text here',
+        epicId: VALID_EPIC_ID,
       };
 
       // Zod might trim or might not, depending on configuration
@@ -490,6 +512,7 @@ describe('Task Validators', () => {
       const input = {
         title: '',
         description: 'Valid description text here',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -499,6 +522,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'Valid Title',
         description: '',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).toThrow();
@@ -508,6 +532,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'Task with émojis 🚀 and spëcial çharacters',
         description: 'Description with @mentions #hashtags and $special $characters',
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).not.toThrow();
@@ -517,6 +542,7 @@ describe('Task Validators', () => {
       const input = {
         title: 'a'.repeat(200), // Max length
         description: 'b'.repeat(5000), // Max length
+        epicId: VALID_EPIC_ID,
       };
 
       expect(() => CreateTaskSchema.parse(input)).not.toThrow();

@@ -2,12 +2,15 @@
 
 import { useMemo } from "react";
 import { Task } from "@/types/task";
+import { Agent } from "@/types/agent";
+import { Epic } from "@/types/epic";
 import { isOverdue, isDueSoon } from "@/lib/taskUtils";
 import {
   AlertCircle,
   Calendar,
   ListTodo,
   Briefcase,
+  LucideIcon,
 } from "lucide-react";
 import {
   getPriorityBadgeClass,
@@ -19,11 +22,11 @@ interface KanbanColumnProps {
   column: {
     id: string;
     label: string;
-    icon: any;
+    icon: LucideIcon;
   };
   tasks: Task[];
-  agents: any[];
-  epics: any[];
+  agents: Agent[];
+  epics: Epic[];
   bulkMode: boolean;
   selectedTasks: Set<string>;
   isDragOver: boolean;

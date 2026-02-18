@@ -49,6 +49,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Fetch available epics to assign tasks to
+    const epics = await client.query(api.epics.getAllEpics);
+    if (!epics || epics.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "No epics available to assign tasks to",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    // Use first epic as default for auto-generated tasks
+    const defaultEpicId = epics[0]._id;
+
     // For each generated task, attach memory context
     const tasksWithContext = await Promise.all(
       tasks.map(async (task: any) => {
@@ -69,6 +83,7 @@ export async function POST(request: Request) {
           priority: task.priority || 'P2',
           source: 'agent', // System-generated tasks
           createdBy: 'system' as Id<"agents">,
+          epicId: defaultEpicId,
           tags: ['daily-gen', ...(task.tags || [])],
           timeEstimate: task.timeEstimate || undefined,
           dueDate: task.dueDate || undefined,
