@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { TASK_PRIORITY, TASK_STATUS, TIME_ESTIMATES, VALIDATION } from "@/lib/constants/business";
+import { TASK_PRIORITY, TASK_STATUS, TIME_ESTIMATES, VALIDATION } from "../constants/business";
 
 /**
  * VAL-01: Convex ID validator
