@@ -243,7 +243,7 @@ export const getCommitsForTask = action({
   },
   handler: async (ctx, { taskId, repoPath, limit = 20 }) => {
     // Get task
-    const task = await ctx.runQuery(api.tasks.getTaskById, { id: taskId });
+    const task = await ctx.runQuery(api.tasks.getTaskById, { taskId });
     if (!task) return { commits: [] };
     
     // Get pattern

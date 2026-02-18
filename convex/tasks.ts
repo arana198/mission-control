@@ -227,16 +227,16 @@ export const getMessageCount = query({
 
 // Get single task by ID
 export const getTaskById = query({
-  args: { id: v.id("tasks") },
-  handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, { taskId }) => {
+    return await ctx.db.get(taskId);
   },
 });
 
 // Move task status (internal helper)
 export const moveStatus = mutation({
   args: {
-    id: v.id("tasks"),
+    taskId: v.id("tasks"),
     fromStatus: v.string(),
     toStatus: v.union(
       v.literal("backlog"),
@@ -247,7 +247,7 @@ export const moveStatus = mutation({
       v.literal("done")
     ),
   },
-  handler: async (ctx, { id, fromStatus, toStatus }) => {
+  handler: async (ctx, { taskId, fromStatus, toStatus }) => {
     // TM-01: Validate state transition
     if (!isTransitionAllowed(fromStatus, toStatus)) {
       throw new Error(
@@ -256,7 +256,7 @@ export const moveStatus = mutation({
       );
     }
 
-    await ctx.db.patch(id, {
+    await ctx.db.patch(taskId, {
       status: toStatus,
       updatedAt: Date.now(),
       ...(toStatus === "in_progress" && !fromStatus.startsWith("in_progress") ? { startedAt: Date.now() } : {}),

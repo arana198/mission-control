@@ -16,9 +16,9 @@ export const getAllAgents = query({
 
 // Get single agent by ID
 export const getAgentById = query({
-  args: { id: v.id("agents") },
-  handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+  args: { agentId: v.id("agents") },
+  handler: async (ctx, { agentId }) => {
+    return await ctx.db.get(agentId);
   },
 });
 
@@ -45,15 +45,15 @@ export const getByName = query({
 // Update agent status
 export const updateStatus = mutation({
   args: {
-    id: v.id("agents"),
+    agentId: v.id("agents"),
     status: v.union(v.literal("idle"), v.literal("active"), v.literal("blocked")),
     currentTaskId: v.optional(v.id("tasks")),
   },
-  handler: async (ctx, { id, status, currentTaskId }) => {
-    const agent = await ctx.db.get(id);
+  handler: async (ctx, { agentId, status, currentTaskId }) => {
+    const agent = await ctx.db.get(agentId);
     if (!agent) throw new Error("Agent not found");
 
-    await ctx.db.patch(id, {
+    await ctx.db.patch(agentId, {
       status,
       currentTaskId,
       lastHeartbeat: Date.now(),
@@ -62,7 +62,7 @@ export const updateStatus = mutation({
     // Log activity
     await ctx.db.insert("activities", {
       type: "agent_status_changed",
-      agentId: id,
+      agentId,
       agentName: agent.name,
       message: `${agent.name} is now ${status}`,
       taskId: currentTaskId,
@@ -94,9 +94,9 @@ export const heartbeat = mutation({
 
 // Get agent with current task details
 export const getWithCurrentTask = query({
-  args: { id: v.id("agents") },
-  handler: async (ctx, { id }) => {
-    const agent = await ctx.db.get(id);
+  args: { agentId: v.id("agents") },
+  handler: async (ctx, { agentId }) => {
+    const agent = await ctx.db.get(agentId);
     if (!agent) return null;
 
     let currentTask = null;

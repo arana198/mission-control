@@ -138,7 +138,7 @@ const wakeAgentHttp = httpAction(async (ctx, request) => {
 
   const { agentId, requestedBy = "system" } = payload;
 
-  const agent = await ctx.runQuery(api.agents.getAgentById, { id: agentId });
+  const agent = await ctx.runQuery(api.agents.getAgentById, { agentId });
   if (!agent) {
     return new Response(JSON.stringify({ error: "Agent not found" }), { status: 404 });
   }

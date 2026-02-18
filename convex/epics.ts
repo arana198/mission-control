@@ -74,16 +74,16 @@ export const createEpic = mutation({
 // Update epic
 export const updateEpic = mutation({
   args: {
-    id: v.id("epics"),
+    epicId: v.id("epics"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.optional(v.union(v.literal("planning"), v.literal("active"), v.literal("completed"))),
   },
-  handler: async (ctx, { id, ...updates }) => {
-    const epic = await ctx.db.get(id);
+  handler: async (ctx, { epicId, ...updates }) => {
+    const epic = await ctx.db.get(epicId);
     if (!epic) throw new Error("Epic not found");
 
-    await ctx.db.patch(id, {
+    await ctx.db.patch(epicId, {
       ...updates,
       updatedAt: Date.now(),
     });
@@ -95,7 +95,7 @@ export const updateEpic = mutation({
         agentId: "system",
         agentName: "system",
         message: `Epic "${epic.title}" completed`,
-        epicId: id,
+        epicId,
         epicTitle: epic.title,
         createdAt: Date.now(),
       });
@@ -107,15 +107,15 @@ export const updateEpic = mutation({
 
 // Delete epic
 export const deleteEpic = mutation({
-  args: { id: v.id("epics") },
-  handler: async (ctx, { id }) => {
-    const epic = await ctx.db.get(id);
+  args: { epicId: v.id("epics") },
+  handler: async (ctx, { epicId }) => {
+    const epic = await ctx.db.get(epicId);
     if (!epic) throw new Error("Epic not found");
 
     // Clear epic references from tasks
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_epic", (q) => q.eq("epicId", id))
+      .withIndex("by_epic", (q) => q.eq("epicId", epicId))
       .collect();
 
     for (const task of tasks) {
@@ -123,7 +123,7 @@ export const deleteEpic = mutation({
     }
 
     // Delete the epic
-    await ctx.db.delete(id);
+    await ctx.db.delete(epicId);
 
     return { success: true };
   },

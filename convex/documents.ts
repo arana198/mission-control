@@ -71,22 +71,22 @@ export const getAll = query({
 
 // Get document by ID
 export const getById = query({
-  args: { id: v.id("documents") },
-  handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, { documentId }) => {
+    return await ctx.db.get(documentId);
   },
 });
 
 // Update document
 export const update = mutation({
   args: {
-    id: v.id("documents"),
+    documentId: v.id("documents"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     updatedBy: v.string(),
   },
-  handler: async (ctx, { id, title, content, updatedBy }) => {
-    const doc = await ctx.db.get(id);
+  handler: async (ctx, { documentId, title, content, updatedBy }) => {
+    const doc = await ctx.db.get(documentId);
     if (!doc) throw new Error("Document not found");
 
     const updateData: any = {
@@ -96,7 +96,7 @@ export const update = mutation({
     if (title) updateData.title = title;
     if (content) updateData.content = content;
 
-    await ctx.db.patch(id, updateData);
+    await ctx.db.patch(documentId, updateData);
 
     return { success: true };
   },
