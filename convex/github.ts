@@ -1,5 +1,5 @@
 import { query, mutation, action } from "./_generated/server";
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { api } from "./_generated/api";
 
 /**
@@ -57,8 +57,8 @@ async function fetchLocalCommitsInternal(repoPath: string, limit: number): Promi
  */
 export const setSetting = mutation({
   args: {
-    key: v.string(),
-    value: v.string(),
+    key: convexVal.string(),
+    value: convexVal.string(),
   },
   handler: async (ctx, { key, value }) => {
     const existing = await ctx.db
@@ -80,7 +80,7 @@ export const setSetting = mutation({
  */
 export const getSetting = query({
   args: {
-    key: v.string(),
+    key: convexVal.string(),
   },
   handler: async (ctx, { key }) => {
     const setting = await ctx.db
@@ -113,9 +113,9 @@ export const getTicketPattern = query({
  */
 export const fetchGitHubCommits: any = action({
   args: {
-    repo: v.optional(v.string()),
-    limit: v.optional(v.number()),
-    skipCache: v.optional(v.boolean()),
+    repo: convexVal.optional(convexVal.string()),
+    limit: convexVal.optional(convexVal.number()),
+    skipCache: convexVal.optional(convexVal.boolean()),
   },
   handler: async (ctx, { repo, limit = 50, skipCache = false }) => {
     // Get repo from settings if not provided
@@ -222,8 +222,8 @@ export const fetchGitHubCommits: any = action({
  */
 export const fetchLocalCommits = action({
   args: {
-    repoPath: v.optional(v.string()),
-    limit: v.optional(v.number()),
+    repoPath: convexVal.optional(convexVal.string()),
+    limit: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { repoPath, limit = 50 }) => {
     const path = repoPath || process.cwd();
@@ -237,9 +237,9 @@ export const fetchLocalCommits = action({
  */
 export const getCommitsForTask = action({
   args: {
-    taskId: v.id("tasks"),
-    repoPath: v.optional(v.string()),
-    limit: v.optional(v.number()),
+    taskId: convexVal.id("tasks"),
+    repoPath: convexVal.optional(convexVal.string()),
+    limit: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { taskId, repoPath, limit = 20 }) => {
     // Get task

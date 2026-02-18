@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation, httpAction } from "./_generated/server";
 import { httpRouter } from "convex/server";
 import { api } from "./_generated/api";
@@ -11,9 +11,9 @@ import { api } from "./_generated/api";
 // Store wake requests for the daemon to process
 export const requestWake = mutation({
   args: {
-    agentId: v.id("agents"),
-    requestedBy: v.string(),
-    priority: v.optional(v.union(v.literal("normal"), v.literal("urgent"))),
+    agentId: convexVal.id("agents"),
+    requestedBy: convexVal.string(),
+    priority: convexVal.optional(convexVal.union(convexVal.literal("normal"), convexVal.literal("urgent"))),
   },
   handler: async (ctx, { agentId, requestedBy, priority }) => {
     const agent = await ctx.db.get(agentId);
@@ -65,9 +65,9 @@ export const getPending = query({
 // Mark wake request as processed
 export const markProcessed = mutation({
   args: {
-    wakeId: v.id("wakeRequests"),
-    success: v.boolean(),
-    error: v.optional(v.string()),
+    wakeId: convexVal.id("wakeRequests"),
+    success: convexVal.boolean(),
+    error: convexVal.optional(convexVal.string()),
   },
   handler: async (ctx, { wakeId, success, error }) => {
     await ctx.db.patch(wakeId, {
@@ -81,7 +81,7 @@ export const markProcessed = mutation({
 // DM-04: Clean up stale wake requests older than TTL
 export const cleanupStale = mutation({
   args: {
-    olderThanMs: v.optional(v.number()),
+    olderThanMs: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { olderThanMs = 7 * 24 * 60 * 60 * 1000 }) => {
     const cutoff = Date.now() - olderThanMs;

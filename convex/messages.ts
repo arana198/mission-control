@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 
@@ -10,13 +10,13 @@ import { api } from "./_generated/api";
 // Create message with optional @mentions and thread subscriptions
 export const create = mutation({
   args: {
-    taskId: v.id("tasks"),
-    content: v.string(),
-    senderId: v.string(),
-    senderName: v.string(),
-    mentions: v.optional(v.array(v.id("agents"))),
-    mentionAll: v.optional(v.boolean()), // @all support
-    parentId: v.optional(v.id("messages")), // MSG-01: Reply to thread
+    taskId: convexVal.id("tasks"),
+    content: convexVal.string(),
+    senderId: convexVal.string(),
+    senderName: convexVal.string(),
+    mentions: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+    mentionAll: convexVal.optional(convexVal.boolean()), // @all support
+    parentId: convexVal.optional(convexVal.id("messages")), // MSG-01: Reply to thread
   },
   handler: async (ctx, { taskId, content, senderId, senderName, mentions, mentionAll, parentId }) => {
     const task = await ctx.db.get(taskId);
@@ -210,7 +210,7 @@ export const create = mutation({
 
 // Get messages for a task
 export const getByTask = query({
-  args: { taskId: v.id("tasks"), limit: v.optional(v.number()) },
+  args: { taskId: convexVal.id("tasks"), limit: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { taskId, limit }) => {
     const messages = await ctx.db
       .query("messages")
@@ -230,7 +230,7 @@ export const getByTask = query({
 
 // Get messages where agent was mentioned
 export const getWithMentions = query({
-  args: { agentId: v.id("agents"), limit: v.optional(v.number()) },
+  args: { agentId: convexVal.id("agents"), limit: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { agentId, limit }) => {
     const allMessages = await ctx.db.query("messages").take(200);
     const mentioned = allMessages.filter((msg) => msg.mentions.includes(agentId));
@@ -246,7 +246,7 @@ export const getWithMentions = query({
 
 // MSG-01: Get a message thread (parent + replies)
 export const getThread = query({
-  args: { parentId: v.id("messages") },
+  args: { parentId: convexVal.id("messages") },
   handler: async (ctx, { parentId }) => {
     const parent = await ctx.db.get(parentId);
     if (!parent) return null;
@@ -266,8 +266,8 @@ export const getThread = query({
 // Delete message (only sender can delete)
 export const remove = mutation({
   args: {
-    messageId: v.id("messages"),
-    senderId: v.string(), // Must match original sender
+    messageId: convexVal.id("messages"),
+    senderId: convexVal.string(), // Must match original sender
   },
   handler: async (ctx, { messageId, senderId }) => {
     const message = await ctx.db.get(messageId);

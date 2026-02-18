@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
 /**
@@ -9,20 +9,20 @@ import { query, mutation } from "./_generated/server";
 // Create notification
 export const create = mutation({
   args: {
-    recipientId: v.id("agents"),
-    type: v.union(
-      v.literal("mention"),
-      v.literal("assignment"),
-      v.literal("status_change"),
-      v.literal("block"),
-      v.literal("dependency_unblocked")
+    recipientId: convexVal.id("agents"),
+    type: convexVal.union(
+      convexVal.literal("mention"),
+      convexVal.literal("assignment"),
+      convexVal.literal("status_change"),
+      convexVal.literal("block"),
+      convexVal.literal("dependency_unblocked")
     ),
-    content: v.string(),
-    taskId: v.optional(v.id("tasks")),
-    taskTitle: v.optional(v.string()),
-    fromId: v.string(),
-    fromName: v.string(),
-    messageId: v.optional(v.id("messages")),
+    content: convexVal.string(),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    taskTitle: convexVal.optional(convexVal.string()),
+    fromId: convexVal.string(),
+    fromName: convexVal.string(),
+    messageId: convexVal.optional(convexVal.id("messages")),
   },
   handler: async (ctx, { recipientId, type, content, taskId, taskTitle, fromId, fromName, messageId }) => {
     return await ctx.db.insert("notifications", {
@@ -64,9 +64,9 @@ export const getUndelivered = query({
 // Get notifications for specific agent
 export const getForAgent = query({
   args: {
-    agentId: v.id("agents"),
-    includeRead: v.optional(v.boolean()),
-    limit: v.optional(v.number())
+    agentId: convexVal.id("agents"),
+    includeRead: convexVal.optional(convexVal.boolean()),
+    limit: convexVal.optional(convexVal.number())
   },
   handler: async (ctx, { agentId, includeRead, limit }) => {
     let notifications;
@@ -92,7 +92,7 @@ export const getForAgent = query({
 
 // Mark notification as read
 export const markRead = mutation({
-  args: { id: v.id("notifications") },
+  args: { id: convexVal.id("notifications") },
   handler: async (ctx, { id }) => {
     await ctx.db.patch(id, {
       read: true,
@@ -104,7 +104,7 @@ export const markRead = mutation({
 
 // Mark all notifications as read for an agent
 export const markAllRead = mutation({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const unread = await ctx.db
       .query("notifications")
@@ -125,7 +125,7 @@ export const markAllRead = mutation({
 
 // Count unread notifications for agent
 export const countUnread = query({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const unread = await ctx.db
       .query("notifications")
@@ -139,7 +139,7 @@ export const countUnread = query({
 
 // Get next actionable notification for agent (with task info)
 export const getNextActionable = query({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const unread = await ctx.db
       .query("notifications")

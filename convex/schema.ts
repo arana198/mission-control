@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 
 /**
  * Mission Control Schema - Production Architecture
@@ -12,29 +12,29 @@ export default defineSchema({
    * 10 specialized agents with distinct roles
    */
   agents: defineTable({
-    name: v.string(),              // "Jarvis"
-    role: v.string(),              // "Squad Lead"
-    status: v.union(
-      v.literal("idle"),
-      v.literal("active"),
-      v.literal("blocked")
+    name: convexVal.string(),              // "Jarvis"
+    role: convexVal.string(),              // "Squad Lead"
+    status: convexVal.union(
+      convexVal.literal("idle"),
+      convexVal.literal("active"),
+      convexVal.literal("blocked")
     ),
-    currentTaskId: v.optional(v.id("tasks")),
-    sessionKey: v.string(),        // "agent:main:main"
-    lastHeartbeat: v.number(),
-    apiKey: v.optional(v.string()),     // API key for HTTP auth layer
-    level: v.union(
-      v.literal("lead"),
-      v.literal("specialist"),
-      v.literal("intern")
+    currentTaskId: convexVal.optional(convexVal.id("tasks")),
+    sessionKey: convexVal.string(),        // "agent:main:main"
+    lastHeartbeat: convexVal.number(),
+    apiKey: convexVal.optional(convexVal.string()),     // API key for HTTP auth layer
+    level: convexVal.union(
+      convexVal.literal("lead"),
+      convexVal.literal("specialist"),
+      convexVal.literal("intern")
     ),
-    personality: v.optional(v.string()),
-    capabilities: v.optional(v.array(v.string())),
-    model: v.optional(v.string()),
-    metadata: v.optional(v.object({
-      totalTasksCompleted: v.optional(v.number()),
-      avgTaskDuration: v.optional(v.number()),
-      lastActiveAt: v.optional(v.number()),
+    personality: convexVal.optional(convexVal.string()),
+    capabilities: convexVal.optional(convexVal.array(convexVal.string())),
+    model: convexVal.optional(convexVal.string()),
+    metadata: convexVal.optional(convexVal.object({
+      totalTasksCompleted: convexVal.optional(convexVal.number()),
+      avgTaskDuration: convexVal.optional(convexVal.number()),
+      lastActiveAt: convexVal.optional(convexVal.number()),
     })),
   })
     .index("by_name", ["name"])
@@ -48,19 +48,19 @@ export default defineSchema({
    * Group tasks into strategic objectives
    */
   epics: defineTable({
-    title: v.string(),
-    description: v.string(),
-    status: v.union(
-      v.literal("planning"),
-      v.literal("active"),
-      v.literal("completed")
+    title: convexVal.string(),
+    description: convexVal.string(),
+    status: convexVal.union(
+      convexVal.literal("planning"),
+      convexVal.literal("active"),
+      convexVal.literal("completed")
     ),
-    taskIds: v.array(v.id("tasks")),
-    ownerId: v.optional(v.id("agents")),
-    progress: v.number(),          // 0-100 calculated
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    completedAt: v.optional(v.number()),
+    taskIds: convexVal.array(convexVal.id("tasks")),
+    ownerId: convexVal.optional(convexVal.id("agents")),
+    progress: convexVal.number(),          // 0-100 calculated
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+    completedAt: convexVal.optional(convexVal.number()),
   })
     .index("by_status", ["status"])
     .index("by_owner", ["ownerId"])
@@ -71,79 +71,79 @@ export default defineSchema({
    * Kanban-style task management with hierarchy
    */
   tasks: defineTable({
-    title: v.string(),
-    description: v.string(),
-    status: v.union(
-      v.literal("backlog"),
-      v.literal("ready"),
-      v.literal("in_progress"),
-      v.literal("review"),
-      v.literal("blocked"),
-      v.literal("done")
+    title: convexVal.string(),
+    description: convexVal.string(),
+    status: convexVal.union(
+      convexVal.literal("backlog"),
+      convexVal.literal("ready"),
+      convexVal.literal("in_progress"),
+      convexVal.literal("review"),
+      convexVal.literal("blocked"),
+      convexVal.literal("done")
     ),
-    priority: v.union(
-      v.literal("P0"),
-      v.literal("P1"),
-      v.literal("P2"),
-      v.literal("P3")
+    priority: convexVal.union(
+      convexVal.literal("P0"),
+      convexVal.literal("P1"),
+      convexVal.literal("P2"),
+      convexVal.literal("P3")
     ),
     
     // Hierarchy
-    epicId: v.id("epics"),  // REQUIRED: all tasks must belong to an epic
-    parentId: v.optional(v.id("tasks")),
-    subtaskIds: v.array(v.id("tasks")),
+    epicId: convexVal.id("epics"),  // REQUIRED: all tasks must belong to an epic
+    parentId: convexVal.optional(convexVal.id("tasks")),
+    subtaskIds: convexVal.array(convexVal.id("tasks")),
     
     // Assignment
-    ownerId: v.string(),           // agent ID or "user"
-    assigneeIds: v.array(v.id("agents")),
+    ownerId: convexVal.string(),           // agent ID or "user"
+    assigneeIds: convexVal.array(convexVal.id("agents")),
     
     // Estimation
-    estimatedHours: v.optional(v.number()),
-    actualHours: v.optional(v.number()),
-    timeEstimate: v.optional(v.union(
-      v.literal("XS"),
-      v.literal("S"),
-      v.literal("M"),
-      v.literal("L"),
-      v.literal("XL")
+    estimatedHours: convexVal.optional(convexVal.number()),
+    actualHours: convexVal.optional(convexVal.number()),
+    timeEstimate: convexVal.optional(convexVal.union(
+      convexVal.literal("XS"),
+      convexVal.literal("S"),
+      convexVal.literal("M"),
+      convexVal.literal("L"),
+      convexVal.literal("XL")
     )),
-    dueDate: v.optional(v.number()),
+    dueDate: convexVal.optional(convexVal.number()),
     
     // Dependencies
-    blockedBy: v.array(v.id("tasks")),
-    blocks: v.array(v.id("tasks")),
+    blockedBy: convexVal.array(convexVal.id("tasks")),
+    blocks: convexVal.array(convexVal.id("tasks")),
     
     // Tracking
-    createdBy: v.string(),         // agent ID or "user"
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    startedAt: v.optional(v.number()),
-    completedAt: v.optional(v.number()),
+    createdBy: convexVal.string(),         // agent ID or "user"
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+    startedAt: convexVal.optional(convexVal.number()),
+    completedAt: convexVal.optional(convexVal.number()),
     
     // Metadata
-    tags: v.array(v.string()),
-    receipts: v.array(v.string()), // commit hashes, file paths
+    tags: convexVal.array(convexVal.string()),
+    receipts: convexVal.array(convexVal.string()), // commit hashes, file paths
     
     // === NEW: Goal Integration ===
-    goalIds: v.optional(v.array(v.id("goals"))),
-    impact: v.optional(v.union(
-      v.literal("P0"),
-      v.literal("P1"),
-      v.literal("P2"),
-      v.literal("P3")
+    goalIds: convexVal.optional(convexVal.array(convexVal.id("goals"))),
+    impact: convexVal.optional(convexVal.union(
+      convexVal.literal("P0"),
+      convexVal.literal("P1"),
+      convexVal.literal("P2"),
+      convexVal.literal("P3")
     )),
     
     // === NEW: AI Generation Metadata ===
-    generatedBy: v.optional(v.string()),  // Agent that created task
-    generationReason: v.optional(v.string()), // Why this task was created
-    relatedMemoryKeys: v.optional(v.array(v.string())), // MEMORY.md sections
+    generatedBy: convexVal.optional(convexVal.string()),  // Agent that created task
+    generationReason: convexVal.optional(convexVal.string()), // Why this task was created
+    relatedMemoryKeys: convexVal.optional(convexVal.array(convexVal.string())), // MEMORY.md sections
     
     // === NEW: Execution Tracking ===
-    timeTracked: v.optional(v.number()),  // Actual hours spent
-    completionNotes: v.optional(v.string()),
+    timeTracked: convexVal.optional(convexVal.number()),  // Actual hours spent
+    completionNotes: convexVal.optional(convexVal.string()),
 
     // === NEW: Ticket Number ===
-    ticketNumber: v.optional(v.string()),  // e.g. "MC-001" — human-readable ID for API
+    ticketNumber: convexVal.optional(convexVal.string()),  // e.g. "MC-001" — human-readable ID for API
   })
     .index("by_status", ["status"])
     .index("by_epic", ["epicId"])
@@ -160,33 +160,33 @@ export default defineSchema({
    * Comments on tasks with @mentions and threading
    */
   messages: defineTable({
-    taskId: v.id("tasks"),
-    fromId: v.string(),            // agent ID or "user"
-    fromName: v.string(),          // display name (denormalized)
-    fromRole: v.optional(v.string()), // agent role
-    content: v.string(),
+    taskId: convexVal.id("tasks"),
+    fromId: convexVal.string(),            // agent ID or "user"
+    fromName: convexVal.string(),          // display name (denormalized)
+    fromRole: convexVal.optional(convexVal.string()), // agent role
+    content: convexVal.string(),
     
     // Threading
-    parentId: v.optional(v.id("messages")),
-    replyIds: v.array(v.id("messages")),
+    parentId: convexVal.optional(convexVal.id("messages")),
+    replyIds: convexVal.array(convexVal.id("messages")),
     
     // @mentions
-    mentions: v.array(v.id("agents")),
+    mentions: convexVal.array(convexVal.id("agents")),
     
     // Attachments
-    attachments: v.optional(v.array(v.id("documents"))),
+    attachments: convexVal.optional(convexVal.array(convexVal.id("documents"))),
     
     // System messages
-    isSystem: v.optional(v.boolean()),
-    systemType: v.optional(v.union(
-      v.literal("status_change"),
-      v.literal("assignment"),
-      v.literal("dependency_added"),
-      v.literal("blocker_added")
+    isSystem: convexVal.optional(convexVal.boolean()),
+    systemType: convexVal.optional(convexVal.union(
+      convexVal.literal("status_change"),
+      convexVal.literal("assignment"),
+      convexVal.literal("dependency_added"),
+      convexVal.literal("blocker_added")
     )),
     
-    createdAt: v.number(),
-    editedAt: v.optional(v.number()),
+    createdAt: convexVal.number(),
+    editedAt: convexVal.optional(convexVal.number()),
   })
     .index("by_task", ["taskId"])
     .index("by_parent", ["parentId"])
@@ -198,41 +198,41 @@ export default defineSchema({
    * Real-time stream with full denormalization
    */
   activities: defineTable({
-    type: v.union(
-      v.literal("task_created"),
-      v.literal("task_updated"),
-      v.literal("task_completed"),
-      v.literal("task_blocked"),
-      v.literal("task_assigned"),
-      v.literal("agent_claimed"),
-      v.literal("agent_status_changed"),
-      v.literal("comment_added"),
-      v.literal("mention"),
-      v.literal("epic_created"),
-      v.literal("epic_completed"),
-      v.literal("dependency_added"),
-      v.literal("dependency_removed"),
-      v.literal("tags_updated"),
-      v.literal("tasks_queried")
+    type: convexVal.union(
+      convexVal.literal("task_created"),
+      convexVal.literal("task_updated"),
+      convexVal.literal("task_completed"),
+      convexVal.literal("task_blocked"),
+      convexVal.literal("task_assigned"),
+      convexVal.literal("agent_claimed"),
+      convexVal.literal("agent_status_changed"),
+      convexVal.literal("comment_added"),
+      convexVal.literal("mention"),
+      convexVal.literal("epic_created"),
+      convexVal.literal("epic_completed"),
+      convexVal.literal("dependency_added"),
+      convexVal.literal("dependency_removed"),
+      convexVal.literal("tags_updated"),
+      convexVal.literal("tasks_queried")
     ),
     
     // Actor (denormalized for speed)
-    agentId: v.string(),
-    agentName: v.string(),
-    agentRole: v.optional(v.string()),
+    agentId: convexVal.string(),
+    agentName: convexVal.string(),
+    agentRole: convexVal.optional(convexVal.string()),
     
     // Target
-    taskId: v.optional(v.id("tasks")),
-    taskTitle: v.optional(v.string()),
-    epicId: v.optional(v.id("epics")),
-    epicTitle: v.optional(v.string()),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    taskTitle: convexVal.optional(convexVal.string()),
+    epicId: convexVal.optional(convexVal.id("epics")),
+    epicTitle: convexVal.optional(convexVal.string()),
     
     // Change tracking
-    message: v.string(),
-    oldValue: v.optional(v.any()),
-    newValue: v.optional(v.any()),
+    message: convexVal.string(),
+    oldValue: convexVal.optional(convexVal.any()),
+    newValue: convexVal.optional(convexVal.any()),
     
-    createdAt: v.number(),
+    createdAt: convexVal.number(),
   })
     .index("by_created_at", ["createdAt"])
     .index("by_agent", ["agentId"])
@@ -245,36 +245,36 @@ export default defineSchema({
    * Real-time alerts with delivery tracking
    */
   notifications: defineTable({
-    recipientId: v.id("agents"),   // who gets notified
-    type: v.union(
-      v.literal("mention"),
-      v.literal("assignment"),
-      v.literal("status_change"),
-      v.literal("block"),
-      v.literal("dependency_unblocked")
+    recipientId: convexVal.id("agents"),   // who gets notified
+    type: convexVal.union(
+      convexVal.literal("mention"),
+      convexVal.literal("assignment"),
+      convexVal.literal("status_change"),
+      convexVal.literal("block"),
+      convexVal.literal("dependency_unblocked")
     ),
     
-    content: v.string(),
+    content: convexVal.string(),
     
     // Source (denormalized)
-    fromId: v.string(),
-    fromName: v.string(),
+    fromId: convexVal.string(),
+    fromName: convexVal.string(),
     
     // Context
-    taskId: v.optional(v.id("tasks")),
-    taskTitle: v.optional(v.string()),
-    messageId: v.optional(v.id("messages")),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    taskTitle: convexVal.optional(convexVal.string()),
+    messageId: convexVal.optional(convexVal.id("messages")),
     
     // Delivery state
-    read: v.boolean(),
-    readAt: v.optional(v.number()),
-    clicked: v.optional(v.boolean()),
-    clickedAt: v.optional(v.number()),
+    read: convexVal.boolean(),
+    readAt: convexVal.optional(convexVal.number()),
+    clicked: convexVal.optional(convexVal.boolean()),
+    clickedAt: convexVal.optional(convexVal.number()),
     
     // Expiry
-    expiresAt: v.optional(v.number()),
+    expiresAt: convexVal.optional(convexVal.number()),
     
-    createdAt: v.number(),
+    createdAt: convexVal.number(),
   })
     .index("by_recipient", ["recipientId"])
     .index("by_read", ["recipientId", "read"])
@@ -286,10 +286,10 @@ export default defineSchema({
    * Agents auto-subscribed to relevant threads
    */
   threadSubscriptions: defineTable({
-    agentId: v.id("agents"),
-    taskId: v.id("tasks"),
-    level: v.union(v.literal("all"), v.literal("mentions_only")),
-    createdAt: v.number(),
+    agentId: convexVal.id("agents"),
+    taskId: convexVal.id("tasks"),
+    level: convexVal.union(convexVal.literal("all"), convexVal.literal("mentions_only")),
+    createdAt: convexVal.number(),
   })
     .index("by_agent_task", ["agentId", "taskId"])
     .index("by_task", ["taskId"])
@@ -300,23 +300,23 @@ export default defineSchema({
    * Research, protocols, specs, drafts
    */
   documents: defineTable({
-    title: v.string(),
-    content: v.string(),
-    type: v.union(
-      v.literal("deliverable"),
-      v.literal("research"),
-      v.literal("protocol"),
-      v.literal("spec"),
-      v.literal("draft"),
-      v.literal("receipt")
+    title: convexVal.string(),
+    content: convexVal.string(),
+    type: convexVal.union(
+      convexVal.literal("deliverable"),
+      convexVal.literal("research"),
+      convexVal.literal("protocol"),
+      convexVal.literal("spec"),
+      convexVal.literal("draft"),
+      convexVal.literal("receipt")
     ),
-    taskId: v.optional(v.id("tasks")),
-    epicId: v.optional(v.id("epics")),
-    createdBy: v.string(),
-    createdByName: v.string(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    version: v.number(),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    epicId: convexVal.optional(convexVal.id("epics")),
+    createdBy: convexVal.string(),
+    createdByName: convexVal.string(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+    version: convexVal.number(),
   })
     .index("by_task", ["taskId"])
     .index("by_epic", ["epicId"])
@@ -328,25 +328,25 @@ export default defineSchema({
    * Aggregated agent performance data
    */
   agentMetrics: defineTable({
-    agentId: v.id("agents"),
-    period: v.string(),          // "2024-01" for monthly
+    agentId: convexVal.id("agents"),
+    period: convexVal.string(),          // "2024-01" for monthly
     
     // Task metrics
-    tasksCreated: v.number(),
-    tasksCompleted: v.number(),
-    tasksBlocked: v.number(),
-    avgCompletionTime: v.number(), // hours
+    tasksCreated: convexVal.number(),
+    tasksCompleted: convexVal.number(),
+    tasksBlocked: convexVal.number(),
+    avgCompletionTime: convexVal.number(), // hours
     
     // Collaboration
-    commentsMade: v.number(),
-    mentionsSent: v.number(),
-    mentionsReceived: v.number(),
+    commentsMade: convexVal.number(),
+    mentionsSent: convexVal.number(),
+    mentionsReceived: convexVal.number(),
     
     // Engagement
-    sessionsCompleted: v.number(),
-    totalSessionHours: v.number(),
+    sessionsCompleted: convexVal.number(),
+    totalSessionHours: convexVal.number(),
     
-    updatedAt: v.number(),
+    updatedAt: convexVal.number(),
   })
     .index("by_agent", ["agentId"])
     .index("by_period", ["period"]),
@@ -356,16 +356,16 @@ export default defineSchema({
    * Queue for waking agents via notification daemon
    */
   wakeRequests: defineTable({
-    agentId: v.id("agents"),
-    agentName: v.string(),
-    agentSessionKey: v.string(),
-    requestedBy: v.string(),    // who requested the wake
-    priority: v.union(v.literal("normal"), v.literal("urgent")),
-    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
-    error: v.optional(v.string()),
-    createdAt: v.number(),
-    expiresAt: v.number(),      // DM-04: TTL for cleanup
-    processedAt: v.optional(v.number()),
+    agentId: convexVal.id("agents"),
+    agentName: convexVal.string(),
+    agentSessionKey: convexVal.string(),
+    requestedBy: convexVal.string(),    // who requested the wake
+    priority: convexVal.union(convexVal.literal("normal"), convexVal.literal("urgent")),
+    status: convexVal.union(convexVal.literal("pending"), convexVal.literal("completed"), convexVal.literal("failed")),
+    error: convexVal.optional(convexVal.string()),
+    createdAt: convexVal.number(),
+    expiresAt: convexVal.number(),      // DM-04: TTL for cleanup
+    processedAt: convexVal.optional(convexVal.number()),
   })
     .index("by_status", ["status"])
     .index("by_agent", ["agentId"]),
@@ -375,39 +375,39 @@ export default defineSchema({
    * AI-native goal tracking with memory integration
    */
   goals: defineTable({
-    title: v.string(),
-    description: v.string(),
-    category: v.union(
-      v.literal("business"),
-      v.literal("personal"),
-      v.literal("learning"),
-      v.literal("health")
+    title: convexVal.string(),
+    description: convexVal.string(),
+    category: convexVal.union(
+      convexVal.literal("business"),
+      convexVal.literal("personal"),
+      convexVal.literal("learning"),
+      convexVal.literal("health")
     ),
-    status: v.union(
-      v.literal("active"),
-      v.literal("paused"),
-      v.literal("completed"),
-      v.literal("archived")
+    status: convexVal.union(
+      convexVal.literal("active"),
+      convexVal.literal("paused"),
+      convexVal.literal("completed"),
+      convexVal.literal("archived")
     ),
     
     // Hierarchy
-    parentGoalId: v.optional(v.id("goals")),
-    childGoalIds: v.array(v.id("goals")),
+    parentGoalId: convexVal.optional(convexVal.id("goals")),
+    childGoalIds: convexVal.array(convexVal.id("goals")),
     
     // Progress
-    progress: v.number(),          // 0-100% (calculated from tasks)
-    deadline: v.optional(v.number()),
+    progress: convexVal.number(),          // 0-100% (calculated from tasks)
+    deadline: convexVal.optional(convexVal.number()),
     
     // Strategy
-    keyResults: v.optional(v.array(v.string())),  // OKR-style measures
-    relatedTaskIds: v.array(v.id("tasks")),
-    relatedMemoryRefs: v.array(v.string()),       // Paths in MEMORY.md
+    keyResults: convexVal.optional(convexVal.array(convexVal.string())),  // OKR-style measures
+    relatedTaskIds: convexVal.array(convexVal.id("tasks")),
+    relatedMemoryRefs: convexVal.array(convexVal.string()),       // Paths in MEMORY.md
     
     // Metadata
-    owner: v.string(),            // "user" or agentId
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    completedAt: v.optional(v.number()),
+    owner: convexVal.string(),            // "user" or agentId
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+    completedAt: convexVal.optional(convexVal.number()),
   })
     .index("by_status", ["status"])
     .index("by_owner", ["owner"])
@@ -419,40 +419,40 @@ export default defineSchema({
    * Human calendar + AI-scheduled tasks in one view
    */
   calendarEvents: defineTable({
-    title: v.string(),
-    description: v.optional(v.string()),
+    title: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
     
     // Timing
-    startTime: v.number(),        // Epoch ms
-    endTime: v.number(),
-    timezone: v.string(),         // "Europe/London"
-    recurring: v.optional(v.object({
-      rule: v.string(),           // RFC 5545 RRULE
-      exceptions: v.optional(v.array(v.number())),
+    startTime: convexVal.number(),        // Epoch ms
+    endTime: convexVal.number(),
+    timezone: convexVal.string(),         // "Europe/London"
+    recurring: convexVal.optional(convexVal.object({
+      rule: convexVal.string(),           // RFC 5545 RRULE
+      exceptions: convexVal.optional(convexVal.array(convexVal.number())),
     })),
     
     // Type
-    type: v.union(
-      v.literal("human"),         // Manually created/synced
-      v.literal("ai_task"),       // Task scheduled by AI
-      v.literal("ai_workflow"),   // Recurring AI workflow
-      v.literal("bot_generated")  // Generated by autonomous system
+    type: convexVal.union(
+      convexVal.literal("human"),         // Manually created/synced
+      convexVal.literal("ai_task"),       // Task scheduled by AI
+      convexVal.literal("ai_workflow"),   // Recurring AI workflow
+      convexVal.literal("bot_generated")  // Generated by autonomous system
     ),
     
     // AI-specific
-    taskId: v.optional(v.id("tasks")),
-    generatedBy: v.optional(v.string()),  // Agent name
-    executedAt: v.optional(v.number()),   // When task actually ran
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    generatedBy: convexVal.optional(convexVal.string()),  // Agent name
+    executedAt: convexVal.optional(convexVal.number()),   // When task actually ran
     
     // Links
-    goalIds: v.optional(v.array(v.id("goals"))),
+    goalIds: convexVal.optional(convexVal.array(convexVal.id("goals"))),
 
     // Display
-    color: v.optional(v.string()),  // hex or named color
-    priority: v.optional(v.number()),
+    color: convexVal.optional(convexVal.string()),  // hex or named color
+    priority: convexVal.optional(convexVal.number()),
     
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
   })
     .index("by_start_time", ["startTime"])
     .index("by_type", ["type"])
@@ -465,26 +465,26 @@ export default defineSchema({
    */
   memoryIndex: defineTable({
     // What
-    entityType: v.union(
-      v.literal("goal"),
-      v.literal("task"),
-      v.literal("event"),
-      v.literal("note")
+    entityType: convexVal.union(
+      convexVal.literal("goal"),
+      convexVal.literal("task"),
+      convexVal.literal("event"),
+      convexVal.literal("note")
     ),
-    entityId: v.string(),         // Goal/Task/Event ID
+    entityId: convexVal.string(),         // Goal/Task/Event ID
     
     // Link to memory
-    memoryPath: v.string(),       // "MEMORY.md" or "memory/Projects/YouTube.md"
-    memoryLineRange: v.optional(v.object({
-      from: v.number(),
-      to: v.number(),
+    memoryPath: convexVal.string(),       // "MEMORY.md" or "memory/Projects/YouTube.md"
+    memoryLineRange: convexVal.optional(convexVal.object({
+      from: convexVal.number(),
+      to: convexVal.number(),
     })),
     
     // Semantic metadata
-    keywords: v.array(v.string()),
-    relatedMemoryPaths: v.array(v.string()),
+    keywords: convexVal.array(convexVal.string()),
+    relatedMemoryPaths: convexVal.array(convexVal.string()),
     
-    lastSynced: v.number(),
+    lastSynced: convexVal.number(),
   })
     .index("by_entity", ["entityType", "entityId"])
     .index("by_memory_path", ["memoryPath"])
@@ -495,29 +495,29 @@ export default defineSchema({
    * Generated reports on goal progress + recommendations
    */
   strategicReports: defineTable({
-    week: v.number(),             // ISO week number
-    year: v.number(),
+    week: convexVal.number(),             // ISO week number
+    year: convexVal.number(),
     
     // Analysis
-    goalsReview: v.object({
-      activeGoals: v.number(),
-      completedThisWeek: v.array(v.id("goals")),
-      blockedGoals: v.array(v.id("goals")),
-      acceleratingGoals: v.array(v.id("goals")),
+    goalsReview: convexVal.object({
+      activeGoals: convexVal.number(),
+      completedThisWeek: convexVal.array(convexVal.id("goals")),
+      blockedGoals: convexVal.array(convexVal.id("goals")),
+      acceleratingGoals: convexVal.array(convexVal.id("goals")),
     }),
     
-    taskMetrics: v.object({
-      tasksGenerated: v.number(),
-      tasksCompleted: v.number(),
-      avgCompletionRate: v.number(),  // percentage
-      avgTimePerTask: v.number(),     // hours
-      blockedBy: v.array(v.string()), // Goal titles
+    taskMetrics: convexVal.object({
+      tasksGenerated: convexVal.number(),
+      tasksCompleted: convexVal.number(),
+      avgCompletionRate: convexVal.number(),  // percentage
+      avgTimePerTask: convexVal.number(),     // hours
+      blockedBy: convexVal.array(convexVal.string()), // Goal titles
     }),
     
-    insights: v.array(v.string()),
-    recommendations: v.array(v.string()),
+    insights: convexVal.array(convexVal.string()),
+    recommendations: convexVal.array(convexVal.string()),
     
-    createdAt: v.number(),
+    createdAt: convexVal.number(),
   })
     .index("by_week", ["year", "week"])
     .index("by_created_at", ["createdAt"]),
@@ -527,9 +527,9 @@ export default defineSchema({
    * App-wide settings including ticket patterns for GitHub integration
    */
   settings: defineTable({
-    key: v.string(),               // e.g., "ticketPattern", "githubRepo"
-    value: v.string(),             // e.g., "[A-Z]+-\\d+", "owner/repo"
-    updatedAt: v.number(),
+    key: convexVal.string(),               // e.g., "ticketPattern", "githubRepo"
+    value: convexVal.string(),             // e.g., "[A-Z]+-\\d+", "owner/repo"
+    updatedAt: convexVal.number(),
   })
     .index("by_key", ["key"]),
 
@@ -538,32 +538,32 @@ export default defineSchema({
    * Track when tasks run, outcomes, time spent
    */
   executionLog: defineTable({
-    taskId: v.id("tasks"),
-    agentId: v.optional(v.string()),  // who executed it
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.optional(convexVal.string()),  // who executed it
     
-    status: v.union(
-      v.literal("started"),
-      v.literal("success"),
-      v.literal("failed"),
-      v.literal("incomplete"),
-      v.literal("retry")
+    status: convexVal.union(
+      convexVal.literal("started"),
+      convexVal.literal("success"),
+      convexVal.literal("failed"),
+      convexVal.literal("incomplete"),
+      convexVal.literal("retry")
     ),
     
     // Execution details
-    startedAt: v.number(),
-    completedAt: v.optional(v.number()),
-    timeSpent: v.optional(v.number()),  // minutes
+    startedAt: convexVal.number(),
+    completedAt: convexVal.optional(convexVal.number()),
+    timeSpent: convexVal.optional(convexVal.number()),  // minutes
     
     // Outcomes
-    output: v.optional(v.string()),
-    error: v.optional(v.string()),
-    nextAction: v.optional(v.string()),
+    output: convexVal.optional(convexVal.string()),
+    error: convexVal.optional(convexVal.string()),
+    nextAction: convexVal.optional(convexVal.string()),
     
     // Retry tracking
-    attemptNumber: v.number(),
-    maxAttempts: v.number(),
+    attemptNumber: convexVal.number(),
+    maxAttempts: convexVal.number(),
     
-    createdAt: v.number(),
+    createdAt: convexVal.number(),
   })
     .index("by_task", ["taskId"])
     .index("by_status", ["status"])

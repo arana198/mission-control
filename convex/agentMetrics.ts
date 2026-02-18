@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
 /**
@@ -9,11 +9,11 @@ import { query, mutation } from "./_generated/server";
 // REP-01: Upsert metrics for an agent in a given period
 export const upsertMetrics = mutation({
   args: {
-    agentId: v.id("agents"),
-    tasksCreated: v.optional(v.number()),
-    tasksCompleted: v.optional(v.number()),
-    tasksBlocked: v.optional(v.number()),
-    commentsMade: v.optional(v.number()),
+    agentId: convexVal.id("agents"),
+    tasksCreated: convexVal.optional(convexVal.number()),
+    tasksCompleted: convexVal.optional(convexVal.number()),
+    tasksBlocked: convexVal.optional(convexVal.number()),
+    commentsMade: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { agentId, tasksCreated, tasksCompleted, tasksBlocked, commentsMade }) => {
     const agent = await ctx.db.get(agentId);
@@ -61,7 +61,7 @@ export const upsertMetrics = mutation({
 
 // Get metrics for an agent across all periods
 export const getByAgent = query({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const metrics = await ctx.db
       .query("agentMetrics")
@@ -75,7 +75,7 @@ export const getByAgent = query({
 
 // Get metrics for a specific period (all agents)
 export const getByPeriod = query({
-  args: { period: v.string() },
+  args: { period: convexVal.string() },
   handler: async (ctx, { period }) => {
     const metrics = await ctx.db
       .query("agentMetrics")
@@ -89,7 +89,7 @@ export const getByPeriod = query({
 
 // Get leaderboard for a period (top agents by tasksCompleted)
 export const getLeaderboard = query({
-  args: { period: v.optional(v.string()), limit: v.optional(v.number()) },
+  args: { period: convexVal.optional(convexVal.string()), limit: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { period, limit = 10 }) => {
     const queryPeriod = period || (() => {
       const now = new Date();
@@ -128,7 +128,7 @@ export const getLeaderboard = query({
 
 // Get current month metrics for a specific agent
 export const getCurrentMonth = query({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const now = new Date();
     const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

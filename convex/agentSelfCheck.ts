@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
 import { api } from "./_generated/api";
 
@@ -13,7 +13,7 @@ import { api } from "./_generated/api";
  * - Tasks in "ready" status assigned to them
  */
 export const getWorkQueue = query({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) throw new Error("Agent not found");
@@ -57,7 +57,7 @@ export const getWorkQueue = query({
  * - Logs activity
  */
 export const claimNextTask = mutation({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) throw new Error("Agent not found");
@@ -134,7 +134,7 @@ export const claimNextTask = mutation({
  * Called when agent wakes up - checks queue and claims work
  */
 export const wakeAndCheck = action({
-  args: { agentId: v.id("agents") },
+  args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }): Promise<any> => {
     // Get work queue
     const queue: any = await ctx.runQuery(api.agentSelfCheck.getWorkQueue, { agentId });
@@ -177,7 +177,7 @@ export const wakeAndCheck = action({
  * Case-insensitive matching via scan
  */
 export const getWorkQueueByName = query({
-  args: { agentName: v.string() },
+  args: { agentName: convexVal.string() },
   handler: async (ctx, { agentName }) => {
     // Lookup agent by name (case-insensitive scan - works for 10 agents)
     const lowerName = agentName.toLowerCase();
@@ -224,7 +224,7 @@ export const getWorkQueueByName = query({
  * Case-insensitive matching via scan
  */
 export const claimNextTaskByName = mutation({
-  args: { agentName: v.string() },
+  args: { agentName: convexVal.string() },
   handler: async (ctx, { agentName }) => {
     // Lookup agent by name (case-insensitive scan - works for 10 agents)
     const lowerName = agentName.toLowerCase();
@@ -309,7 +309,7 @@ export const claimNextTaskByName = mutation({
  * One-call check + claim for agents
  */
 export const wakeAndCheckByName = action({
-  args: { agentName: v.string() },
+  args: { agentName: convexVal.string() },
   handler: async (ctx, { agentName }): Promise<any> => {
     // Get work queue
     const queue: any = await ctx.runQuery(api.agentSelfCheck.getWorkQueueByName, { agentName });

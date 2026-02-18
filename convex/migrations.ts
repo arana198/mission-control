@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 
@@ -10,7 +10,7 @@ import { api } from "./_generated/api";
 /**
  * MIG-02: Add apiKey to agents table (2026-02-18)
  *
- * Schema change: Added `apiKey: v.optional(v.string())` field to agents table
+ * Schema change: Added `apiKey: convexVal.optional(convexVal.string())` field to agents table
  * and `by_api_key` index for efficient lookup.
  *
  * Reason: Enables the HTTP API auth layer. Agents register via
@@ -35,7 +35,7 @@ export const migrateApiKeyDocumentation = mutation({
 /**
  * MIG-03: Add ticketNumber to tasks table (2026-02-18)
  *
- * Schema change: Added `ticketNumber: v.optional(v.string())` field to tasks table.
+ * Schema change: Added `ticketNumber: convexVal.optional(convexVal.string())` field to tasks table.
  * Counter: Initializes "taskCounter" key in settings table.
  *
  * Reason: Provides stable, human-readable task IDs (MC-001, MC-002...) for agent
@@ -118,7 +118,7 @@ export const getTasksWithoutEpic = query({
 
 // Get activities for a specific agent
 export const getAgentActivities = query({
-  args: { agentName: v.string(), limit: v.optional(v.number()) },
+  args: { agentName: convexVal.string(), limit: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { agentName, limit }) => {
     const activities = await ctx.db.query("activities")
       .order("desc")
@@ -136,8 +136,8 @@ export const getAgentActivities = query({
 // MIG-01: Add batch cap to migration
 export const migrateTasksToEpic = mutation({
   args: {
-    epicId: v.optional(v.id("epics")), // If provided, use this. Otherwise create one
-    batchSize: v.optional(v.number()),
+    epicId: convexVal.optional(convexVal.id("epics")), // If provided, use this. Otherwise create one
+    batchSize: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { epicId, batchSize = 100 }) => {
     let targetEpicId = epicId;
@@ -218,9 +218,9 @@ export const migrateTasksToEpic = mutation({
 // Assign or update epic for specific task
 export const assignEpic = mutation({
   args: {
-    taskId: v.id("tasks"),
-    epicId: v.id("epics"),
-    updatedBy: v.string(),
+    taskId: convexVal.id("tasks"),
+    epicId: convexVal.id("epics"),
+    updatedBy: convexVal.string(),
   },
   handler: async (ctx, { taskId, epicId, updatedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -275,7 +275,7 @@ export const assignEpic = mutation({
 // MIG-01: Add batch cap
 export const smartAssignEpics = mutation({
   args: {
-    batchSize: v.optional(v.number()),
+    batchSize: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { batchSize = 100 }) => {
     const tasks = await ctx.db.query("tasks").collect();
@@ -355,10 +355,10 @@ export const smartAssignEpics = mutation({
 // MIG-01: Add batch cap to prevent timeout
 export const deleteEpic = mutation({
   args: {
-    epicId: v.id("epics"),
-    reassignTo: v.optional(v.id("epics")), // If set, tasks move here. Otherwise tasks become orphaned
-    deletedBy: v.string(),
-    batchSize: v.optional(v.number()),
+    epicId: convexVal.id("epics"),
+    reassignTo: convexVal.optional(convexVal.id("epics")), // If set, tasks move here. Otherwise tasks become orphaned
+    deletedBy: convexVal.string(),
+    batchSize: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { epicId, reassignTo, deletedBy, batchSize = 100 }) => {
     const epic = await ctx.db.get(epicId);
@@ -425,15 +425,15 @@ export const deleteEpic = mutation({
 // Update epic
 export const updateEpic = mutation({
   args: {
-    epicId: v.id("epics"),
-    title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal("planning"),
-      v.literal("active"),
-      v.literal("completed")
+    epicId: convexVal.id("epics"),
+    title: convexVal.optional(convexVal.string()),
+    description: convexVal.optional(convexVal.string()),
+    status: convexVal.optional(convexVal.union(
+      convexVal.literal("planning"),
+      convexVal.literal("active"),
+      convexVal.literal("completed")
     )),
-    updatedBy: v.string(),
+    updatedBy: convexVal.string(),
   },
   handler: async (ctx, { epicId, title, description, status, updatedBy }) => {
     const epic = await ctx.db.get(epicId);
@@ -471,14 +471,14 @@ export const updateEpic = mutation({
 // Update task (used by Roadmap for status/epic changes)
 export const updateTask = mutation({
   args: {
-    taskId: v.id("tasks"),
-    title: v.optional(v.string()),
-    status: v.optional(v.string()),
-    priority: v.optional(v.string()),
-    epicId: v.optional(v.id("epics")),
-    description: v.optional(v.string()),
-    timeEstimate: v.optional(v.string()),
-    updatedBy: v.string(),
+    taskId: convexVal.id("tasks"),
+    title: convexVal.optional(convexVal.string()),
+    status: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.string()),
+    epicId: convexVal.optional(convexVal.id("epics")),
+    description: convexVal.optional(convexVal.string()),
+    timeEstimate: convexVal.optional(convexVal.string()),
+    updatedBy: convexVal.string(),
   },
   handler: async (ctx, { taskId, title, status, priority, epicId, description, timeEstimate, updatedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -546,8 +546,8 @@ export const updateTask = mutation({
 // Delete task
 export const deleteTask = mutation({
   args: {
-    taskId: v.id("tasks"),
-    deletedBy: v.string(),
+    taskId: convexVal.id("tasks"),
+    deletedBy: convexVal.string(),
   },
   handler: async (ctx, { taskId, deletedBy }) => {
     const task = await ctx.db.get(taskId);

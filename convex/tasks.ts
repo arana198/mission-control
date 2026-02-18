@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation, internalAction } from "./_generated/server";
 import { api } from "./_generated/api";
 import { detectCycle } from "./utils/graphValidation";
@@ -55,16 +55,16 @@ function inferTagsFromContent(title: string, description: string): string[] {
 
 export const createTask = mutation({
   args: {
-    title: v.string(),
-    description: v.string(),
-    priority: v.optional(v.union(v.literal("P0"), v.literal("P1"), v.literal("P2"), v.literal("P3"))),
-    createdBy: v.string(), // Can be agent ID or "user"
-    source: v.union(v.literal("agent"), v.literal("user")),
-    assigneeIds: v.optional(v.array(v.id("agents"))),
-    tags: v.optional(v.array(v.string())),
-    timeEstimate: v.optional(v.union(v.literal("XS"), v.literal("S"), v.literal("M"), v.literal("L"), v.literal("XL"))),
-    dueDate: v.optional(v.number()),
-    epicId: v.id("epics"),  // REQUIRED: all tasks must belong to an epic
+    title: convexVal.string(),
+    description: convexVal.string(),
+    priority: convexVal.optional(convexVal.union(convexVal.literal("P0"), convexVal.literal("P1"), convexVal.literal("P2"), convexVal.literal("P3"))),
+    createdBy: convexVal.string(), // Can be agent ID or "user"
+    source: convexVal.union(convexVal.literal("agent"), convexVal.literal("user")),
+    assigneeIds: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+    tags: convexVal.optional(convexVal.array(convexVal.string())),
+    timeEstimate: convexVal.optional(convexVal.union(convexVal.literal("XS"), convexVal.literal("S"), convexVal.literal("M"), convexVal.literal("L"), convexVal.literal("XL"))),
+    dueDate: convexVal.optional(convexVal.number()),
+    epicId: convexVal.id("epics"),  // REQUIRED: all tasks must belong to an epic
   },
   handler: async (
     ctx,
@@ -215,7 +215,7 @@ export const getAllTasks = query({
 
 // Get message count for a task
 export const getMessageCount = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const messages = await ctx.db
       .query("messages")
@@ -227,7 +227,7 @@ export const getMessageCount = query({
 
 // Get single task by ID
 export const getTaskById = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     return await ctx.db.get(taskId);
   },
@@ -236,15 +236,15 @@ export const getTaskById = query({
 // Move task status (internal helper)
 export const moveStatus = mutation({
   args: {
-    taskId: v.id("tasks"),
-    fromStatus: v.string(),
-    toStatus: v.union(
-      v.literal("backlog"),
-      v.literal("ready"),
-      v.literal("in_progress"),
-      v.literal("review"),
-      v.literal("blocked"),
-      v.literal("done")
+    taskId: convexVal.id("tasks"),
+    fromStatus: convexVal.string(),
+    toStatus: convexVal.union(
+      convexVal.literal("backlog"),
+      convexVal.literal("ready"),
+      convexVal.literal("in_progress"),
+      convexVal.literal("review"),
+      convexVal.literal("blocked"),
+      convexVal.literal("done")
     ),
   },
   handler: async (ctx, { taskId, fromStatus, toStatus }) => {
@@ -269,15 +269,15 @@ export const moveStatus = mutation({
 // Get tasks by status (L-02 fix: added limit to prevent large collections)
 export const getByStatus = query({
   args: {
-    status: v.union(
-      v.literal("backlog"),
-      v.literal("ready"),
-      v.literal("in_progress"),
-      v.literal("review"),
-      v.literal("done"),
-      v.literal("blocked")
+    status: convexVal.union(
+      convexVal.literal("backlog"),
+      convexVal.literal("ready"),
+      convexVal.literal("in_progress"),
+      convexVal.literal("review"),
+      convexVal.literal("done"),
+      convexVal.literal("blocked")
     ),
-    limit: v.optional(v.number()),
+    limit: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { status, limit = 200 }) => {
     return await ctx.db
@@ -291,8 +291,8 @@ export const getByStatus = query({
 // Get tasks assigned to specific agent (H-01 fix: scope to active tasks only)
 export const getForAgent = query({
   args: {
-    agentId: v.id("agents"),
-    limit: v.optional(v.number()), // Optional limit to prevent large scans
+    agentId: convexVal.id("agents"),
+    limit: convexVal.optional(convexVal.number()), // Optional limit to prevent large scans
   },
   handler: async (ctx, { agentId, limit = 50 }) => {
     // Only load active/in-progress tasks to limit scope, not all tasks
@@ -312,12 +312,12 @@ export const getForAgent = query({
 // Get filtered tasks (for agent API queries)
 export const getFiltered = query({
   args: {
-    agentId: v.id("agents"),
-    status: v.optional(v.string()),
-    priority: v.optional(v.string()),
-    assignedToMe: v.optional(v.boolean()),
-    limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
+    agentId: convexVal.id("agents"),
+    status: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.string()),
+    assignedToMe: convexVal.optional(convexVal.boolean()),
+    limit: convexVal.optional(convexVal.number()),
+    offset: convexVal.optional(convexVal.number()),
   },
   handler: async (
     ctx,
@@ -356,9 +356,9 @@ export const getFiltered = query({
 // Assign task to agent(s)
 export const assign = mutation({
   args: {
-    taskId: v.id("tasks"),
-    assigneeIds: v.array(v.id("agents")),
-    assignedBy: v.id("agents"),
+    taskId: convexVal.id("tasks"),
+    assigneeIds: convexVal.array(convexVal.id("agents")),
+    assignedBy: convexVal.id("agents"),
   },
   handler: async (ctx, { taskId, assigneeIds, assignedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -417,17 +417,17 @@ export const assign = mutation({
 // Update task status
 export const updateStatus = mutation({
   args: {
-    taskId: v.id("tasks"),
-    status: v.union(
-      v.literal("backlog"),
-      v.literal("ready"),
-      v.literal("in_progress"),
-      v.literal("review"),
-      v.literal("done"),
-      v.literal("blocked")
+    taskId: convexVal.id("tasks"),
+    status: convexVal.union(
+      convexVal.literal("backlog"),
+      convexVal.literal("ready"),
+      convexVal.literal("in_progress"),
+      convexVal.literal("review"),
+      convexVal.literal("done"),
+      convexVal.literal("blocked")
     ),
-    updatedBy: v.optional(v.string()),
-    receipts: v.optional(v.array(v.string())),
+    updatedBy: convexVal.optional(convexVal.string()),
+    receipts: convexVal.optional(convexVal.array(convexVal.string())),
   },
   handler: async (ctx, { taskId, status, updatedBy, receipts }) => {
     const task = await ctx.db.get(taskId);
@@ -508,7 +508,7 @@ export const updateStatus = mutation({
 
 // Get task with all details
 export const getWithDetails = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await ctx.db.get(taskId);
     if (!task) return null;
@@ -534,21 +534,21 @@ export const getWithDetails = query({
 // Update task (generic update)
 export const update = mutation({
   args: {
-    id: v.id("tasks"),
-    title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal("backlog"),
-      v.literal("ready"),
-      v.literal("in_progress"),
-      v.literal("review"),
-      v.literal("done"),
-      v.literal("blocked")
+    id: convexVal.id("tasks"),
+    title: convexVal.optional(convexVal.string()),
+    description: convexVal.optional(convexVal.string()),
+    status: convexVal.optional(convexVal.union(
+      convexVal.literal("backlog"),
+      convexVal.literal("ready"),
+      convexVal.literal("in_progress"),
+      convexVal.literal("review"),
+      convexVal.literal("done"),
+      convexVal.literal("blocked")
     )),
-    assigneeIds: v.optional(v.array(v.id("agents"))),
-    timeEstimate: v.optional(v.union(v.literal("XS"), v.literal("S"), v.literal("M"), v.literal("L"), v.literal("XL"))),
-    dueDate: v.optional(v.number()),
-    epicId: v.optional(v.id("epics")),
+    assigneeIds: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+    timeEstimate: convexVal.optional(convexVal.union(convexVal.literal("XS"), convexVal.literal("S"), convexVal.literal("M"), convexVal.literal("L"), convexVal.literal("XL"))),
+    dueDate: convexVal.optional(convexVal.number()),
+    epicId: convexVal.optional(convexVal.id("epics")),
   },
   handler: async (ctx, { id, ...updates }) => {
     const task = await ctx.db.get(id);
@@ -744,8 +744,8 @@ export const autoClaim = internalAction({
 // Unassign task (remove all assignees)
 export const unassign = mutation({
   args: {
-    taskId: v.id("tasks"),
-    unassignedBy: v.optional(v.string()),
+    taskId: convexVal.id("tasks"),
+    unassignedBy: convexVal.optional(convexVal.string()),
   },
   handler: async (ctx, { taskId, unassignedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -789,8 +789,8 @@ export const unassign = mutation({
 // Smart assignment - Jarvis assigns based on task content
 export const smartAssign = mutation({
   args: {
-    taskId: v.id("tasks"),
-    assignedBy: v.optional(v.id("agents")),
+    taskId: convexVal.id("tasks"),
+    assignedBy: convexVal.optional(convexVal.id("agents")),
   },
   handler: async (ctx, { taskId, assignedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -972,8 +972,8 @@ async function findBestAgent(ctx: any, agents: any[], task: any) {
 
 export const autoAssignBacklog = mutation({
   args: {
-    jarvisId: v.string(),
-    limit: v.optional(v.number()),
+    jarvisId: convexVal.string(),
+    limit: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { jarvisId, limit = 10 }) => {
     // Pre-load agents and tasks once (H-03 fix: avoid N+1 and mutation-in-loop)
@@ -1025,11 +1025,11 @@ export const autoAssignBacklog = mutation({
 // Create subtask under parent task
 export const createSubtask = mutation({
   args: {
-    parentId: v.id("tasks"),
-    title: v.string(),
-    description: v.optional(v.string()),
-    priority: v.optional(v.union(v.literal("P0"), v.literal("P1"), v.literal("P2"), v.literal("P3"))),
-    createdBy: v.string(),
+    parentId: convexVal.id("tasks"),
+    title: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.union(convexVal.literal("P0"), convexVal.literal("P1"), convexVal.literal("P2"), convexVal.literal("P3"))),
+    createdBy: convexVal.string(),
   },
   handler: async (ctx, { parentId, title, description, priority, createdBy }) => {
     const parent = await ctx.db.get(parentId);
@@ -1079,7 +1079,7 @@ export const createSubtask = mutation({
 
 // Get task with subtasks
 export const getWithSubtasks = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     const task = await ctx.db.get(taskId);
     if (!task) return null;
@@ -1108,8 +1108,8 @@ export const getWithSubtasks = query({
 // Delete task (only creator or admin can delete)
 export const deleteTask = mutation({
   args: {
-    taskId: v.id("tasks"),
-    deletedBy: v.string(), // User ID or agent ID
+    taskId: convexVal.id("tasks"),
+    deletedBy: convexVal.string(), // User ID or agent ID
   },
   handler: async (ctx, { taskId, deletedBy }) => {
     const task = await ctx.db.get(taskId);
@@ -1223,9 +1223,9 @@ export const deleteTask = mutation({
  */
 export const addDependency = mutation({
   args: {
-    taskId: v.id("tasks"),
-    blockedByTaskId: v.id("tasks"),
-    addedBy: v.string(), // User ID or "system"
+    taskId: convexVal.id("tasks"),
+    blockedByTaskId: convexVal.id("tasks"),
+    addedBy: convexVal.string(), // User ID or "system"
   },
   handler: async (ctx, { taskId, blockedByTaskId, addedBy }) => {
     // Validate tasks exist
@@ -1306,9 +1306,9 @@ export const addDependency = mutation({
  */
 export const removeDependency = mutation({
   args: {
-    taskId: v.id("tasks"),
-    blockedByTaskId: v.id("tasks"),
-    removedBy: v.string(),
+    taskId: convexVal.id("tasks"),
+    blockedByTaskId: convexVal.id("tasks"),
+    removedBy: convexVal.string(),
   },
   handler: async (ctx, { taskId, blockedByTaskId, removedBy }) => {
     // Validate tasks exist
@@ -1399,11 +1399,11 @@ export const removeDependency = mutation({
  */
 export const completeByAgent = mutation({
   args: {
-    taskId: v.id("tasks"),
-    agentId: v.id("agents"),
-    completionNotes: v.optional(v.string()),
-    timeTracked: v.optional(v.number()),  // minutes
-    status: v.optional(v.union(v.literal("done"), v.literal("review"))),
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.id("agents"),
+    completionNotes: convexVal.optional(convexVal.string()),
+    timeTracked: convexVal.optional(convexVal.number()),  // minutes
+    status: convexVal.optional(convexVal.union(convexVal.literal("done"), convexVal.literal("review"))),
   },
   handler: async (ctx, { taskId, agentId, completionNotes, timeTracked, status = "done" }) => {
     // Fetch task and agent
@@ -1450,10 +1450,10 @@ export const completeByAgent = mutation({
 // Add or remove tags from task
 export const addTags = mutation({
   args: {
-    taskId: v.id("tasks"),
-    tags: v.array(v.string()),
-    action: v.union(v.literal("add"), v.literal("remove")),
-    updatedBy: v.optional(v.string()),
+    taskId: convexVal.id("tasks"),
+    tags: convexVal.array(convexVal.string()),
+    action: convexVal.union(convexVal.literal("add"), convexVal.literal("remove")),
+    updatedBy: convexVal.optional(convexVal.string()),
   },
   handler: async (ctx, { taskId, tags, action, updatedBy }) => {
     const task = await ctx.db.get(taskId);

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
 /**
@@ -9,19 +9,19 @@ import { query, mutation } from "./_generated/server";
 // Create document
 export const create = mutation({
   args: {
-    title: v.string(),
-    content: v.string(),
-    type: v.union(
-      v.literal("deliverable"),
-      v.literal("research"),
-      v.literal("protocol"),
-      v.literal("spec"),
-      v.literal("draft"),
-      v.literal("receipt")
+    title: convexVal.string(),
+    content: convexVal.string(),
+    type: convexVal.union(
+      convexVal.literal("deliverable"),
+      convexVal.literal("research"),
+      convexVal.literal("protocol"),
+      convexVal.literal("spec"),
+      convexVal.literal("draft"),
+      convexVal.literal("receipt")
     ),
-    createdBy: v.string(),
-    createdByName: v.string(),
-    taskId: v.optional(v.id("tasks")),
+    createdBy: convexVal.string(),
+    createdByName: convexVal.string(),
+    taskId: convexVal.optional(convexVal.id("tasks")),
   },
   handler: async (ctx, { title, content, type, createdBy, createdByName, taskId }) => {
     const docId = await ctx.db.insert("documents", {
@@ -43,15 +43,15 @@ export const create = mutation({
 // Get all documents
 export const getAll = query({
   args: {
-    type: v.optional(v.union(
-      v.literal("deliverable"),
-      v.literal("research"),
-      v.literal("protocol"),
-      v.literal("spec"),
-      v.literal("draft"),
-      v.literal("receipt")
+    type: convexVal.optional(convexVal.union(
+      convexVal.literal("deliverable"),
+      convexVal.literal("research"),
+      convexVal.literal("protocol"),
+      convexVal.literal("spec"),
+      convexVal.literal("draft"),
+      convexVal.literal("receipt")
     )),
-    limit: v.optional(v.number())
+    limit: convexVal.optional(convexVal.number())
   },
   handler: async (ctx, { type, limit }) => {
     let docs;
@@ -71,7 +71,7 @@ export const getAll = query({
 
 // Get document by ID
 export const getById = query({
-  args: { documentId: v.id("documents") },
+  args: { documentId: convexVal.id("documents") },
   handler: async (ctx, { documentId }) => {
     return await ctx.db.get(documentId);
   },
@@ -80,10 +80,10 @@ export const getById = query({
 // Update document
 export const update = mutation({
   args: {
-    documentId: v.id("documents"),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
-    updatedBy: v.string(),
+    documentId: convexVal.id("documents"),
+    title: convexVal.optional(convexVal.string()),
+    content: convexVal.optional(convexVal.string()),
+    updatedBy: convexVal.string(),
   },
   handler: async (ctx, { documentId, title, content, updatedBy }) => {
     const doc = await ctx.db.get(documentId);
@@ -104,7 +104,7 @@ export const update = mutation({
 
 // Get documents for a task
 export const getForTask = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     return await ctx.db
       .query("documents")
@@ -116,7 +116,7 @@ export const getForTask = query({
 
 // Search documents
 export const search = query({
-  args: { query: v.string(), limit: v.optional(v.number()) },
+  args: { query: convexVal.string(), limit: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { query, limit }) => {
     const allDocs = await ctx.db.query("documents").take(200);
     const lowerQuery = query.toLowerCase();

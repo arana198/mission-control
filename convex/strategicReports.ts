@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -9,9 +9,9 @@ import { Id } from "./_generated/dataModel";
 
 export const create = mutation({
   args: {
-    week: v.number(),
-    year: v.number(),
-    report: v.string(), // JSON stringified
+    week: convexVal.number(),
+    year: convexVal.number(),
+    report: convexVal.string(), // JSON stringified
   },
   handler: async (ctx, args) => {
     // Parse report JSON to extract structured data
@@ -52,8 +52,8 @@ export const getLatest = query({
 
 export const getByWeek = query({
   args: {
-    week: v.number(),
-    year: v.number(),
+    week: convexVal.number(),
+    year: convexVal.number(),
   },
   async handler(ctx, args) {
     const reports = await ctx.db
@@ -66,7 +66,7 @@ export const getByWeek = query({
 
 export const getAll = query({
   args: {
-    limit: v.optional(v.number()),
+    limit: convexVal.optional(convexVal.number()),
   },
   async handler(ctx, args) {
     return await ctx.db
@@ -78,8 +78,8 @@ export const getAll = query({
 
 export const deleteByWeek = mutation({
   args: {
-    week: v.number(),
-    year: v.number(),
+    week: convexVal.number(),
+    year: convexVal.number(),
   },
   async handler(ctx, args) {
     const report = await ctx.db

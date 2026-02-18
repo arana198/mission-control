@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 
 // Get all memory index entries
 export const getAll = query({
@@ -12,13 +12,13 @@ export const getAll = query({
 // Get memory items for a specific entity
 export const getByEntity = query({
   args: {
-    entityType: v.optional(v.union(
-      v.literal("goal"),
-      v.literal("task"),
-      v.literal("event"),
-      v.literal("note")
+    entityType: convexVal.optional(convexVal.union(
+      convexVal.literal("goal"),
+      convexVal.literal("task"),
+      convexVal.literal("event"),
+      convexVal.literal("note")
     )),
-    entityId: v.optional(v.string()),
+    entityId: convexVal.optional(convexVal.string()),
   },
   handler: async (ctx, args) => {
     const entityType = args.entityType;
@@ -37,7 +37,7 @@ export const getByEntity = query({
 
 // Search memories by keyword
 export const search = query({
-  args: { query: v.string() },
+  args: { query: convexVal.string() },
   handler: async (ctx, args) => {
     const allMemories = await ctx.db.query("memoryIndex").take(200);
     const normalizedQuery = args.query.toLowerCase();
@@ -52,16 +52,16 @@ export const search = query({
 // Link a memory to an entity
 export const linkMemory = mutation({
   args: {
-    entityType: v.union(
-      v.literal("goal"),
-      v.literal("task"),
-      v.literal("event"),
-      v.literal("note")
+    entityType: convexVal.union(
+      convexVal.literal("goal"),
+      convexVal.literal("task"),
+      convexVal.literal("event"),
+      convexVal.literal("note")
     ),
-    entityId: v.string(),
-    memoryPath: v.string(),
-    keywords: v.array(v.string()),
-    relatedMemoryPaths: v.optional(v.array(v.string())),
+    entityId: convexVal.string(),
+    memoryPath: convexVal.string(),
+    keywords: convexVal.array(convexVal.string()),
+    relatedMemoryPaths: convexVal.optional(convexVal.array(convexVal.string())),
   },
   handler: async (ctx, args) => {
     // Check if link already exists
@@ -94,7 +94,7 @@ export const linkMemory = mutation({
 
 // Unlink a memory from an entity
 export const unlinkMemory = mutation({
-  args: { id: v.id("memoryIndex") },
+  args: { id: convexVal.id("memoryIndex") },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
   },
@@ -112,7 +112,7 @@ export const getMemoryPaths = query({
 
 // Find related memories (by keywords or paths)
 export const findRelated = query({
-  args: { memoryPath: v.string() },
+  args: { memoryPath: convexVal.string() },
   handler: async (ctx, args) => {
     const all = await ctx.db.query("memoryIndex").take(200);
     const target = all.find(m => m.memoryPath === args.memoryPath);

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 
@@ -16,7 +16,7 @@ export const getAllEpics = query({
 
 // Get epic with details
 export const getEpicWithDetails = query({
-  args: { epicId: v.id("epics") },
+  args: { epicId: convexVal.id("epics") },
   handler: async (ctx, { epicId }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) return null;
@@ -39,9 +39,9 @@ export const getEpicWithDetails = query({
 // Create epic
 export const createEpic = mutation({
   args: {
-    title: v.string(),
-    description: v.string(),
-    ownerId: v.optional(v.id("agents")),
+    title: convexVal.string(),
+    description: convexVal.string(),
+    ownerId: convexVal.optional(convexVal.id("agents")),
   },
   handler: async (ctx, { title, description, ownerId }) => {
     const epicId = await ctx.db.insert("epics", {
@@ -74,10 +74,10 @@ export const createEpic = mutation({
 // Update epic
 export const updateEpic = mutation({
   args: {
-    epicId: v.id("epics"),
-    title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("planning"), v.literal("active"), v.literal("completed"))),
+    epicId: convexVal.id("epics"),
+    title: convexVal.optional(convexVal.string()),
+    description: convexVal.optional(convexVal.string()),
+    status: convexVal.optional(convexVal.union(convexVal.literal("planning"), convexVal.literal("active"), convexVal.literal("completed"))),
   },
   handler: async (ctx, { epicId, ...updates }) => {
     const epic = await ctx.db.get(epicId);
@@ -107,7 +107,7 @@ export const updateEpic = mutation({
 
 // Delete epic
 export const deleteEpic = mutation({
-  args: { epicId: v.id("epics") },
+  args: { epicId: convexVal.id("epics") },
   handler: async (ctx, { epicId }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) throw new Error("Epic not found");
@@ -131,7 +131,7 @@ export const deleteEpic = mutation({
 
 // Internal: Recalculate epic progress (called when tasks change)
 export const recalculateEpicProgress = mutation({
-  args: { epicId: v.id("epics") },
+  args: { epicId: convexVal.id("epics") },
   handler: async (ctx, { epicId }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) return;
