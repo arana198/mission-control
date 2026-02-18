@@ -21,7 +21,6 @@ import { validateAgentTaskInput, GetTaskDetailsSchema } from "@/lib/validators/a
 import { verifyAgent } from "@/lib/agent-auth";
 
 const log = createLogger("api:agents:tasks:details");
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function GET(
   request: Request,
@@ -45,6 +44,9 @@ export async function GET(
     if (!agent) {
       throw new UnauthorizedError("Invalid agent credentials");
     }
+
+    // Initialize Convex client (lazy-loaded for testability)
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
     // Get task details
     const task = await convex.query(api.tasks.getWithDetails, {

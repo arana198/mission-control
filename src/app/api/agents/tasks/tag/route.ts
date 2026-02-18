@@ -20,7 +20,6 @@ import { validateAgentTaskInput, TagTaskSchema } from "@/lib/validators/agentTas
 import { verifyAgent } from "@/lib/agent-auth";
 
 const log = createLogger("api:agents:tasks:tag");
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 type Props = {
   params: {
@@ -49,6 +48,9 @@ export async function POST(request: Request, context: any): Promise<Response> {
     if (!agent) {
       throw new UnauthorizedError("Invalid agent credentials");
     }
+
+    // Initialize Convex client (lazy-loaded for testability)
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
     // Add or remove tags
     const result = await convex.mutation(api.tasks.addTags, {
