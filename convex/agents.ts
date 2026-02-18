@@ -7,7 +7,7 @@ import { query, mutation } from "./_generated/server";
  */
 
 // Get all agents with their current status
-export const getAll = query({
+export const getAllAgents = query({
   handler: async (ctx) => {
     const agents = await ctx.db.query("agents").collect();
     return agents;
@@ -15,7 +15,7 @@ export const getAll = query({
 });
 
 // Get single agent by ID
-export const getById = query({
+export const getAgentById = query({
   args: { id: v.id("agents") },
   handler: async (ctx, { id }) => {
     return await ctx.db.get(id);

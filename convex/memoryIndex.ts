@@ -11,7 +11,7 @@ export const getAll = query({
 
 // Get memory items for a specific entity
 export const getByEntity = query({
-  args: { 
+  args: {
     entityType: v.optional(v.union(
       v.literal("goal"),
       v.literal("task"),
@@ -21,13 +21,13 @@ export const getByEntity = query({
     entityId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const et = args.entityType;
-    const eid = args.entityId;
-    if (et && eid) {
+    const entityType = args.entityType;
+    const entityId = args.entityId;
+    if (entityType && entityId) {
       return await ctx.db
         .query("memoryIndex")
-        .withIndex("by_entity", q => 
-          q.eq("entityType", et).eq("entityId", eid)
+        .withIndex("by_entity", (indexQuery) =>
+          indexQuery.eq("entityType", entityType).eq("entityId", entityId)
         )
         .take(20);
     }
@@ -40,11 +40,11 @@ export const search = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {
     const allMemories = await ctx.db.query("memoryIndex").take(200);
-    const q = args.query.toLowerCase();
-    
-    return allMemories.filter(m => 
-      m.memoryPath.toLowerCase().includes(q) ||
-      m.keywords.some(k => k.toLowerCase().includes(q))
+    const normalizedQuery = args.query.toLowerCase();
+
+    return allMemories.filter(m =>
+      m.memoryPath.toLowerCase().includes(normalizedQuery) ||
+      m.keywords.some(k => k.toLowerCase().includes(normalizedQuery))
     );
   },
 });
@@ -67,10 +67,10 @@ export const linkMemory = mutation({
     // Check if link already exists
     const existing = await ctx.db
       .query("memoryIndex")
-      .withIndex("by_entity", q => 
-        q.eq("entityType", args.entityType).eq("entityId", args.entityId)
+      .withIndex("by_entity", (indexQuery) =>
+        indexQuery.eq("entityType", args.entityType).eq("entityId", args.entityId)
       )
-      .filter(q => q.eq(q.field("memoryPath"), args.memoryPath))
+      .filter((filterQuery) => filterQuery.eq(filterQuery.field("memoryPath"), args.memoryPath))
       .first();
     
     if (existing) {

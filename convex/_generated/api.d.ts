@@ -23,7 +23,6 @@ import type * as memoryIndex from "../memoryIndex.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
-import type * as seed from "../seed.js";
 import type * as strategicReports from "../strategicReports.js";
 import type * as tasks from "../tasks.js";
 import type * as utils_activityLogger from "../utils/activityLogger.js";
@@ -54,7 +53,6 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   migrations: typeof migrations;
   notifications: typeof notifications;
-  seed: typeof seed;
   strategicReports: typeof strategicReports;
   tasks: typeof tasks;
   "utils/activityLogger": typeof utils_activityLogger;

@@ -2,7 +2,7 @@
 
 import { Plus, Bell, Zap } from "lucide-react";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings";
 
 interface DashboardHeaderProps {
   activeTab: TabType;
@@ -26,7 +26,6 @@ const TAB_TITLES: Record<TabType, string> = {
   documents: "Documents",
   calendar: "Calendar & Events",
   brain: "2nd Brain",
-  okr: "OKR Tracking",
   bottlenecks: "Bottleneck Analysis",
   sync: "Schedule",
   settings: "Settings",

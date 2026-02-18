@@ -12,7 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   BarChart3, Map, LayoutGrid, Users, Briefcase, Activity, Calendar,
-  Brain, Target, AlertCircle, Zap, Moon, Sun, Sparkles, ChevronRight
+  Brain, AlertCircle, Zap, Moon, Sun, Sparkles, ChevronRight, BookOpen
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -20,7 +20,7 @@ interface DashboardLayoutProps {
 }
 
 type TabType = "overview" | "board" | "epics" | "agents" | "workload" |
-  "activity" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "settings" | "analytics";
+  "activity" | "calendar" | "brain" | "bottlenecks" | "settings" | "analytics" | "api-docs";
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
@@ -39,15 +39,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: "activity", label: "Activity", icon: Activity },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "brain", label: "2nd Brain", icon: Brain },
-    { id: "okr", label: "OKR Tracking", icon: Target },
     { id: "bottlenecks", label: "Bottlenecks", icon: AlertCircle },
-    { id: "sync", label: "Schedule", icon: Calendar },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "api-docs", label: "API Docs", icon: BookOpen },
     { id: "settings", label: "Settings", icon: Zap },
   ];
 
   const handleTabChange = (tabId: string) => {
-    router.push(`/dashboard/${tabId}`);
+    router.push(`/${tabId}`);
   };
 
   return (

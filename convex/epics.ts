@@ -8,14 +8,14 @@ import { api } from "./_generated/api";
  */
 
 // Get all epics
-export const getAll = query({
+export const getAllEpics = query({
   handler: async (ctx) => {
     return await ctx.db.query("epics").order("desc").take(500);
   },
 });
 
 // Get epic with details
-export const getWithDetails = query({
+export const getEpicWithDetails = query({
   args: { epicId: v.id("epics") },
   handler: async (ctx, { epicId }) => {
     const epic = await ctx.db.get(epicId);
@@ -37,7 +37,7 @@ export const getWithDetails = query({
 });
 
 // Create epic
-export const create = mutation({
+export const createEpic = mutation({
   args: {
     title: v.string(),
     description: v.string(),
@@ -72,7 +72,7 @@ export const create = mutation({
 });
 
 // Update epic
-export const update = mutation({
+export const updateEpic = mutation({
   args: {
     id: v.id("epics"),
     title: v.optional(v.string()),
@@ -106,7 +106,7 @@ export const update = mutation({
 });
 
 // Delete epic
-export const remove = mutation({
+export const deleteEpic = mutation({
   args: { id: v.id("epics") },
   handler: async (ctx, { id }) => {
     const epic = await ctx.db.get(id);

@@ -63,7 +63,7 @@ export const setSetting = mutation({
   handler: async (ctx, { key, value }) => {
     const existing = await ctx.db
       .query("settings")
-      .withIndex("by_key", (q: any) => q.eq("key", key))
+      .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
       .first();
     
     if (existing) {
@@ -85,7 +85,7 @@ export const getSetting = query({
   handler: async (ctx, { key }) => {
     const setting = await ctx.db
       .query("settings")
-      .withIndex("by_key", (q: any) => q.eq("key", key))
+      .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
       .first();
     
     return setting?.value || null;
@@ -243,7 +243,7 @@ export const getCommitsForTask = action({
   },
   handler: async (ctx, { taskId, repoPath, limit = 20 }) => {
     // Get task
-    const task = await ctx.runQuery(api.tasks.getById, { id: taskId });
+    const task = await ctx.runQuery(api.tasks.getTaskById, { id: taskId });
     if (!task) return { commits: [] };
     
     // Get pattern

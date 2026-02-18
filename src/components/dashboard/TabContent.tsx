@@ -14,11 +14,9 @@ import { DashboardOverview } from "./DashboardOverview";
 const EpicBoard = lazy(() => import("@/components/EpicBoard").then(m => ({ default: m.EpicBoard })));
 const BrainHub = lazy(() => import("@/components/BrainHub").then(m => ({ default: m.BrainHub })));
 const CalendarView = lazy(() => import("@/components/CalendarView").then(m => ({ default: m.CalendarView })));
-const OKRDashboard = lazy(() => import("@/components/OKRDashboard").then(m => ({ default: m.OKRDashboard })));
 const BottleneckVisualizer = lazy(() => import("@/components/BottleneckVisualizer").then(m => ({ default: m.BottleneckVisualizer })));
-const InternalCalendarPanel = lazy(() => import("@/components/InternalCalendarPanel").then(m => ({ default: m.InternalCalendarPanel })));
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "settings";
 
 interface DashboardStats {
   activeCount: number;
@@ -101,24 +99,10 @@ export function TabContent({
             </Suspense>
           </ErrorBoundary>
         )}
-        {activeTab === "okr" && (
-          <ErrorBoundary componentName="OKRDashboard">
-            <Suspense fallback={<LoadingSkeleton />}>
-              <OKRDashboard />
-            </Suspense>
-          </ErrorBoundary>
-        )}
         {activeTab === "bottlenecks" && (
           <ErrorBoundary componentName="BottleneckVisualizer">
             <Suspense fallback={<LoadingSkeleton />}>
               <BottleneckVisualizer />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-        {activeTab === "sync" && (
-          <ErrorBoundary componentName="InternalCalendarPanel">
-            <Suspense fallback={<LoadingSkeleton />}>
-              <InternalCalendarPanel />
             </Suspense>
           </ErrorBoundary>
         )}

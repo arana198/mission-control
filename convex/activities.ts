@@ -26,7 +26,7 @@ export const getByAgent = query({
   handler: async (ctx, { agentId, limit }) => {
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
+      .withIndex("by_agent", (indexQuery) => indexQuery.eq("agentId", agentId))
       .order("desc")
       .take(limit || 30);
 
@@ -50,14 +50,16 @@ export const getByType = query({
       v.literal("agent_claimed"),
       v.literal("agent_status_changed"),
       v.literal("dependency_added"),
-      v.literal("dependency_removed")
+      v.literal("dependency_removed"),
+      v.literal("tags_updated"),
+      v.literal("tasks_queried")
     ),
     limit: v.optional(v.number())
   },
   handler: async (ctx, { type, limit }) => {
     return await ctx.db
       .query("activities")
-      .withIndex("by_type", (q) => q.eq("type", type))
+      .withIndex("by_type", (indexQuery) => indexQuery.eq("type", type))
       .order("desc")
       .take(limit || 30);
   },
@@ -79,7 +81,9 @@ export const create = mutation({
       v.literal("agent_claimed"),
       v.literal("agent_status_changed"),
       v.literal("dependency_added"),
-      v.literal("dependency_removed")
+      v.literal("dependency_removed"),
+      v.literal("tags_updated"),
+      v.literal("tasks_queried")
     ),
     agentId: v.string(),
     agentName: v.string(),
@@ -117,14 +121,14 @@ export const getFeed = query({
     limit: v.optional(v.number())
   },
   handler: async (ctx, { since, limit }) => {
-    let q = ctx.db.query("activities").withIndex("by_created_at").order("desc");
+    let activitiesQuery = ctx.db.query("activities").withIndex("by_created_at").order("desc");
 
     if (since) {
       // Filter activities since timestamp
-      q = q.filter((q) => q.gt(q.field("createdAt"), since));
+      activitiesQuery = activitiesQuery.filter((filterQuery) => filterQuery.gt(filterQuery.field("createdAt"), since));
     }
 
-    const activities = await q.take(limit || 100);
+    const activities = await activitiesQuery.take(limit || 100);
 
     return activities;
   },

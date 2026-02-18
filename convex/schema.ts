@@ -141,6 +141,9 @@ export default defineSchema({
     // === NEW: Execution Tracking ===
     timeTracked: v.optional(v.number()),  // Actual hours spent
     completionNotes: v.optional(v.string()),
+
+    // === NEW: Ticket Number ===
+    ticketNumber: v.optional(v.string()),  // e.g. "MC-001" — human-readable ID for API
   })
     .index("by_status", ["status"])
     .index("by_epic", ["epicId"])
@@ -209,7 +212,8 @@ export default defineSchema({
       v.literal("epic_completed"),
       v.literal("dependency_added"),
       v.literal("dependency_removed"),
-      v.literal("tags_updated")
+      v.literal("tags_updated"),
+      v.literal("tasks_queried")
     ),
     
     // Actor (denormalized for speed)

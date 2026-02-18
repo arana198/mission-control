@@ -7,6 +7,7 @@ import { Goal } from "@/types/goal";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
 import { getMemoryService } from "@/lib/services/memoryService";
+import { CreateGoalModal } from "@/components/CreateGoalModal";
 import {
   Search,
   FileText,
@@ -41,6 +42,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showCreateGoalModal, setShowCreateGoalModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -208,7 +210,8 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
           title: "Create new goal",
           description: "Add a new strategic goal",
           action: () => {
-            // Create new goal - TODO: Implement
+            setShowCreateGoalModal(true);
+            setOpen(false);
           },
         });
       }
@@ -373,6 +376,15 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
           </div>
         </div>
       </div>
+
+      {/* Create Goal Modal */}
+      {showCreateGoalModal && (
+        <CreateGoalModal
+          tasks={tasks || []}
+          onClose={() => setShowCreateGoalModal(false)}
+          onSuccess={() => setShowCreateGoalModal(false)}
+        />
+      )}
     </>
   );
 }

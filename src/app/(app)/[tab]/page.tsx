@@ -1,6 +1,6 @@
 import { DashboardTabClientContent } from "./client";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "analytics" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs";
 
 const VALID_TABS: TabType[] = [
   "overview",
@@ -12,11 +12,10 @@ const VALID_TABS: TabType[] = [
   "documents",
   "calendar",
   "brain",
-  "okr",
   "bottlenecks",
-  "sync",
   "analytics",
-  "settings"
+  "settings",
+  "api-docs"
 ];
 
 interface PageProps {
@@ -41,7 +40,7 @@ export default async function DashboardTabPage({ params }: PageProps) {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Invalid Tab</h1>
           <p className="text-muted-foreground">The tab "{rawTab}" does not exist.</p>
-          <a href="/dashboard/overview" className="mt-4 inline-block text-blue-600 hover:underline">
+          <a href="/overview" className="mt-4 inline-block text-blue-600 hover:underline">
             Return to Overview
           </a>
         </div>

@@ -18,10 +18,10 @@ export const getTimelineRange = query(async (ctx, args: {
 }) => {
   const events = await ctx.db
     .query('calendarEvents')
-    .filter(q =>
-      q.and(
-        q.gte(q.field('startTime'), args.startTime),
-        q.lte(q.field('endTime'), args.endTime)
+    .filter((filterQuery) =>
+      filterQuery.and(
+        filterQuery.gte(filterQuery.field('startTime'), args.startTime),
+        filterQuery.lte(filterQuery.field('endTime'), args.endTime)
       )
     )
     .collect();
@@ -125,10 +125,10 @@ export const findFreeSlots = query(async (ctx, args: {
 }) => {
   const allEvents = await ctx.db
     .query('calendarEvents')
-    .filter(q =>
-      q.and(
-        q.gte(q.field('startTime'), args.startDate),
-        q.lte(q.field('startTime'), args.endDate)
+    .filter((filterQuery) =>
+      filterQuery.and(
+        filterQuery.gte(filterQuery.field('startTime'), args.startDate),
+        filterQuery.lte(filterQuery.field('startTime'), args.endDate)
       )
     )
     .collect();
@@ -160,9 +160,9 @@ export const findFreeSlots = query(async (ctx, args: {
   }
 
   // Slots between events
-  for (let i = 0; i < allEvents.length - 1; i++) {
-    const gapStart = allEvents[i].endTime;
-    const gapEnd = allEvents[i + 1].startTime;
+  for (let eventIndex = 0; eventIndex < allEvents.length - 1; eventIndex++) {
+    const gapStart = allEvents[eventIndex].endTime;
+    const gapEnd = allEvents[eventIndex + 1].startTime;
 
     if (gapEnd - gapStart >= durationMs) {
       slots.push({

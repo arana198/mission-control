@@ -12,7 +12,7 @@ import { Id } from './_generated/dataModel';
 /**
  * GET all active goals
  */
-export const getAllActive = query(async (ctx) => {
+export const getActiveGoals = query(async (ctx) => {
   return await ctx.db
     .query('goals')
     .filter(q => q.eq(q.field('status'), 'active'))
@@ -22,7 +22,7 @@ export const getAllActive = query(async (ctx) => {
 /**
  * GET goal by ID with related tasks
  */
-export const getById = query(async (ctx, args: { id: Id<'goals'> }) => {
+export const getGoalById = query(async (ctx, args: { id: Id<'goals'> }) => {
   const goal = await ctx.db.get(args.id);
   
   if (!goal) {
@@ -43,7 +43,7 @@ export const getById = query(async (ctx, args: { id: Id<'goals'> }) => {
 /**
  * GET goals by category
  */
-export const getByCategory = query(async (ctx, args: {
+export const getGoalsByCategory = query(async (ctx, args: {
   category: 'business' | 'personal' | 'learning' | 'health';
 }) => {
   return await ctx.db
@@ -296,4 +296,92 @@ export const archive = mutation(async (ctx, args: { id: Id<'goals'> }) => {
     status: 'archived',
     updatedAt: Date.now(),
   });
+});
+
+/**
+ * SEED demo goals with linked tasks (for testing/demo purposes)
+ */
+export const seedDemoGoals = mutation(async (ctx) => {
+  const tasks = await ctx.db.query('tasks').collect();
+
+  if (tasks.length === 0) {
+    return { error: 'No tasks available to link to goals' };
+  }
+
+  const demoGoals = [
+    {
+      title: 'Launch Q1 Product Features',
+      description: 'Ship core features for Q1 product roadmap',
+      category: 'business' as const,
+      relatedTasks: tasks.slice(0, Math.ceil(tasks.length / 3)).map(t => t._id),
+    },
+    {
+      title: 'Improve System Performance',
+      description: 'Reduce API latency and improve database query performance',
+      category: 'business' as const,
+      relatedTasks: tasks.slice(Math.ceil(tasks.length / 3), Math.ceil(2 * tasks.length / 3)).map(t => t._id),
+    },
+    {
+      title: 'Complete Developer Documentation',
+      description: 'Write comprehensive API docs and architecture guides',
+      category: 'learning' as const,
+      relatedTasks: tasks.slice(Math.ceil(2 * tasks.length / 3)).map(t => t._id),
+    },
+  ];
+
+  const createdGoals = [];
+
+  for (const demoGoal of demoGoals) {
+    const goalId = await ctx.db.insert('goals', {
+      title: demoGoal.title,
+      description: demoGoal.description,
+      category: demoGoal.category,
+      status: 'active',
+      progress: 0,
+      deadline: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
+      keyResults: [],
+      relatedTaskIds: demoGoal.relatedTasks,
+      relatedMemoryRefs: [],
+      parentGoalId: undefined,
+      childGoalIds: [],
+      owner: 'user',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Link tasks to goal
+    for (const taskId of demoGoal.relatedTasks) {
+      const task = await ctx.db.get(taskId);
+      if (task) {
+        const currentGoals = task.goalIds || [];
+        await ctx.db.patch(taskId, {
+          goalIds: [...currentGoals, goalId],
+        });
+      }
+    }
+
+    createdGoals.push(goalId);
+  }
+
+  return { created: createdGoals.length, goalIds: createdGoals };
+});
+
+/**
+ * CLEANUP: Archive recently created demo goals
+ * Only archives goals created within the last hour to avoid accidental deletion
+ */
+export const archiveDemoGoals = mutation(async (ctx) => {
+  const goals = await ctx.db.query('goals').collect();
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+  const demoGoals = goals.filter((g: any) => g.createdAt > oneHourAgo);
+
+  for (const goal of demoGoals) {
+    await ctx.db.patch(goal._id, {
+      status: 'archived',
+      updatedAt: Date.now(),
+    });
+  }
+
+  return { archived: demoGoals.length };
 });

@@ -2,27 +2,49 @@
  * GET /api/agents/tasks route tests
  */
 
-jest.mock("convex/browser");
+// Create shared mock instances BEFORE jest.mock calls
+let mockQuery: jest.Mock;
+let mockMutation: jest.Mock;
+
+jest.mock("convex/browser", () => {
+  mockQuery = jest.fn();
+  mockMutation = jest.fn();
+  return {
+    ConvexHttpClient: jest.fn(() => ({
+      query: mockQuery,
+      mutation: mockMutation,
+    })),
+  };
+});
+
 jest.mock("@/convex/_generated/api", () => ({
   api: {
     tasks: {
       getFiltered: "tasks:getFiltered",
     },
+    activities: {
+      create: "activities:create",
+    },
   },
 }));
+
 jest.mock("@/lib/agent-auth");
-jest.mock("@/lib/utils/logger");
+
+jest.mock("@/lib/utils/logger", () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  })),
+}));
 
 import { GET } from "../tasks/route";
+import { handleApiError } from "@/lib/utils/apiResponse";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
 describe("GET /api/agents/tasks", () => {
-  const mockQuery = jest.fn();
-  const mockConvex = {
-    query: mockQuery,
-  };
-
   const mockAgent = {
     _id: "agent-123",
     name: "TestBot",
@@ -36,6 +58,9 @@ describe("GET /api/agents/tasks", () => {
       status: "in_progress",
       priority: "P0",
       description: "Do something",
+      ticketNumber: "MC-001",
+      createdAt: 1000,
+      updatedAt: 1000,
     },
     {
       _id: "task-2",
@@ -43,14 +68,17 @@ describe("GET /api/agents/tasks", () => {
       status: "backlog",
       priority: "P1",
       description: "Do something else",
+      ticketNumber: "MC-002",
+      createdAt: 2000,
+      updatedAt: 2000,
     },
   ];
 
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
-    (ConvexHttpClient as any).mockImplementation(() => mockConvex);
     (verifyAgent as jest.Mock).mockResolvedValue(mockAgent);
+    mockMutation!.mockResolvedValue({ success: true }); // Activity logging succeeds by default
   });
 
   it("returns all tasks for agent", async () => {
@@ -63,6 +91,10 @@ describe("GET /api/agents/tasks", () => {
     const request = new Request(url.toString());
     const response = await GET(request);
     const data = await response.json();
+
+    if (response.status !== 200) {
+      console.error("Response error:", data);
+    }
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
@@ -120,7 +152,7 @@ describe("GET /api/agents/tasks", () => {
   });
 
   it("applies pagination", async () => {
-    mockConvex.query.mockResolvedValueOnce(mockTasks);
+    mockQuery!.mockResolvedValueOnce(mockTasks);
 
     const url = new URL("http://localhost/api/agents/tasks");
     url.searchParams.set("agentId", "agent-123");
@@ -163,5 +195,109 @@ describe("GET /api/agents/tasks", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(400);
+  });
+
+  it("includes ticketNumber in response", async () => {
+    mockQuery.mockResolvedValueOnce(mockTasks);
+
+    const url = new URL("http://localhost/api/agents/tasks");
+    url.searchParams.set("agentId", "agent-123");
+    url.searchParams.set("agentKey", "ak_key");
+
+    const request = new Request(url.toString());
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.data.tasks[0]).toHaveProperty("ticketNumber");
+    expect(data.data.tasks[0].ticketNumber).toBe("MC-001");
+    expect(data.data.tasks[1].ticketNumber).toBe("MC-002");
+  });
+
+  it("includes meta object with count, filters, and pagination", async () => {
+    mockQuery.mockResolvedValueOnce(mockTasks);
+
+    const url = new URL("http://localhost/api/agents/tasks");
+    url.searchParams.set("agentId", "agent-123");
+    url.searchParams.set("agentKey", "ak_key");
+    url.searchParams.set("status", "in_progress");
+    url.searchParams.set("priority", "P0");
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("offset", "0");
+
+    const request = new Request(url.toString());
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.data.meta).toBeDefined();
+    expect(data.data.meta.count).toBe(2);
+    expect(data.data.meta.filters).toEqual({
+      status: "in_progress",
+      priority: "P0",
+      assignedTo: undefined,
+    });
+    expect(data.data.meta.pagination).toEqual({
+      limit: 10,
+      offset: 0,
+    });
+  });
+
+  it("logs activity on successful task query", async () => {
+    mockQuery.mockResolvedValueOnce(mockTasks);
+
+    const url = new URL("http://localhost/api/agents/tasks");
+    url.searchParams.set("agentId", "agent-123");
+    url.searchParams.set("agentKey", "ak_key");
+
+    const request = new Request(url.toString());
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(mockMutation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: "tasks_queried",
+        agentId: "agent-123",
+        agentName: "TestBot",
+        agentRole: "Worker",
+        message: expect.stringContaining("TestBot queried tasks (2 results)"),
+      })
+    );
+  });
+
+  it("doesn't break response if activity logging fails", async () => {
+    mockQuery.mockResolvedValueOnce(mockTasks);
+    mockMutation.mockRejectedValueOnce(new Error("Activity logging failed"));
+
+    const url = new URL("http://localhost/api/agents/tasks");
+    url.searchParams.set("agentId", "agent-123");
+    url.searchParams.set("agentKey", "ak_key");
+
+    const request = new Request(url.toString());
+    const response = await GET(request);
+    const data = await response.json();
+
+    // Should still return 200 even if activity logging fails
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.data.tasks).toHaveLength(2);
+  });
+
+  it("returns empty array when no tasks match filters", async () => {
+    mockQuery.mockResolvedValueOnce([]);
+
+    const url = new URL("http://localhost/api/agents/tasks");
+    url.searchParams.set("agentId", "agent-123");
+    url.searchParams.set("agentKey", "ak_key");
+    url.searchParams.set("status", "done");
+
+    const request = new Request(url.toString());
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.data.tasks).toEqual([]);
+    expect(data.data.meta.count).toBe(0);
   });
 });

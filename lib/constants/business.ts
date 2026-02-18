@@ -52,6 +52,8 @@ export const ACTIVITY_TYPE = {
   EPIC_COMPLETED: "epic_completed",
   DEPENDENCY_ADDED: "dependency_added",
   DEPENDENCY_REMOVED: "dependency_removed",
+  TAGS_UPDATED: "tags_updated",
+  TASKS_QUERIED: "tasks_queried",
 } as const;
 
 export type ActivityType = typeof ACTIVITY_TYPE[keyof typeof ACTIVITY_TYPE];

@@ -56,7 +56,7 @@ export function useDashboardMemoryQueries() {
 
 /**
  * Optimized hook for goal queries with deduplication
- * Prevents OKRDashboard and BottleneckVisualizer from making duplicate requests
+ * Prevents BottleneckVisualizer from making duplicate requests
  */
 export function useDashboardGoalQueries() {
   const goals = useQuery(api.goals.getByProgress);

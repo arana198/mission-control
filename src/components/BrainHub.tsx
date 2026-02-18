@@ -121,47 +121,6 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
       importance: 5
     }] : []),
 
-    // Synthetic insights and memories (hardcoded defaults)
-    {
-      id: "memory-1",
-      type: "memory",
-      title: "Mission Control Development Decisions",
-      content: "Key architectural decisions: Professional SaaS theme over editorial style, CSS variables for dark mode, Jira-style task layout with epic management. Epic assignment is required for all tasks.",
-      date: new Date("2026-02-13"),
-      tags: ["architecture", "ui", "decisions", "epic"],
-      connections: ["design", "development"],
-      importance: 5
-    },
-    {
-      id: "pattern-1", 
-      type: "pattern",
-      title: "Agent Task Assignment Patterns",
-      content: "Jarvis handles coordination and decisions as squad lead. Shuri focuses on testing and validation. Vision handles SEO strategy. Auto-assignment works best with keyword matching.",
-      date: new Date("2026-02-13"),
-      tags: ["agents", "assignment", "patterns", "automation"],
-      connections: ["jarvis", "shuri", "vision"],
-      importance: 4
-    },
-    {
-      id: "insight-1",
-      type: "insight", 
-      title: "User Workflow Preferences",
-      content: "Boss prefers direct communication over diplomatic tone, strategic thinking over surface-level, and leveraged solutions that compound. Focus on execution and velocity rather than motivation.",
-      date: new Date("2026-02-13"),
-      tags: ["user-preferences", "communication", "strategy"],
-      connections: ["user", "workflow"],
-      importance: 5
-    },
-    {
-      id: "memory-2",
-      type: "memory",
-      title: "Dark Mode Implementation Strategy",
-      content: "Implemented site-wide dark mode using ThemeProvider with CSS variables. All components now support theme switching with localStorage persistence. Epic modals and AgentDetailModal updated for consistency.",
-      date: new Date("2026-02-13"),
-      tags: ["dark-mode", "theming", "css-variables", "implementation"],
-      connections: ["ui", "components"],
-      importance: 4
-    }
   ];
 
   // Filter knowledge items
@@ -336,7 +295,11 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
             {filteredItems.length === 0 && (
               <div className="card p-8 text-center">
                 <Database className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-muted-foreground">No knowledge items found matching your criteria</p>
+                <p className="text-muted-foreground">
+                  {knowledgeItems.length === 0
+                    ? "No knowledge entries yet. Patterns will emerge as agents complete tasks and activities accumulate."
+                    : "No knowledge items found matching your criteria"}
+                </p>
               </div>
             )}
           </div>

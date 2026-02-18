@@ -17,18 +17,16 @@ import { SettingsPanel } from "../../../components/SettingsPanel";
 import { log } from "../../../lib/logger";
 import { metrics } from "../../../lib/monitoring";
 import { useMutation } from "convex/react";
-import { Rocket, Loader2 } from "lucide-react";
 
 // Lazy load heavy components
 const EpicBoard = lazy(() => import("../../../components/EpicBoard").then(m => ({ default: m.EpicBoard })));
 const BrainHub = lazy(() => import("../../../components/BrainHub").then(m => ({ default: m.BrainHub })));
 const CalendarView = lazy(() => import("../../../components/CalendarView").then(m => ({ default: m.CalendarView })));
-const OKRDashboard = lazy(() => import("../../../components/OKRDashboard").then(m => ({ default: m.OKRDashboard })));
 const BottleneckVisualizer = lazy(() => import("../../../components/BottleneckVisualizer").then(m => ({ default: m.BottleneckVisualizer })));
-const InternalCalendarPanel = lazy(() => import("../../../components/InternalCalendarPanel").then(m => ({ default: m.InternalCalendarPanel })));
 const AnalyticsDashboard = lazy(() => import("../../../components/AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const ApiDocsPanel = lazy(() => import("../../../components/ApiDocsPanel").then(m => ({ default: m.ApiDocsPanel })));
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "analytics" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs";
 
 /**
  * Dashboard Tab Content Component (Client)
@@ -42,8 +40,6 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
   const [showDocuments, setShowDocuments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedError, setSeedError] = useState<string | null>(null);
 
   // Fetch all required data
   const agents = useQuery(api.agents.getAll);
@@ -53,32 +49,13 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
   const notifications = useQuery(api.notifications.getAll);
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Get mutations for initialization
-  let seedAll: any, autoAssignBacklog: any;
+  // Get mutations
+  let autoAssignBacklog: any;
   try {
-    seedAll = useMutation(api.seed.seedAll);
     autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
   } catch (e) {
     // Mutations may not be available if backend is not connected
   }
-
-  const handleInitialize = async () => {
-    if (!seedAll) {
-      setSeedError("Backend not connected. Run 'npx convex dev' first.");
-      return;
-    }
-    setIsSeeding(true);
-    try {
-      await seedAll();
-      setSeedError(null);
-      log.info('System initialized successfully');
-    } catch (err: any) {
-      setSeedError(err?.message || "Failed to initialize");
-      log.error('System initialization failed', err);
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   // Log page load
   useEffect(() => {
@@ -102,43 +79,6 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
     }
   }, [tab, agents, tasks, epics, activities]);
 
-  // Show initialization screen if database is empty
-  const isEmpty = agents && tasks && agents.length === 0 && tasks.length === 0;
-
-  useEffect(() => {
-    console.log('[Overview] isEmpty:', isEmpty, 'agents:', agents?.length || 'loading', 'tasks:', tasks?.length || 'loading');
-  }, [agents, tasks]);
-
-  if (isEmpty) {
-    return (
-      <main className="flex-1 overflow-y-auto">
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <div className="card p-8 max-w-md w-full text-center">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Rocket className="w-8 h-8 text-blue-600" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Mission Control</h1>
-            <p className="text-muted-foreground mb-6">
-              Initialize your 10-agent squad to begin task coordination
-            </p>
-            {seedError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{seedError}</p>
-              </div>
-            )}
-            <button
-              onClick={handleInitialize}
-              disabled={isSeeding}
-              className="btn btn-primary w-full flex items-center justify-center gap-2"
-            >
-              {isSeeding && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isSeeding ? "Initializing..." : "Initialize System"}
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   // Render content based on tab
   const renderContent = (): ReactNode => {
@@ -171,28 +111,6 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
                   <p className="text-3xl font-bold">{completedCount}</p>
                 </div>
               </div>
-
-              {/* Initialize Button - shown when database is empty */}
-              {taskCount === 0 && agentCount === 0 && (
-                <div className="card p-6 text-center">
-                  <Rocket className="w-8 h-8 text-blue-600 mx-auto mb-4" />
-                  <h2 className="text-lg font-semibold mb-2">Get Started</h2>
-                  <p className="text-muted-foreground mb-4">Initialize your system with 10 agents and sample tasks</p>
-                  {seedError && (
-                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{seedError}</p>
-                    </div>
-                  )}
-                  <button
-                    onClick={handleInitialize}
-                    disabled={isSeeding}
-                    className="btn btn-primary inline-flex items-center gap-2"
-                  >
-                    {isSeeding && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSeeding ? "Initializing..." : "Initialize System"}
-                  </button>
-                </div>
-              )}
 
               {/* Dashboard Grid */}
               {taskCount > 0 && <CardGridSkeleton />}
@@ -285,29 +203,11 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
           </ErrorBoundary>
         );
 
-      case "okr":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingSkeleton />}>
-              <OKRDashboard />
-            </Suspense>
-          </ErrorBoundary>
-        );
-
       case "bottlenecks":
         return (
           <ErrorBoundary>
             <Suspense fallback={<CardGridSkeleton />}>
               <BottleneckVisualizer />
-            </Suspense>
-          </ErrorBoundary>
-        );
-
-      case "sync":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingSkeleton />}>
-              <InternalCalendarPanel />
             </Suspense>
           </ErrorBoundary>
         );
@@ -325,6 +225,15 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
         return (
           <ErrorBoundary>
             <SettingsPanel />
+          </ErrorBoundary>
+        );
+
+      case "api-docs":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSkeleton />}>
+              <ApiDocsPanel />
+            </Suspense>
           </ErrorBoundary>
         );
 

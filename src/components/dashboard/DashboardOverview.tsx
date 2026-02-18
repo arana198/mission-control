@@ -5,7 +5,7 @@ import { Task } from "@/types/task";
 import { Epic } from "@/types/epic";
 import { Activity } from "@/types/activity";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "okr" | "bottlenecks" | "sync" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "settings";
 
 interface DashboardStats {
   activeCount: number;

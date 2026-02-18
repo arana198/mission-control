@@ -61,6 +61,21 @@ export async function GET(request: Request): Promise<Response> {
       offset: input.offset,
     });
 
+    // Fire-and-forget activity logging (don't break response if logging fails)
+    try {
+      await convex.mutation(api.activities.create, {
+        type: "tasks_queried",
+        agentId: input.agentId,
+        agentName: (agent as any).name,
+        agentRole: (agent as any).role,
+        message: `${(agent as any).name} queried tasks (${tasks.length} result${tasks.length !== 1 ? "s" : ""})${
+          status || priority ? ` — filters: ${[status && `status=${status}`, priority && `priority=${priority}`].filter(Boolean).join(", ")}` : ""
+        }`,
+      });
+    } catch (logErr) {
+      log.warn("Activity logging failed (non-fatal)", { agentId: input.agentId });
+    }
+
     log.info("Tasks queried", {
       agentId: input.agentId,
       count: tasks.length,
@@ -70,6 +85,11 @@ export async function GET(request: Request): Promise<Response> {
     return jsonResponse(
       successResponse({
         tasks,
+        meta: {
+          count: tasks.length,
+          filters: { status, priority, assignedTo },
+          pagination: { limit: input.limit || 50, offset: input.offset || 0 },
+        },
       })
     );
   } catch (error) {

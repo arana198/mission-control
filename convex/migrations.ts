@@ -23,11 +23,86 @@ export const migrateApiKeyDocumentation = mutation({
   args: {},
   handler: async (ctx) => {
     const agents = await ctx.db.query("agents").collect();
-    const withoutKey = agents.filter((a: any) => !a.apiKey);
+    const withoutKey = agents.filter((agent: any) => !agent.apiKey);
     return {
       totalAgents: agents.length,
       agentsWithoutApiKey: withoutKey.length,
       message: "MIG-02: apiKey field added. Agents can re-register to receive API keys.",
+    };
+  },
+});
+
+/**
+ * MIG-03: Add ticketNumber to tasks table (2026-02-18)
+ *
+ * Schema change: Added `ticketNumber: v.optional(v.string())` field to tasks table.
+ * Counter: Initializes "taskCounter" key in settings table.
+ *
+ * Reason: Provides stable, human-readable task IDs (MC-001, MC-002...) for agent
+ * API consumers and activity log messages.
+ *
+ * Migration action: Assigns sequential ticket numbers to all existing tasks
+ * ordered by _creationTime. Initializes taskCounter setting to the count.
+ * Idempotent: skips tasks that already have ticketNumber.
+ * If task count > 100, run repeatedly until patched === 0.
+ */
+export const migrateAddTicketNumbers = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Load existing tasks ordered by creation time
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_created_at")
+      .order("asc")
+      .collect();
+
+    const unpatched = tasks.filter((task: any) => !task.ticketNumber);
+
+    // Find highest existing counter value
+    const existingCounter = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", "taskCounter"))
+      .first();
+
+    let counter = existingCounter ? parseInt((existingCounter as any).value) : 0;
+
+    // Find tasks that already have ticketNumbers to set starting counter
+    const patched = tasks.filter((task: any) => task.ticketNumber);
+    if (patched.length > 0 && counter === 0) {
+      // Extract highest number from existing tickets
+      const nums = patched
+        .map((task: any) => parseInt((task.ticketNumber as string).replace("MC-", "")))
+        .filter((n: number) => !isNaN(n));
+      counter = nums.length > 0 ? Math.max(...nums) : 0;
+    }
+
+    // Patch unpatched tasks in batch (Convex limit: 8192 writes/mutation)
+    const BATCH_SIZE = 100;
+    for (let batchIndex = 0; batchIndex < Math.min(unpatched.length, BATCH_SIZE); batchIndex++) {
+      counter++;
+      const ticketNumber = `MC-${String(counter).padStart(3, "0")}`;
+      await ctx.db.patch((unpatched[batchIndex] as any)._id, { ticketNumber } as any);
+    }
+
+    // Upsert counter in settings
+    if (existingCounter) {
+      await ctx.db.patch((existingCounter as any)._id, {
+        value: String(counter),
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("settings", {
+        key: "taskCounter",
+        value: String(counter),
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      patched: Math.min(unpatched.length, BATCH_SIZE),
+      totalExisting: patched.length,
+      counterNow: counter,
+      message: `MIG-03: Assigned ticket numbers. Counter at ${counter}.`,
     };
   },
 });

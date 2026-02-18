@@ -11,13 +11,22 @@ import clsx from "clsx";
 
 /**
  * Advanced Bottleneck Visualizer
- * 
+ *
  * Displays:
  * - Severity heatmap (critical → medium)
  * - Task dependency graph (which tasks block others)
  * - Critical path highlighting (longest chain to completion)
  * - Agent utilization vs. capacity
  */
+
+// Magic numbers extracted to constants
+const CAPACITY_PER_TASK = 20; // % capacity per active task
+const OVERLOAD_THRESHOLD = 70;
+const UNDERUTILIZED_THRESHOLD = 30;
+const CRITICAL_PROGRESS_THRESHOLD = 50;
+const HIGH_RISK_PROGRESS = 25;
+const CRITICAL_RISK_PROGRESS = 10;
+
 export function BottleneckVisualizer() {
   const goals = useQuery(api.goals.getByProgress);
   const tasks = useQuery(api.tasks.getAll);
@@ -30,7 +39,7 @@ export function BottleneckVisualizer() {
   }
 
   const allGoals = Object.values(goals).flat() as any[];
-  const bottleneckedGoals = allGoals.filter((g: any) => g.progress < 50);
+  const bottleneckedGoals = allGoals.filter((g: any) => g.progress < CRITICAL_PROGRESS_THRESHOLD);
 
   return (
     <div className="space-y-6">
@@ -77,13 +86,25 @@ export function BottleneckVisualizer() {
  * Severity Heatmap: Visualize bottleneck distribution
  */
 function HeatmapView({ goals }: { goals: any[] }) {
-  const categories = ["Business", "Personal", "Learning", "Health"];
+  // Derive categories from actual goal data (not hardcoded)
+  const categories = Array.from(
+    new Set(goals.map((g: any) => g.category).filter(Boolean))
+  ).sort();
+
+  if (categories.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No goals to analyze. Create goals to see bottleneck patterns.
+      </div>
+    );
+  }
+
   const severities = categories.map((cat) => {
     const goalsInCat = goals.filter((g: any) => g.category === cat);
     const avgProgress = goalsInCat.length > 0
       ? goalsInCat.reduce((sum: number, g: any) => sum + g.progress, 0) / goalsInCat.length
       : 50;
-    const severity = avgProgress < 10 ? "critical" : avgProgress < 25 ? "high" : "medium";
+    const severity = avgProgress < CRITICAL_RISK_PROGRESS ? "critical" : avgProgress < HIGH_RISK_PROGRESS ? "high" : "medium";
     return { category: cat, count: goalsInCat.length, avgProgress, severity };
   });
 
@@ -103,7 +124,7 @@ function HeatmapView({ goals }: { goals: any[] }) {
               colors[item.severity as keyof typeof colors]
             )}
           >
-            <div className="font-semibold">{item.category}</div>
+            <div className="font-semibold">{item.category.charAt(0).toUpperCase() + item.category.slice(1)}</div>
             <div className="text-sm mt-2">
               {item.count} goals | {Math.round(item.avgProgress)}% avg progress
             </div>
@@ -158,7 +179,8 @@ function DependencyGraph({ goals, tasks }: { goals: any[]; tasks: any[] }) {
 }
 
 /**
- * Critical Path: Longest chain of dependent tasks to completion
+ * Critical Path: Goals with most tasks relative to progress
+ * Note: True critical path analysis requires task dependency graphs
  */
 function CriticalPathView({ goals, tasks }: { goals: any[]; tasks: any[] }) {
   const criticalGoals = goals
@@ -166,35 +188,54 @@ function CriticalPathView({ goals, tasks }: { goals: any[]; tasks: any[] }) {
     .sort((a: any, b: any) => (b.relatedTaskIds?.length || 0) - (a.relatedTaskIds?.length || 0))
     .slice(0, 3);
 
+  if (criticalGoals.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No goals in critical path range (0-75% progress). Goals are either completed or blocked.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {criticalGoals.map((goal: any, idx: number) => (
-        <div key={goal._id} className="p-4 border border-border rounded-lg">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="font-semibold">{goal.title}</div>
-            <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400">
-              {goal.relatedTaskIds?.length || 0} in critical path
-            </span>
-          </div>
+      {criticalGoals.map((goal: any, idx: number) => {
+        const taskCount = goal.relatedTaskIds?.length || 0;
+        return (
+          <div key={goal._id} className="p-4 border border-border rounded-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="font-semibold">{goal.title}</div>
+              <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                {taskCount} {taskCount === 1 ? "task" : "tasks"}
+              </span>
+              <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400">
+                {goal.progress}% progress
+              </span>
+            </div>
 
-          {/* Timeline */}
-          <div className="space-y-2">
-            {(goal.relatedTaskIds || []).slice(0, 4).map((taskId: any, step: number) => (
-              <div key={taskId} className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  {step + 1}
+            {/* Task sequence visualization */}
+            <div className="space-y-2">
+              {(goal.relatedTaskIds || []).slice(0, 4).map((taskId: any, step: number) => (
+                <div key={taskId} className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    {step + 1}
+                  </div>
+                  <div className="flex-1 h-1 bg-gradient-to-r from-blue-500 to-blue-300" />
                 </div>
-                <div className="flex-1 h-1 bg-gradient-to-r from-blue-500 to-blue-300" />
-                <span className="text-xs text-muted-foreground">Est. 2–3 days</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="mt-3 p-2 bg-background/50 rounded text-xs text-muted-foreground">
-            ⏱️ Total critical path: ~{(goal.relatedTaskIds?.length || 1) * 2} days to completion
+            {taskCount > 4 && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                +{taskCount - 4} more {taskCount - 4 === 1 ? "task" : "tasks"}
+              </div>
+            )}
+
+            <div className="mt-3 p-2 bg-background/50 rounded text-xs text-muted-foreground">
+              Remaining to complete: {Math.round(100 - goal.progress)}%
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -202,16 +243,34 @@ function CriticalPathView({ goals, tasks }: { goals: any[]; tasks: any[] }) {
 /**
  * Agent Utilization vs. Capacity
  */
-function AgentUtilizationView({ agents, goals }: { agents: any[]; goals: any[] }) {
-  const agentLoads = (agents as any[]).map((agent) => ({
-    name: agent.name,
-    capacity: 100,
-    current: Math.random() * 80, // Mock data
-    activeTaskCount: Math.floor(Math.random() * 5),
-  }));
+function AgentUtilizationView({ agents, goals, tasks }: { agents: any[]; goals: any[]; tasks?: any[] }) {
+  // Get all tasks from goals and compute agent utilization
+  const allTaskIds = new Set(goals.flatMap((g: any) => g.relatedTaskIds || []));
+  const tasksData = Array.from(allTaskIds).map((id) => {
+    // Find task details from goals (simplified since tasks aren't passed)
+    return { _id: id };
+  });
 
-  const overloaded = agentLoads.filter((a) => a.current > 70);
-  const underutilized = agentLoads.filter((a) => a.current < 30);
+  const agentLoads = (agents as any[]).map((agent) => {
+    // Count active (in_progress/review) tasks assigned to this agent
+    // Note: This is a simplified calculation since we get task IDs from goals
+    // In a real system, we'd fetch the full task objects to check status
+    const assignedTaskCount = (agent.currentTaskId ? 1 : 0);
+    const utilization = Math.min(100, assignedTaskCount * CAPACITY_PER_TASK);
+
+    return {
+      id: agent._id,
+      name: agent.name,
+      capacity: 100,
+      current: utilization,
+      activeTaskCount: assignedTaskCount,
+      status: agent.status,
+    };
+  });
+
+  const overloaded = agentLoads.filter((a) => a.current > OVERLOAD_THRESHOLD);
+  const underutilized = agentLoads.filter((a) => a.current < UNDERUTILIZED_THRESHOLD);
+  const balanced = agentLoads.length - overloaded.length - underutilized.length;
 
   return (
     <div className="space-y-4">
@@ -222,7 +281,7 @@ function AgentUtilizationView({ agents, goals }: { agents: any[]; goals: any[] }
           <div className="text-xs text-red-700 dark:text-red-400">Overloaded</div>
         </div>
         <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-          <div className="text-2xl font-bold text-green-600">{agents?.length || 0 - overloaded.length - underutilized.length}</div>
+          <div className="text-2xl font-bold text-green-600">{balanced}</div>
           <div className="text-xs text-green-700 dark:text-green-400">Balanced</div>
         </div>
         <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
@@ -238,12 +297,12 @@ function AgentUtilizationView({ agents, goals }: { agents: any[]; goals: any[] }
           Agent Utilization
         </h3>
         {agentLoads.map((agent) => (
-          <div key={agent.name} className="p-3 bg-secondary/30 rounded-lg border border-border/50">
+          <div key={agent.id} className="p-3 bg-secondary/30 rounded-lg border border-border/50">
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium text-sm">{agent.name}</span>
               <span className={clsx(
                 "text-xs font-bold",
-                agent.current > 70 ? "text-red-600" : agent.current > 50 ? "text-amber-600" : "text-green-600"
+                agent.current > OVERLOAD_THRESHOLD ? "text-red-600" : agent.current > 50 ? "text-amber-600" : "text-green-600"
               )}>
                 {Math.round(agent.current)}%
               </span>
@@ -252,13 +311,13 @@ function AgentUtilizationView({ agents, goals }: { agents: any[]; goals: any[] }
               <div
                 className={clsx(
                   "h-full transition-all",
-                  agent.current > 70 ? "bg-red-500" : agent.current > 50 ? "bg-amber-500" : "bg-green-500"
+                  agent.current > OVERLOAD_THRESHOLD ? "bg-red-500" : agent.current > 50 ? "bg-amber-500" : "bg-green-500"
                 )}
                 style={{ width: `${agent.current}%` }}
               />
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {agent.activeTaskCount} active tasks
+              {agent.activeTaskCount} active {agent.activeTaskCount === 1 ? "task" : "tasks"} • {agent.status}
             </div>
           </div>
         ))}

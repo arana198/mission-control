@@ -50,7 +50,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     // Get all agents
-    const agents = await convex.query(api.agents.getAll);
+    const agents = await convex.query(api.agents.getAllAgents);
 
     // Return sanitized agent list for mentions
     const agentList = agents.map((a: any) => ({

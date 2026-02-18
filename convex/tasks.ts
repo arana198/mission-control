@@ -134,6 +134,29 @@ export const createTask = mutation({
       await syncEpicTaskLink(ctx, taskId, undefined, epicId);
     }
 
+    // TKT-01: Assign atomic ticket number (MC-001, MC-002...)
+    const counterSetting = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q: any) => q.eq("key", "taskCounter"))
+      .first();
+    const nextNum = counterSetting ? parseInt((counterSetting as any).value) + 1 : 1;
+    const ticketNumber = `MC-${String(nextNum).padStart(3, "0")}`;
+    await ctx.db.patch(taskId, { ticketNumber } as any);
+
+    // Upsert counter in settings
+    if (counterSetting) {
+      await ctx.db.patch((counterSetting as any)._id, {
+        value: String(nextNum),
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("settings", {
+        key: "taskCounter",
+        value: "1",
+        updatedAt: Date.now(),
+      });
+    }
+
     // Log activity (LOG-01: resolve actor name)
     const actorName = await resolveActorName(ctx, createdBy);
     await ctx.db.insert("activities", {
@@ -182,7 +205,7 @@ export const createTask = mutation({
 
 // Get all tasks (H-02 fix: removed message loading, reduces memory pressure)
 // Comment counts available via separate query if needed
-export const getAll = query({
+export const getAllTasks = query({
   args: {},
   handler: async (ctx) => {
     const allTasks = await ctx.db.query("tasks").order("desc").take(500);
@@ -203,7 +226,7 @@ export const getMessageCount = query({
 });
 
 // Get single task by ID
-export const getById = query({
+export const getTaskById = query({
   args: { id: v.id("tasks") },
   handler: async (ctx, { id }) => {
     return await ctx.db.get(id);
@@ -301,21 +324,32 @@ export const getFiltered = query({
     { agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
   ) => {
     let tasks = await (status
-      ? ctx.db.query("tasks").withIndex("by_status", (q) => q.eq("status", status as any)).collect()
+      ? ctx.db.query("tasks").withIndex("by_status", (indexQuery) => indexQuery.eq("status", status as any)).collect()
       : ctx.db.query("tasks").collect());
 
     // Apply priority filter
     if (priority) {
-      tasks = tasks.filter((t) => t.priority === priority);
+      tasks = tasks.filter((task) => task.priority === priority);
     }
 
     // Filter to assigned tasks if requested
     if (assignedToMe) {
-      tasks = tasks.filter((t) => t.assigneeIds.includes(agentId));
+      tasks = tasks.filter((task) => task.assigneeIds.includes(agentId));
     }
 
-    // Apply pagination
-    return tasks.slice(offset, offset + limit);
+    // Apply pagination and return enriched shape
+    return tasks.slice(offset, offset + limit).map((task: any) => ({
+      _id: task._id,
+      ticketNumber: task.ticketNumber ?? null,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      assigneeIds: task.assigneeIds,
+      tags: task.tags,
+      dueDate: task.dueDate ?? null,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    }));
   },
 });
 
@@ -876,7 +910,7 @@ async function findBestAgent(ctx: any, agents: any[], task: any) {
   // Load all in-progress tasks once to calculate workload
   const inProgressTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_status", (q: any) => q.eq("status", "in_progress"))
+    .withIndex("by_status", (indexQuery: any) => indexQuery.eq("status", "in_progress"))
     .collect();
 
   // Count tasks per agent
@@ -884,8 +918,8 @@ async function findBestAgent(ctx: any, agents: any[], task: any) {
   for (const agent of agents) {
     agentTaskCounts.set(agent._id, 0);
   }
-  for (const t of inProgressTasks) {
-    for (const assigneeId of t.assigneeIds) {
+  for (const inProgressTask of inProgressTasks) {
+    for (const assigneeId of inProgressTask.assigneeIds) {
       agentTaskCounts.set(
         assigneeId,
         (agentTaskCounts.get(assigneeId) ?? 0) + 1
@@ -1072,7 +1106,7 @@ export const getWithSubtasks = query({
 });
 
 // Delete task (only creator or admin can delete)
-export const remove = mutation({
+export const deleteTask = mutation({
   args: {
     taskId: v.id("tasks"),
     deletedBy: v.string(), // User ID or agent ID
