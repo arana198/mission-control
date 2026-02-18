@@ -2,6 +2,7 @@
 import { useNotification } from "@/hooks/useNotification";
 
 import { useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { 
   Shield, X, Briefcase, ExternalLink, History, Calendar,
@@ -62,6 +63,7 @@ const activityIcons: Record<string, any> = {
 
 export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDetailModalProps) {
   const notif = useNotification();
+  const router = useRouter();
 
   // Fetch agent activities
   const agentActivities = useQuery(api.migrations.getAgentActivities, {
@@ -70,6 +72,13 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
   });
 
   const Icon = agentIcons[agent.name] || Shield;
+
+  // Handle task click - navigate to board and highlight task
+  const handleTaskClick = (taskId: string) => {
+    const currentUrl = `/dashboard/agents?agent=${agent._id}`;
+    const returnUrl = encodeURIComponent(currentUrl);
+    router.push(`/dashboard/board?task=${taskId}&returnTo=${returnUrl}`);
+  };
 
   return (
     <div 
@@ -147,7 +156,13 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
             {tasks.length > 0 ? (
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {tasks.map((task: any) => (
-                  <div key={task._id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "var(--muted)" }}>
+                  <button
+                    key={task._id}
+                    onClick={() => handleTaskClick(task._id)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:opacity-80"
+                    style={{ background: "var(--muted)" }}
+                    title="Click to view task on board"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`badge badge-priority-${task.priority.toLowerCase()} text-xs flex-shrink-0`}>
                         {task.priority}
@@ -157,7 +172,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
                     <span className={`badge badge-status-${task.status} text-xs flex-shrink-0`}>
                       {task.status.replace("_", " ")}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (

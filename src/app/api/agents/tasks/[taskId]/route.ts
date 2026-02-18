@@ -1,0 +1,72 @@
+/**
+ * GET /api/agents/tasks/{taskId}
+ *
+ * Get full details for a specific task
+ *
+ * Query params: agentId, agentKey
+ * Response: { task }
+ */
+
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import {
+  successResponse,
+  handleApiError,
+  jsonResponse,
+  UnauthorizedError,
+  NotFoundError,
+} from "@/lib/utils/apiResponse";
+import { createLogger } from "@/lib/utils/logger";
+import { validateAgentTaskInput, GetTaskDetailsSchema } from "@/lib/validators/agentTaskValidators";
+import { verifyAgent } from "@/lib/agent-auth";
+
+const log = createLogger("api:agents:tasks:details");
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export async function GET(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { taskId } = context.params;
+  try {
+    // Parse query params
+    const url = new URL(request.url);
+    const agentId = url.searchParams.get("agentId");
+    const agentKey = url.searchParams.get("agentKey");
+
+    const input = validateAgentTaskInput(GetTaskDetailsSchema, {
+      agentId,
+      agentKey,
+      taskId,
+    });
+
+    // Verify credentials
+    const agent = await verifyAgent(input.agentId, input.agentKey);
+    if (!agent) {
+      throw new UnauthorizedError("Invalid agent credentials");
+    }
+
+    // Get task details
+    const task = await convex.query(api.tasks.getWithDetails, {
+      taskId: input.taskId as any,
+    });
+
+    if (!task) {
+      throw new NotFoundError("Task not found");
+    }
+
+    log.info("Task details retrieved", {
+      agentId: input.agentId,
+      taskId: input.taskId,
+    });
+
+    return jsonResponse(
+      successResponse({
+        task,
+      })
+    );
+  } catch (error) {
+    const [errorData, statusCode] = handleApiError(error);
+    return jsonResponse(errorData, statusCode);
+  }
+}

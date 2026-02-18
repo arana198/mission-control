@@ -7,6 +7,31 @@ import { api } from "./_generated/api";
  * This is backend code only - no "use client" directive
  */
 
+/**
+ * MIG-02: Add apiKey to agents table (2026-02-18)
+ *
+ * Schema change: Added `apiKey: v.optional(v.string())` field to agents table
+ * and `by_api_key` index for efficient lookup.
+ *
+ * Reason: Enables the HTTP API auth layer. Agents register via
+ * POST /api/agents/register to receive an apiKey for authentication.
+ *
+ * Migration action: None required. Optional fields are non-breaking in Convex.
+ * Existing agents have no apiKey until they re-register via the API.
+ */
+export const migrateApiKeyDocumentation = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").collect();
+    const withoutKey = agents.filter((a: any) => !a.apiKey);
+    return {
+      totalAgents: agents.length,
+      agentsWithoutApiKey: withoutKey.length,
+      message: "MIG-02: apiKey field added. Agents can re-register to receive API keys.",
+    };
+  },
+});
+
 // Get all tasks without an epic
 export const getTasksWithoutEpic = query({
   args: {},

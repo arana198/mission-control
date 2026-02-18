@@ -1,7 +1,8 @@
 "use client";
 import { useNotification } from "@/hooks/useNotification";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Task } from "@/types/task";
 import { api } from "../../convex/_generated/api";
 import { 
@@ -59,7 +60,20 @@ const agentDescriptions: Record<string, string> = {
 
 export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Task[] }) {
   const notif = useNotification();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+
+  // Load selected agent from URL on mount or when agents change
+  useEffect(() => {
+    const agentIdFromUrl = searchParams?.get('agent');
+    if (agentIdFromUrl) {
+      const agent = agents.find(a => a._id === agentIdFromUrl);
+      if (agent) {
+        setSelectedAgent(agent);
+      }
+    }
+  }, [searchParams, agents]);
 
   // Sort: Lead first, then by level, then by name
   const sortedAgents = [...agents].sort((a, b) => {
@@ -77,6 +91,18 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
 
   // Get agent's current tasks
   const getAgentTasks = (agentId: string) => tasks.filter(t => t.assigneeIds?.includes(agentId));
+
+  // Handle agent selection with URL update
+  const handleSelectAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    router.push(`/dashboard/agents?agent=${agent._id}`);
+  };
+
+  // Handle closing agent detail and clearing URL
+  const handleCloseAgent = () => {
+    setSelectedAgent(null);
+    router.push('/dashboard/agents');
+  };
 
   return (
     <div className="max-w-6xl">
@@ -157,8 +183,8 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
                 {agentDescriptions[agent.name] || agent.personality || "Agent ready for assignments."}
               </p>
               <div className="flex gap-3 mt-4">
-                <button 
-                  onClick={() => setSelectedAgent(agent)}
+                <button
+                  onClick={() => handleSelectAgent(agent)}
                   className="btn btn-primary text-sm"
                 >
                   View Profile
@@ -185,10 +211,10 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
         </h3>
         <div className="grid grid-cols-3 gap-4">
           {sortedAgents.filter(a => a.level === "specialist").map(agent => (
-            <AgentCard 
-              key={agent._id} 
-              agent={agent} 
-              onClick={() => setSelectedAgent(agent)}
+            <AgentCard
+              key={agent._id}
+              agent={agent}
+              onClick={() => handleSelectAgent(agent)}
             />
           ))}
         </div>
@@ -203,10 +229,10 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
           </h3>
           <div className="grid grid-cols-4 gap-4">
             {sortedAgents.filter(a => a.level === "intern").map(agent => (
-              <AgentCard 
-                key={agent._id} 
-                agent={agent} 
-                onClick={() => setSelectedAgent(agent)}
+              <AgentCard
+                key={agent._id}
+                agent={agent}
+                onClick={() => handleSelectAgent(agent)}
                 compact
               />
             ))}
@@ -216,11 +242,11 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
 
       {/* Agent Detail Modal */}
       {selectedAgent && (
-        <AgentDetailModal 
-          agent={selectedAgent} 
+        <AgentDetailModal
+          agent={selectedAgent}
           levelBadge={levelBadges[selectedAgent.level]}
           tasks={getAgentTasks(selectedAgent._id)}
-          onClose={() => setSelectedAgent(null)}
+          onClose={handleCloseAgent}
         />
       )}
     </div>

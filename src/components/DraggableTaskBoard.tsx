@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotification } from "@/hooks/useNotification";
@@ -35,6 +36,7 @@ interface DraggableTaskBoardProps {
 
 export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskBoardProps) {
   const notif = useNotification();
+  const searchParams = useSearchParams();
 
   // Persist filter state to localStorage
   const [filters, filterSetters] = useFilterPersistence(
@@ -58,6 +60,17 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [draggedTask, setDraggedTask] = useState<any>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  // Load task from URL parameter if present
+  useEffect(() => {
+    const taskIdFromUrl = searchParams?.get('task');
+    if (taskIdFromUrl) {
+      const task = tasks.find(t => t._id === taskIdFromUrl);
+      if (task) {
+        setSelectedTask(task);
+      }
+    }
+  }, [searchParams, tasks]);
 
   const updateTask = useMutation(api.tasks.update);
   const addDependency = useMutation(api.tasks.addDependency);

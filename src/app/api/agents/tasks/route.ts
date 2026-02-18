@@ -1,0 +1,79 @@
+/**
+ * GET /api/agents/tasks
+ *
+ * Query tasks with optional filters (status, priority, assignedToMe)
+ * Supports pagination via limit and offset
+ *
+ * Query params: agentId, agentKey, status?, priority?, assignedToMe?, limit?, offset?
+ * Response: { tasks }
+ */
+
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+import {
+  successResponse,
+  handleApiError,
+  jsonResponse,
+  UnauthorizedError,
+} from "@/lib/utils/apiResponse";
+import { createLogger } from "@/lib/utils/logger";
+import { validateAgentTaskInput, QueryTasksSchema } from "@/lib/validators/agentTaskValidators";
+import { verifyAgent } from "@/lib/agent-auth";
+
+const log = createLogger("api:agents:tasks:query");
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export async function GET(request: Request): Promise<Response> {
+  try {
+    // Parse query params
+    const url = new URL(request.url);
+    const agentId = url.searchParams.get("agentId");
+    const agentKey = url.searchParams.get("agentKey");
+    const status = url.searchParams.get("status") || undefined;
+    const priority = url.searchParams.get("priority") || undefined;
+    const assignedTo = url.searchParams.get("assignedTo") === "me" ? "me" : undefined;
+    const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : undefined;
+    const offset = url.searchParams.get("offset") ? parseInt(url.searchParams.get("offset")!) : undefined;
+
+    const input = validateAgentTaskInput(QueryTasksSchema, {
+      agentId,
+      agentKey,
+      status,
+      priority,
+      assignedTo,
+      limit,
+      offset,
+    });
+
+    // Verify credentials
+    const agent = await verifyAgent(input.agentId, input.agentKey);
+    if (!agent) {
+      throw new UnauthorizedError("Invalid agent credentials");
+    }
+
+    // Query tasks with filters
+    const tasks = await convex.query(api.tasks.getFiltered, {
+      agentId: input.agentId as any,
+      status: input.status,
+      priority: input.priority,
+      assignedToMe: input.assignedTo === "me",
+      limit: input.limit,
+      offset: input.offset,
+    });
+
+    log.info("Tasks queried", {
+      agentId: input.agentId,
+      count: tasks.length,
+      filters: { status, priority, assignedTo },
+    });
+
+    return jsonResponse(
+      successResponse({
+        tasks,
+      })
+    );
+  } catch (error) {
+    const [errorData, statusCode] = handleApiError(error);
+    return jsonResponse(errorData, statusCode);
+  }
+}

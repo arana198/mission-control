@@ -286,6 +286,39 @@ export const getForAgent = query({
   },
 });
 
+// Get filtered tasks (for agent API queries)
+export const getFiltered = query({
+  args: {
+    agentId: v.id("agents"),
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    assignedToMe: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
+  ) => {
+    let tasks = await (status
+      ? ctx.db.query("tasks").withIndex("by_status", (q) => q.eq("status", status as any)).collect()
+      : ctx.db.query("tasks").collect());
+
+    // Apply priority filter
+    if (priority) {
+      tasks = tasks.filter((t) => t.priority === priority);
+    }
+
+    // Filter to assigned tasks if requested
+    if (assignedToMe) {
+      tasks = tasks.filter((t) => t.assigneeIds.includes(agentId));
+    }
+
+    // Apply pagination
+    return tasks.slice(offset, offset + limit);
+  },
+});
+
 // Assign task to agent(s)
 export const assign = mutation({
   args: {
@@ -1322,5 +1355,105 @@ export const removeDependency = mutation({
     });
 
     return { success: true, taskId, blockedByTaskId };
+  },
+});
+
+/**
+ * Agent task completion
+ * Atomic mutation: updates task, agent status, and logs activity in one transaction
+ * Called by POST /api/agents/tasks/complete
+ */
+export const completeByAgent = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    agentId: v.id("agents"),
+    completionNotes: v.optional(v.string()),
+    timeTracked: v.optional(v.number()),  // minutes
+    status: v.optional(v.union(v.literal("done"), v.literal("review"))),
+  },
+  handler: async (ctx, { taskId, agentId, completionNotes, timeTracked, status = "done" }) => {
+    // Fetch task and agent
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    // Update task
+    await ctx.db.patch(taskId, {
+      status,
+      completedAt: status === "done" ? Date.now() : undefined,
+      completionNotes,
+      timeTracked,
+      updatedAt: Date.now(),
+    });
+
+    // Set agent to idle
+    await ctx.db.patch(agentId, {
+      status: "idle",
+      currentTaskId: undefined,
+      lastHeartbeat: Date.now(),
+    });
+
+    // Log activity
+    await ctx.db.insert("activities", {
+      type: "task_completed",
+      agentId: agentId,
+      agentName: agent.name,
+      agentRole: agent.role,
+      message: `${agent.name} completed: "${task.title}"`,
+      taskId,
+      taskTitle: task.title,
+      oldValue: task.status,
+      newValue: status,
+      createdAt: Date.now(),
+    });
+
+    return { success: true, completedAt: Date.now() };
+  },
+});
+
+// Add or remove tags from task
+export const addTags = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    tags: v.array(v.string()),
+    action: v.union(v.literal("add"), v.literal("remove")),
+    updatedBy: v.optional(v.string()),
+  },
+  handler: async (ctx, { taskId, tags, action, updatedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    const currentTags = task.tags || [];
+    let newTags = [...currentTags];
+
+    if (action === "add") {
+      // Add new tags, avoiding duplicates
+      newTags = Array.from(new Set([...newTags, ...tags]));
+    } else if (action === "remove") {
+      // Remove specified tags
+      newTags = newTags.filter((t) => !tags.includes(t));
+    }
+
+    await ctx.db.patch(taskId, {
+      tags: newTags,
+      updatedAt: Date.now(),
+    });
+
+    // Log activity
+    const actorId = updatedBy || "system";
+    const actorName = await resolveActorName(ctx, actorId);
+    await ctx.db.insert("activities", {
+      type: "tags_updated",
+      agentId: actorId,
+      agentName: actorName,
+      message: `${action === "add" ? "Added tags" : "Removed tags"} on "${task.title}": ${tags.join(", ")}`,
+      taskId,
+      taskTitle: task.title,
+      createdAt: Date.now(),
+    });
+
+    return { success: true, tags: newTags };
   },
 });

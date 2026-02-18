@@ -22,6 +22,7 @@ export default defineSchema({
     currentTaskId: v.optional(v.id("tasks")),
     sessionKey: v.string(),        // "agent:main:main"
     lastHeartbeat: v.number(),
+    apiKey: v.optional(v.string()),     // API key for HTTP auth layer
     level: v.union(
       v.literal("lead"),
       v.literal("specialist"),
@@ -39,7 +40,8 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_status", ["status"])
     .index("by_session_key", ["sessionKey"])
-    .index("by_current_task", ["currentTaskId"]),
+    .index("by_current_task", ["currentTaskId"])
+    .index("by_api_key", ["apiKey"]),
 
   /**
    * EPICS - Large Initiatives
@@ -206,7 +208,8 @@ export default defineSchema({
       v.literal("epic_created"),
       v.literal("epic_completed"),
       v.literal("dependency_added"),
-      v.literal("dependency_removed")
+      v.literal("dependency_removed"),
+      v.literal("tags_updated")
     ),
     
     // Actor (denormalized for speed)
