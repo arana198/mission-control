@@ -9,7 +9,12 @@ export interface KnowledgeItem {
   tags?: string[];
 }
 
-export function exportAsJSON(items: KnowledgeItem[]): Blob {
+/**
+ * Export knowledge items as JSON format
+ * @param items - Array of knowledge items to export
+ * @returns Blob containing formatted JSON data
+ */
+export function exportKnowledgeAsJSON(items: KnowledgeItem[]): Blob {
   const exportData = {
     exportDate: new Date().toISOString(),
     itemCount: items.length,
@@ -27,7 +32,12 @@ export function exportAsJSON(items: KnowledgeItem[]): Blob {
   return new Blob([jsonString], { type: "application/json" });
 }
 
-export function exportAsMarkdown(items: KnowledgeItem[]): Blob {
+/**
+ * Export knowledge items as Markdown format
+ * @param items - Array of knowledge items to export
+ * @returns Blob containing formatted Markdown data
+ */
+export function exportKnowledgeAsMarkdown(items: KnowledgeItem[]): Blob {
   let markdown = `# Knowledge Export\n\n`;
   markdown += `**Export Date:** ${new Date().toLocaleDateString()}\n`;
   markdown += `**Total Items:** ${items.length}\n\n`;

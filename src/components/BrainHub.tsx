@@ -15,7 +15,7 @@ import {
 import { KnowledgeCard } from "./KnowledgeCard";
 import { KnowledgeDetailPanel } from "./KnowledgeDetailPanel";
 import { StatCard } from "./StatCard";
-import { exportAsJSON, exportAsMarkdown, downloadBlob } from "../lib/knowledgeExport";
+import { exportKnowledgeAsJSON, exportKnowledgeAsMarkdown, downloadBlob } from "../lib/knowledgeExport";
 
 interface Task {
   _id: string;
@@ -158,7 +158,7 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
       timestamp: item.date.getTime(),
       tags: item.tags || [],
     }));
-    const blob = exportAsJSON(exportItems);
+    const blob = exportKnowledgeAsJSON(exportItems);
     downloadBlob(blob, `brain-export-${new Date().toISOString().split('T')[0]}.json`);
     setShowExportModal(false);
   };
@@ -172,7 +172,7 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
       timestamp: item.date.getTime(),
       tags: item.tags || [],
     }));
-    const blob = exportAsMarkdown(exportItems);
+    const blob = exportKnowledgeAsMarkdown(exportItems);
     downloadBlob(blob, `brain-export-${new Date().toISOString().split('T')[0]}.md`);
     setShowExportModal(false);
   };
