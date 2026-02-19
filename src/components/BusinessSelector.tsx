@@ -16,7 +16,7 @@ export function BusinessSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { currentBusiness, businesses, setCurrentBusiness } = useBusiness();
+  const { currentBusiness, businesses, setCurrentBusiness, isLoading } = useBusiness();
 
   // Extract current tab from pathname (last part after /)
   const pathParts = (pathname || "").split("/").filter(Boolean);
@@ -35,8 +35,16 @@ export function BusinessSelector() {
     setIsOpen(false);
   };
 
-  if (!currentBusiness) {
-    return null;
+  // Show loading state or fallback
+  if (!currentBusiness || isLoading) {
+    return (
+      <div className="w-full px-3 py-2 rounded-lg border border-input bg-muted text-muted-foreground animate-pulse">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-muted-foreground/20" />
+          <div className="h-3 bg-muted-foreground/20 rounded flex-1" />
+        </div>
+      </div>
+    );
   }
 
   return (
