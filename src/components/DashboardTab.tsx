@@ -20,6 +20,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { log } from "../lib/logger";
 import { metrics } from "../lib/monitoring";
 import { useMutation } from "convex/react";
+import { DashboardHeader } from "./dashboard/DashboardHeader";
 
 // Lazy load heavy components
 const EpicBoard = lazy(() => import("./EpicBoard").then(m => ({ default: m.EpicBoard })));
