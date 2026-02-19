@@ -58,51 +58,47 @@ export function DashboardTabClientContent({
   const isBusinessSpecificTab = ["overview", "board", "epics", "documents", "settings"].includes(tab);
   const targetBusinessId = currentBusiness?._id;
 
-  // Fetch all required data
+  // Fetch all required data - always call hooks unconditionally
   const agents = useQuery(api.agents.getAllAgents);
 
-  // Business-specific tasks (for business tabs)
-  const businessTasks = isBusinessSpecificTab && targetBusinessId
+  // Always fetch business tasks
+  const businessTasks = targetBusinessId
     ? useQuery(api.tasks.getAllTasks, { businessId: targetBusinessId as any })
     : null;
 
-  // Global tasks (for workload/activity tabs)
-  const globalTasks = !isBusinessSpecificTab && selectedBusinessFilter && targetBusinessId && agents?.[0]?._id
+  // Always fetch global tasks with optional filter
+  const globalTasks = selectedBusinessFilter && targetBusinessId && agents?.[0]?._id
     ? useQuery(api.tasks.getFiltered, { businessId: selectedBusinessFilter as any, agentId: agents[0]._id as any })
-    : !isBusinessSpecificTab && !selectedBusinessFilter
-    ? null // Don't fetch if no filter selected on global view
     : null;
 
+  // Select appropriate tasks based on tab type
   const tasks = isBusinessSpecificTab ? businessTasks : globalTasks;
 
-  // Business-specific epics (for business tabs)
-  const businessEpics = isBusinessSpecificTab && targetBusinessId
+  // Always fetch business epics
+  const businessEpics = targetBusinessId
     ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
     : null;
 
-  // Global epics (fallback for global tabs)
-  const globalEpics = !isBusinessSpecificTab && targetBusinessId
+  // Always fetch global epics
+  const globalEpics = targetBusinessId
     ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
     : null;
 
+  // Select appropriate epics based on tab type
   const epics = isBusinessSpecificTab ? businessEpics : globalEpics;
 
-  // Activities with optional business filter
+  // Activities with optional business filter - always call
   const activities = useQuery(api.activities.getRecent, {
     limit: 10,
     businessId: selectedBusinessFilter ? (selectedBusinessFilter as any) : undefined
   });
 
+  // Always call notifications hook
   const notifications = useQuery(api.notifications.getAll);
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
-  // Get mutations
-  let autoAssignBacklog: any;
-  try {
-    autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
-  } catch (e) {
-    // Mutations may not be available if backend is not connected
-  }
+  // Get mutations - always call
+  const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
 
   // Log page load
   useEffect(() => {
