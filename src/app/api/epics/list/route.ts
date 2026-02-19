@@ -24,11 +24,21 @@ function jsonResponse(data: any, status: number = 200): Response {
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    // Note: No authentication required for reading epics (public data)
-    // If you want to restrict this later, add agentId/agentKey params
+    const url = new URL(request.url);
+    const businessId = url.searchParams.get("businessId");
 
-    // Query all epics
-    const epics = await convex.query(api.epics.getAllEpics);
+    if (!businessId) {
+      return jsonResponse(
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: "businessId is required" },
+        },
+        400
+      );
+    }
+
+    // Query epics for this business
+    const epics = await convex.query(api.epics.getAllEpics, { businessId: businessId as any });
 
     // Format response
     const formatted = (epics || []).map((epic: any) => ({

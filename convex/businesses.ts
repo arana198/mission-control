@@ -10,9 +10,12 @@ import { mutation, query } from "./_generated/server";
  * Query: Get all businesses
  * Returns: Array of all businesses, sorted by name
  */
-export const getAll = query(async ({ db }) => {
-  const businesses = await db.query("businesses").collect();
-  return businesses.sort((a, b) => a.name.localeCompare(b.name));
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const businesses = await ctx.db.query("businesses").collect();
+    return businesses.sort((a, b) => a.name.localeCompare(b.name));
+  },
 });
 
 /**
@@ -20,29 +23,32 @@ export const getAll = query(async ({ db }) => {
  * Parameters: slug (URL-safe identifier)
  * Returns: Business object or null if not found
  */
-export const getBySlug = query(
-  { slug: convexVal.string() },
-  async ({ db }, { slug }) => {
-    const businesses = await db
+export const getBySlug = query({
+  args: { slug: convexVal.string() },
+  handler: async (ctx, { slug }) => {
+    const businesses = await ctx.db
       .query("businesses")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .collect();
 
     return businesses.length > 0 ? businesses[0] : null;
-  }
-);
+  },
+});
 
 /**
  * Query: Get default business
  * Returns: Business object with isDefault: true (exactly one always exists)
  */
-export const getDefault = query(async ({ db }) => {
-  const businesses = await db
-    .query("businesses")
-    .withIndex("by_default", (q) => q.eq("isDefault", true))
-    .collect();
+export const getDefault = query({
+  args: {},
+  handler: async (ctx) => {
+    const businesses = await ctx.db
+      .query("businesses")
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .collect();
 
-  return businesses.length > 0 ? businesses[0] : null;
+    return businesses.length > 0 ? businesses[0] : null;
+  },
 });
 
 /**
@@ -50,15 +56,15 @@ export const getDefault = query(async ({ db }) => {
  * Validates: slug format, uniqueness, max 5 businesses
  * Auto-sets isDefault: true if first business
  */
-export const create = mutation(
-  {
+export const create = mutation({
+  args: {
     name: convexVal.string(),
     slug: convexVal.string(),
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
   },
-  async ({ db }, { name, slug, color, emoji, description }) => {
+  handler: async (ctx, { name, slug, color, emoji, description }) => {
     // Validate slug format: lowercase, alphanumeric, hyphens only
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
@@ -68,7 +74,7 @@ export const create = mutation(
     }
 
     // Check slug uniqueness
-    const existing = await db
+    const existing = await ctx.db
       .query("businesses")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .collect();
@@ -78,7 +84,7 @@ export const create = mutation(
     }
 
     // Check max 5 businesses limit
-    const allBusinesses = await db.query("businesses").collect();
+    const allBusinesses = await ctx.db.query("businesses").collect();
     if (allBusinesses.length >= 5) {
       throw new Error("Maximum 5 businesses allowed per workspace.");
     }
@@ -88,18 +94,18 @@ export const create = mutation(
 
     // If making this default, unset previous default
     if (isDefault) {
-      const previousDefault = await db
+      const previousDefault = await ctx.db
         .query("businesses")
         .withIndex("by_default", (q) => q.eq("isDefault", true))
         .collect();
 
       if (previousDefault.length > 0) {
-        await db.patch(previousDefault[0]._id, { isDefault: false });
+        await ctx.db.patch(previousDefault[0]._id, { isDefault: false });
       }
     }
 
     const now = Date.now();
-    const businessId = await db.insert("businesses", {
+    const businessId = await ctx.db.insert("businesses", {
       name,
       slug,
       color: color || "#6366f1", // Default indigo
@@ -111,32 +117,32 @@ export const create = mutation(
     });
 
     // Initialize per-business settings (taskCounter starts at 0)
-    await db.insert("settings", {
+    await ctx.db.insert("settings", {
       key: "taskCounter",
       businessId,
       value: "0",
       updatedAt: now,
     });
 
-    return await db.get(businessId);
-  }
-);
+    return await ctx.db.get(businessId);
+  },
+});
 
 /**
  * Mutation: Update business details
  * Slug cannot be changed (immutable)
  * Can update: name, color, emoji, description
  */
-export const update = mutation(
-  {
+export const update = mutation({
+  args: {
     businessId: convexVal.id("businesses"),
     name: convexVal.optional(convexVal.string()),
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
   },
-  async ({ db }, { businessId, name, color, emoji, description }) => {
-    const business = await db.get(businessId);
+  handler: async (ctx, { businessId, name, color, emoji, description }) => {
+    const business = await ctx.db.get(businessId);
     if (!business) {
       throw new Error("Business not found.");
     }
@@ -148,20 +154,20 @@ export const update = mutation(
     if (emoji !== undefined) updates.emoji = emoji;
     if (description !== undefined) updates.description = description;
 
-    await db.patch(businessId, updates);
-    return await db.get(businessId);
-  }
-);
+    await ctx.db.patch(businessId, updates);
+    return await ctx.db.get(businessId);
+  },
+});
 
 /**
  * Mutation: Set default business
  * Atomically unsets previous default and sets new one
  * Idempotent: calling with already-default business is no-op
  */
-export const setDefault = mutation(
-  { businessId: convexVal.id("businesses") },
-  async ({ db }, { businessId }) => {
-    const business = await db.get(businessId);
+export const setDefault = mutation({
+  args: { businessId: convexVal.id("businesses") },
+  handler: async (ctx, { businessId }) => {
+    const business = await ctx.db.get(businessId);
     if (!business) {
       throw new Error("Business not found.");
     }
@@ -172,21 +178,21 @@ export const setDefault = mutation(
     }
 
     // Find current default
-    const currentDefault = await db
+    const currentDefault = await ctx.db
       .query("businesses")
       .withIndex("by_default", (q) => q.eq("isDefault", true))
       .collect();
 
     // Unset previous default
     if (currentDefault.length > 0) {
-      await db.patch(currentDefault[0]._id, { isDefault: false });
+      await ctx.db.patch(currentDefault[0]._id, { isDefault: false });
     }
 
     // Set new default
-    await db.patch(businessId, { isDefault: true, updatedAt: Date.now() });
-    return await db.get(businessId);
-  }
-);
+    await ctx.db.patch(businessId, { isDefault: true, updatedAt: Date.now() });
+    return await ctx.db.get(businessId);
+  },
+});
 
 /**
  * Mutation: Remove a business
@@ -194,16 +200,16 @@ export const setDefault = mutation(
  * - Cannot delete if only 1 business exists
  * - Cannot delete default business
  */
-export const remove = mutation(
-  { businessId: convexVal.id("businesses") },
-  async ({ db }, { businessId }) => {
-    const business = await db.get(businessId);
+export const remove = mutation({
+  args: { businessId: convexVal.id("businesses") },
+  handler: async (ctx, { businessId }) => {
+    const business = await ctx.db.get(businessId);
     if (!business) {
       throw new Error("Business not found.");
     }
 
     // Check if only business
-    const allBusinesses = await db.query("businesses").collect();
+    const allBusinesses = await ctx.db.query("businesses").collect();
     if (allBusinesses.length <= 1) {
       throw new Error("Cannot delete the only business in workspace.");
     }
@@ -214,11 +220,11 @@ export const remove = mutation(
     }
 
     // Delete business
-    await db.delete(businessId);
+    await ctx.db.delete(businessId);
 
     // Clean up business-scoped data (optional: cascading deletes handled by migration)
     // In production, consider implementing proper cascading delete or migration cleanup
 
     return { success: true, deletedBusinessId: businessId };
-  }
-);
+  },
+});

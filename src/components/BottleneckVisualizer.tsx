@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
 import {
   AlertTriangle, TrendingDown, Network, Clock, Users,
   ChevronDown, ChevronRight
@@ -28,13 +29,14 @@ const HIGH_RISK_PROGRESS = 25;
 const CRITICAL_RISK_PROGRESS = 10;
 
 export function BottleneckVisualizer() {
-  const goals = useQuery(api.goals.getByProgress);
-  const tasks = useQuery(api.tasks.getAllTasks);
+  const { currentBusiness } = useBusiness();
+  const goals = currentBusiness ? useQuery(api.goals.getByProgress, { businessId: currentBusiness._id } as any) : null;
+  const tasks = currentBusiness ? useQuery(api.tasks.getAllTasks, { businessId: currentBusiness._id } as any) : null;
   const agents = useQuery(api.agents.getAllAgents);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [view, setView] = useState<"heatmap" | "graph" | "path" | "agents">("heatmap");
 
-  if (!goals || !tasks || !agents) {
+  if (!currentBusiness || !goals || !tasks || !agents) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
   }
 

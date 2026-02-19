@@ -1,4 +1,4 @@
-import { DashboardTabClientContent } from "../../../components/DashboardTab";
+import { DashboardTabClientContent } from "../../../../components/DashboardTab";
 
 /**
  * Global Overview Page

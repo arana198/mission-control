@@ -18,8 +18,9 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
 });
 
-function makeRequest(): Request {
-  return new Request("http://localhost/api/epics/list", { method: "GET" });
+function makeRequest(businessId: string = "test-business-id"): Request {
+  const url = `http://localhost/api/epics/list?businessId=${businessId}`;
+  return new Request(url, { method: "GET" });
 }
 
 describe("GET /api/epics/list", () => {

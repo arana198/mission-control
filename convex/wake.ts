@@ -31,14 +31,8 @@ export const requestWake = mutation({
       expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 day TTL
     });
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "agent_status_changed",
-      agentId: requestedBy,
-      agentName: requestedBy,
-      message: `Requested wake for ${agent.name} (${priority || "normal"} priority)`,
-      createdAt: Date.now(),
-    });
+    // Note: Activity logging skipped for system-level agent wake requests
+    // (agents are shared across businesses, not tied to a specific businessId)
 
     // Update agent status to show wake requested
     await ctx.db.patch(agentId, {

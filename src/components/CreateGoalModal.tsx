@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
 import { X, Target, Loader2, AlertCircle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 
@@ -20,6 +21,7 @@ const GOAL_CATEGORIES = [
 ];
 
 export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalModalProps) {
+  const { currentBusiness } = useBusiness();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"business" | "personal" | "learning" | "health">("business");
@@ -41,9 +43,15 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
       return;
     }
 
+    if (!currentBusiness) {
+      setError("Please select a business first");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const goalId = await createGoalMutation({
+        businessId: currentBusiness._id as any,
         title: title.trim(),
         description: description.trim(),
         category,

@@ -58,7 +58,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!task.businessId) {
           await ctx.db.patch(task._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -71,7 +70,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!epic.businessId) {
           await ctx.db.patch(epic._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -84,7 +82,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!goal.businessId) {
           await ctx.db.patch(goal._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -97,7 +94,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!activity.businessId) {
           await ctx.db.patch(activity._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -110,7 +106,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!document.businessId) {
           await ctx.db.patch(document._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -123,7 +118,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!report.businessId) {
           await ctx.db.patch(report._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -136,7 +130,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!message.businessId) {
           await ctx.db.patch(message._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -149,7 +142,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!sub.businessId) {
           await ctx.db.patch(sub._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -162,7 +154,6 @@ export const migrationMultiBusinessSupport = mutation({
         if (!log.businessId) {
           await ctx.db.patch(log._id, {
             businessId: defaultBusiness,
-            updatedAt: Date.now(),
           });
         }
       }
@@ -177,7 +168,6 @@ export const migrationMultiBusinessSupport = mutation({
         // Update existing to add businessId
         await ctx.db.patch(globalCounter._id, {
           businessId: defaultBusiness,
-          updatedAt: Date.now(),
         });
       } else if (!globalCounter) {
         // Create new per-business counter
@@ -293,7 +283,6 @@ export const migrateAddTicketNumbers = mutation({
     if (existingCounter) {
       await ctx.db.patch((existingCounter as any)._id, {
         value: String(counter),
-        updatedAt: Date.now(),
       });
     } else {
       await ctx.db.insert("settings", {
@@ -346,21 +335,32 @@ export const migrateTasksToEpic = mutation({
   },
   handler: async (ctx, { epicId, batchSize = 100 }) => {
     let targetEpicId = epicId;
-    
+
     // If no epic provided, check if "General Tasks" exists
     if (!targetEpicId) {
       const allEpics = await ctx.db.query("epics").collect();
-      const generalEpic = allEpics.find(e => 
-        e.title.toLowerCase() === "general tasks" || 
+      const generalEpic = allEpics.find(e =>
+        e.title.toLowerCase() === "general tasks" ||
         e.title.toLowerCase() === "general"
       );
-      
+
       if (generalEpic) {
         targetEpicId = generalEpic._id;
       } else {
-        // Create a default epic
+        // Create a default epic - get businessId from default business
         const lead = await ctx.db.query("agents").first();
+        const defaultBusiness = await ctx.db
+          .query("businesses")
+          .withIndex("by_default", (q: any) => q.eq("isDefault", true))
+          .first();
+
+        const businessId = defaultBusiness?._id;
+        if (!businessId) {
+          throw new Error("No default business found. Cannot create epic.");
+        }
+
         targetEpicId = await ctx.db.insert("epics", {
+          businessId,
           title: "General Tasks",
           description: "Default epic for tasks that were created before epic association was required. Contains migrated tasks without an epic.",
           status: "active",
@@ -385,7 +385,6 @@ export const migrateTasksToEpic = mutation({
     for (const task of batch) {
       await ctx.db.patch(task._id, {
         epicId: targetEpicId,
-        updatedAt: Date.now(),
       });
       updatedCount++;
       updatedTaskIds.push(task._id);
@@ -396,19 +395,11 @@ export const migrateTasksToEpic = mutation({
     if (epic) {
       await ctx.db.patch(targetEpicId, {
         taskIds: [...epic.taskIds, ...updatedTaskIds] as any,
-        updatedAt: Date.now(),
       });
     }
 
-    // Log activity
+    // Note: Activity logging skipped for migrations
     if (updatedCount > 0) {
-      await ctx.db.insert("activities", {
-        type: "task_updated",
-        agentId: "system",
-        agentName: "System",
-        message: `Migrated ${updatedCount} tasks without epic to "${epic?.title || 'General Tasks'}"`,
-        createdAt: Date.now(),
-      });
     }
 
     return {
@@ -437,7 +428,6 @@ export const assignEpic = mutation({
     // Update task
     await ctx.db.patch(taskId, {
       epicId,
-      updatedAt: Date.now(),
     });
 
     // Remove from old epic's taskIds if exists
@@ -446,7 +436,6 @@ export const assignEpic = mutation({
       if (oldEpic) {
         await ctx.db.patch(oldEpicId, {
           taskIds: oldEpic.taskIds.filter((id: string) => id !== taskId),
-          updatedAt: Date.now(),
         });
       }
     }
@@ -456,21 +445,11 @@ export const assignEpic = mutation({
       if (!newEpic.taskIds.includes(taskId)) {
         await ctx.db.patch(epicId, {
           taskIds: [...newEpic.taskIds, taskId],
-          updatedAt: Date.now(),
         });
       }
     }
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "task_updated",
-      agentId: updatedBy,
-      agentName: updatedBy,
-      message: `Assigned "${task.title}" to epic "${newEpic?.title || 'Unknown'}"`,
-      taskId,
-      taskTitle: task.title,
-      createdAt: Date.now(),
-    });
+    // Note: Activity logging skipped for migrations
 
     return { success: true };
   },
@@ -521,14 +500,12 @@ export const smartAssignEpics = mutation({
       if (bestEpic && bestScore >= 2) {
         await ctx.db.patch(task._id, {
           epicId: bestEpic._id,
-          updatedAt: Date.now(),
         });
 
         // Update epic's task list
         if (!bestEpic.taskIds.includes(task._id)) {
           await ctx.db.patch(bestEpic._id, {
             taskIds: [...bestEpic.taskIds, task._id],
-            updatedAt: Date.now(),
           });
         }
 
@@ -537,15 +514,8 @@ export const smartAssignEpics = mutation({
       }
     }
 
-    // Log activity
+    // Note: Activity logging skipped for migrations
     if (assignedCount > 0) {
-      await ctx.db.insert("activities", {
-        type: "task_updated",
-        agentId: "system",
-        agentName: "System",
-        message: `Smart-assigned ${assignedCount} tasks to epics based on content matching`,
-        createdAt: Date.now(),
-      });
     }
 
     return {
@@ -584,7 +554,6 @@ export const deleteEpic = mutation({
       for (const taskId of batch) {
         await ctx.db.patch(taskId as any, {
           epicId: reassignTo,
-          updatedAt: Date.now(),
         });
         affectedCount++;
       }
@@ -592,14 +561,12 @@ export const deleteEpic = mutation({
       // Add tasks to target epic
       await ctx.db.patch(reassignTo, {
         taskIds: [...targetEpic.taskIds, ...(batch as string[])] as any,
-        updatedAt: Date.now(),
       });
     } else {
       // Clear epic from tasks (they become orphaned)
       for (const taskId of batch) {
         await ctx.db.patch(taskId as any, {
           epicId: undefined,
-          updatedAt: Date.now(),
         });
         affectedCount++;
       }
@@ -610,14 +577,7 @@ export const deleteEpic = mutation({
       await ctx.db.delete(epicId);
     }
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "epic_completed",
-      agentId: deletedBy,
-      agentName: deletedBy,
-      message: `Deleted epic "${epic.title}"${reassignTo ? " (tasks reassigned)" : " (tasks unassigned)"}`,
-      createdAt: Date.now(),
-    });
+    // Note: Activity logging skipped for migrations
 
     return {
       success: true,
@@ -659,15 +619,8 @@ export const updateEpic = mutation({
 
     await ctx.db.patch(epicId, updates);
 
-    // Log activity
+    // Note: Activity logging skipped for migrations
     const changeType = status ? `marked ${status}` : "updated";
-    await ctx.db.insert("activities", {
-      type: "task_updated",
-      agentId: updatedBy,
-      agentName: updatedBy,
-      message: `${changeType} epic "${title || epic.title}"`,
-      createdAt: Date.now(),
-    });
 
     return { success: true };
   },
@@ -714,7 +667,6 @@ export const updateTask = mutation({
         if (oldEpic) {
           await ctx.db.patch(oldEpicId, {
             taskIds: oldEpic.taskIds.filter((id: string) => id !== taskId),
-            updatedAt: Date.now(),
           });
         }
       }
@@ -726,23 +678,13 @@ export const updateTask = mutation({
           if (!newEpic.taskIds.includes(taskId)) {
             await ctx.db.patch(epicId, {
               taskIds: [...newEpic.taskIds, taskId],
-              updatedAt: Date.now(),
             });
           }
         }
       }
     }
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "task_updated",
-      agentId: updatedBy,
-      agentName: updatedBy,
-      message: `Updated task "${task.title}"${status ? ` to ${status}` : ""}`,
-      taskId,
-      taskTitle: task.title,
-      createdAt: Date.now(),
-    });
+    // Note: Activity logging skipped for migrations
 
     return { success: true };
   },
@@ -764,7 +706,6 @@ export const deleteTask = mutation({
       if (epic) {
         await ctx.db.patch(task.epicId, {
           taskIds: epic.taskIds.filter((id: string) => id !== taskId),
-          updatedAt: Date.now(),
         });
       }
     }
@@ -772,14 +713,7 @@ export const deleteTask = mutation({
     // Delete the task
     await ctx.db.delete(taskId);
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "task_updated",
-      agentId: deletedBy,
-      agentName: deletedBy,
-      message: `Deleted task "${task.title}"`,
-      createdAt: Date.now(),
-    });
+    // Note: Activity logging skipped for migrations
 
     return { success: true };
   },

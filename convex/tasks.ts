@@ -70,6 +70,7 @@ export const createTask = mutation({
   handler: async (
     ctx,
     {
+      businessId,
       title,
       description,
       priority = "P2",
@@ -751,8 +752,10 @@ export const autoClaim = internalAction({
     }
 
     // Log activity if any agents were notified
-    if (notifiedAgents.size > 0) {
+    // Note: Use businessId from first task (system action spans multiple businesses)
+    if (notifiedAgents.size > 0 && readyTasks.length > 0) {
       await ctx.runMutation(api.activities.create, {
+        businessId: readyTasks[0].businessId,
         type: "task_assigned",
         agentId: "system",
         agentName: "Mission Control",
@@ -1234,6 +1237,7 @@ export const deleteTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "task_updated",
       agentId: deletedBy,
       agentName: deletedBy,
@@ -1301,6 +1305,7 @@ export const addDependency = mutation({
 
       // Log the automatic status change
       await ctx.db.insert("activities", {
+        businessId: task.businessId,
         type: "task_blocked",
         agentId: addedBy,
         agentName: addedBy,
@@ -1315,6 +1320,7 @@ export const addDependency = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "dependency_added",
       agentId: addedBy,
       agentName: addedBy,
@@ -1379,6 +1385,7 @@ export const removeDependency = mutation({
       });
 
       await ctx.db.insert("activities", {
+        businessId: task.businessId,
         type: "task_updated",
         agentId: removedBy,
         agentName: removedBy,
@@ -1408,6 +1415,7 @@ export const removeDependency = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "dependency_removed",
       agentId: removedBy,
       agentName: removedBy,
@@ -1462,6 +1470,7 @@ export const completeByAgent = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "task_completed",
       agentId: agentId,
       agentName: agent.name,
@@ -1510,6 +1519,7 @@ export const addTags = mutation({
     const actorId = updatedBy || "system";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "tags_updated",
       agentId: actorId,
       agentName: actorName,

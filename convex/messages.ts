@@ -22,8 +22,9 @@ export const create = mutation({
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("Task not found");
 
-    // Insert message
+    // Insert message (scoped to task's business)
     const messageId = await ctx.db.insert("messages", {
+      businessId: task.businessId,
       taskId,
       fromId: senderId, // Can be agent ID or "user"
       fromName: senderName,
@@ -45,6 +46,7 @@ export const create = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,
       type: "comment_added",
       agentId: senderId,
       agentName: senderName,
@@ -65,6 +67,7 @@ export const create = mutation({
         
         if (!existingSub) {
           await ctx.db.insert("threadSubscriptions", {
+            businessId: task.businessId,
             agentId: senderId as any,
             taskId,
             level: "all",
@@ -102,6 +105,7 @@ export const create = mutation({
         
         if (!agentSub) {
           await ctx.db.insert("threadSubscriptions", {
+            businessId: task.businessId,
             agentId: agent._id,
             taskId,
             level: "all",
@@ -112,6 +116,7 @@ export const create = mutation({
       
       // Log @all mention
       await ctx.db.insert("activities", {
+        businessId: task.businessId,
         type: "mention",
         agentId: senderId,
         agentName: senderName,
@@ -146,6 +151,7 @@ export const create = mutation({
         
         if (!agentSub) {
           await ctx.db.insert("threadSubscriptions", {
+            businessId: task.businessId,
             agentId: mentionedAgentId,
             taskId,
             level: "all",
@@ -155,6 +161,7 @@ export const create = mutation({
 
         // Also log as mention activity
         await ctx.db.insert("activities", {
+          businessId: task.businessId,
           type: "mention",
           agentId: senderId,
           agentName: senderName,
@@ -287,6 +294,7 @@ export const remove = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: message.businessId,
       type: "comment_added",
       agentId: senderId,
       agentName: message.fromName,

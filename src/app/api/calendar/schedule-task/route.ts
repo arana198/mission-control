@@ -55,16 +55,23 @@ export async function POST(request: Request): Promise<Response> {
       generatedBy: agentId,
     });
 
-    // Fire-and-forget activity logging
+    // Fire-and-forget activity logging (get businessId from task)
     try {
-      await convex.mutation(api.activities.create, {
-        type: "task_assigned",
-        agentId,
-        agentName: (agent as any).name,
-        agentRole: (agent as any).role,
+      const task = await convex.query(api.tasks.getTaskById, {
         taskId: taskId as any,
-        message: `${(agent as any).name} scheduled task to calendar: ${new Date(startTime).toISOString()} for ${durationHours}h`,
       });
+
+      if (task) {
+        await convex.mutation(api.activities.create, {
+          businessId: task.businessId as any,
+          type: "task_assigned",
+          agentId,
+          agentName: (agent as any).name,
+          agentRole: (agent as any).role,
+          taskId: taskId as any,
+          message: `${(agent as any).name} scheduled task to calendar: ${new Date(startTime).toISOString()} for ${durationHours}h`,
+        });
+      }
     } catch (logErr) {
       log.warn("Activity logging failed (non-fatal)", { agentId });
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
 import { Goal } from "@/types/goal";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
@@ -37,6 +38,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps = {}) {
+  const { currentBusiness } = useBusiness();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -47,8 +49,8 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
   const containerRef = useRef<HTMLDivElement>(null);
 
   const memoryService = getMemoryService();
-  const goals = useQuery(api.goals.getByProgress);
-  const tasks = useQuery(api.tasks.getAllTasks);
+  const goals = currentBusiness ? useQuery(api.goals.getByProgress, { businessId: currentBusiness._id } as any) : null;
+  const tasks = currentBusiness ? useQuery(api.tasks.getAllTasks, { businessId: currentBusiness._id } as any) : null;
   const agents = useQuery(api.agents.getAllAgents);
 
   // Keyboard shortcut: Cmd+K or Ctrl+K

@@ -194,13 +194,6 @@ class ExecutionService {
   }
 
   /**
-   * Get currently executing tasks
-   */
-  async getExecutingTasks(): Promise<any[]> {
-    return this.client.query(api.tasks.getByStatus, { status: 'in_progress' });
-  }
-
-  /**
    * Spawn execution via OpenClaw sessions_spawn
    * 
    * In production, this would call OpenClaw's sessions_spawn API

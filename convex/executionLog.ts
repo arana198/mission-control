@@ -21,7 +21,14 @@ export const create = mutation(async (ctx, args: {
   attemptNumber: number;
   nextAction?: string;
 }) => {
+  // Get task to retrieve businessId
+  const task = await ctx.db.get(args.taskId);
+  if (!task) {
+    throw new Error(`Task ${args.taskId} not found`);
+  }
+
   return await ctx.db.insert('executionLog', {
+    businessId: task.businessId,
     taskId: args.taskId,
     agentId: args.agentId,
     status: args.status,

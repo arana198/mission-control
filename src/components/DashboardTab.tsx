@@ -2,7 +2,7 @@
 
 import { ReactNode, lazy, Suspense, useState, useEffect } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { useBusiness } from "./BusinessProvider";
 import { BusinessFilter } from "./BusinessFilter";
 import { BusinessBadge } from "./BusinessBadge";
@@ -62,12 +62,12 @@ export function DashboardTabClientContent({
 
   // Business-specific tasks (for business tabs)
   const businessTasks = isBusinessSpecificTab && targetBusinessId
-    ? useQuery(api.tasks.getAllTasks, { businessId: targetBusinessId })
+    ? useQuery(api.tasks.getAllTasks, { businessId: targetBusinessId as any })
     : null;
 
   // Global tasks (for workload/activity tabs)
-  const globalTasks = !isBusinessSpecificTab && selectedBusinessFilter && targetBusinessId
-    ? useQuery(api.tasks.getFiltered, { businessId: selectedBusinessFilter, agentId: agents?.[0]?._id || "" })
+  const globalTasks = !isBusinessSpecificTab && selectedBusinessFilter && targetBusinessId && agents?.[0]?._id
+    ? useQuery(api.tasks.getFiltered, { businessId: selectedBusinessFilter as any, agentId: agents[0]._id as any })
     : !isBusinessSpecificTab && !selectedBusinessFilter
     ? null // Don't fetch if no filter selected on global view
     : null;
@@ -76,12 +76,12 @@ export function DashboardTabClientContent({
 
   // Business-specific epics (for business tabs)
   const businessEpics = isBusinessSpecificTab && targetBusinessId
-    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId })
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
     : null;
 
   // Global epics (fallback for global tabs)
-  const globalEpics = !isBusinessSpecificTab
-    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId || "" })
+  const globalEpics = !isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
     : null;
 
   const epics = isBusinessSpecificTab ? businessEpics : globalEpics;
@@ -89,7 +89,7 @@ export function DashboardTabClientContent({
   // Activities with optional business filter
   const activities = useQuery(api.activities.getRecent, {
     limit: 10,
-    businessId: selectedBusinessFilter || undefined
+    businessId: selectedBusinessFilter ? (selectedBusinessFilter as any) : undefined
   });
 
   const notifications = useQuery(api.notifications.getAll);

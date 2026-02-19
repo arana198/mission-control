@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
 import {
   Brain, Search, FileText, Calendar, Target, Users,
   Clock, Tag, Filter, BookOpen, Database, Zap,
@@ -51,6 +52,7 @@ interface KnowledgeItem {
 }
 
 export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Activity[] }) {
+  const { currentBusiness } = useBusiness();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<KnowledgeItem | null>(null);
@@ -63,9 +65,9 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
   const memoryLinks = useQuery(api.memoryIndex.getAll);
   const memoryPaths = useQuery(api.memoryIndex.getMemoryPaths);
   const searchResults = useQuery(api.memoryIndex.search, { query: searchQuery || "" });
-  
+
   // Fetch latest strategic report
-  const latestReport = useQuery(api.strategicReports.getLatest);
+  const latestReport = currentBusiness ? useQuery(api.strategicReports.getLatest, { businessId: currentBusiness._id } as any) : null;
 
   // Generate knowledge items from tasks, activities, and patterns
   const knowledgeItems: KnowledgeItem[] = [

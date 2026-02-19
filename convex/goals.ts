@@ -305,6 +305,7 @@ export const archive = mutation(async (ctx, args: { id: Id<'goals'> }) => {
 
 /**
  * SEED demo goals with linked tasks (for testing/demo purposes)
+ * NOTE: Goals are business-scoped. This demo function creates goals per business.
  */
 export const seedDemoGoals = mutation(async (ctx) => {
   const tasks = await ctx.db.query('tasks').collect();
@@ -313,51 +314,63 @@ export const seedDemoGoals = mutation(async (ctx) => {
     return { error: 'No tasks available to link to goals' };
   }
 
-  const demoGoals = [
-    {
-      title: 'Launch Q1 Product Features',
-      description: 'Ship core features for Q1 product roadmap',
-      category: 'business' as const,
-      relatedTasks: tasks.slice(0, Math.ceil(tasks.length / 3)).map(t => t._id),
-    },
-    {
-      title: 'Improve System Performance',
-      description: 'Reduce API latency and improve database query performance',
-      category: 'business' as const,
-      relatedTasks: tasks.slice(Math.ceil(tasks.length / 3), Math.ceil(2 * tasks.length / 3)).map(t => t._id),
-    },
-    {
-      title: 'Complete Developer Documentation',
-      description: 'Write comprehensive API docs and architecture guides',
-      category: 'learning' as const,
-      relatedTasks: tasks.slice(Math.ceil(2 * tasks.length / 3)).map(t => t._id),
-    },
-  ];
+  // Group tasks by businessId
+  const tasksByBusiness = new Map<string, any[]>();
+  for (const task of tasks) {
+    if (!tasksByBusiness.has(task.businessId)) {
+      tasksByBusiness.set(task.businessId, []);
+    }
+    tasksByBusiness.get(task.businessId)!.push(task);
+  }
 
   const createdGoals = [];
 
-  for (const demoGoal of demoGoals) {
-    const goalId = await ctx.db.insert('goals', {
-      title: demoGoal.title,
-      description: demoGoal.description,
-      category: demoGoal.category,
-      status: 'active',
-      progress: 0,
-      deadline: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
-      keyResults: [],
-      relatedTaskIds: demoGoal.relatedTasks,
-      relatedMemoryRefs: [],
-      parentGoalId: undefined,
-      childGoalIds: [],
-      owner: 'user',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+  // Create demo goals for each business
+  for (const [businessId, businessTasks] of tasksByBusiness) {
+    const demoGoals = [
+      {
+        title: 'Launch Q1 Product Features',
+        description: 'Ship core features for Q1 product roadmap',
+        category: 'business' as const,
+        relatedTasks: businessTasks.slice(0, Math.ceil(businessTasks.length / 3)).map(t => t._id),
+      },
+      {
+        title: 'Improve System Performance',
+        description: 'Reduce API latency and improve database query performance',
+        category: 'business' as const,
+        relatedTasks: businessTasks.slice(Math.ceil(businessTasks.length / 3), Math.ceil(2 * businessTasks.length / 3)).map(t => t._id),
+      },
+      {
+        title: 'Complete Developer Documentation',
+        description: 'Write comprehensive API docs and architecture guides',
+        category: 'learning' as const,
+        relatedTasks: businessTasks.slice(Math.ceil(2 * businessTasks.length / 3)).map(t => t._id),
+      },
+    ];
+
+    for (const demoGoal of demoGoals) {
+      const goalId = await ctx.db.insert('goals', {
+        businessId: businessId as Id<'businesses'>,
+        title: demoGoal.title,
+        description: demoGoal.description,
+        category: demoGoal.category,
+        status: 'active',
+        progress: 0,
+        deadline: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
+        keyResults: [],
+        relatedTaskIds: demoGoal.relatedTasks,
+        relatedMemoryRefs: [],
+        parentGoalId: undefined,
+        childGoalIds: [],
+        owner: 'user',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
 
     // Link tasks to goal
     for (const taskId of demoGoal.relatedTasks) {
-      const task = await ctx.db.get(taskId);
-      if (task) {
+      const task = await ctx.db.get(taskId) as any;
+      if (task && task.goalIds !== undefined) {
         const currentGoals = task.goalIds || [];
         await ctx.db.patch(taskId, {
           goalIds: [...currentGoals, goalId],
@@ -366,6 +379,7 @@ export const seedDemoGoals = mutation(async (ctx) => {
     }
 
     createdGoals.push(goalId);
+    }
   }
 
   return { created: createdGoals.length, goalIds: createdGoals };

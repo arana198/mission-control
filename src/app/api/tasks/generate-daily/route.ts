@@ -1,9 +1,15 @@
 /**
  * POST /api/tasks/generate-daily
- * 
+ *
  * Generate 3-5 high-impact tasks for the day
  * Triggered by morning routine or manual call
- * 
+ *
+ * Request body:
+ * {
+ *   businessId: string (REQUIRED) - Business ID for task scoping
+ *   forceRegenerate?: boolean
+ * }
+ *
  * Returns: { tasks: TaskInput[], count: number, generatedAt: timestamp }
  */
 
@@ -26,11 +32,22 @@ export async function POST(request: Request) {
   try {
     // Validate request
     const body = await request.json().catch(() => ({}));
-    const { forceRegenerate = false } = body;
+    const { businessId, forceRegenerate = false } = body;
 
-    // Fetch active goals
-    const goals = await client.query(api.goals.getByProgress);
-    const allGoals = Object.values(goals).flat() as any[];
+    // REQUIRED: businessId for multi-business support
+    if (!businessId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "businessId is required for task generation"
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch active goals for this business
+    const goals = await client.query(api.goals.getActiveGoals, { businessId });
+    const allGoals = Array.isArray(goals) ? goals : Object.values(goals).flat() as any[];
 
     // Generate daily tasks
     const review = await taskGenService.generateDailyTasks(allGoals);
@@ -49,13 +66,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch available epics to assign tasks to
-    const epics = await client.query(api.epics.getAllEpics);
+    // Fetch available epics to assign tasks to (for this business)
+    const epics = await client.query(api.epics.getAllEpics, { businessId });
     if (!epics || epics.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "No epics available to assign tasks to",
+          error: "No epics available to assign tasks to for this business",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
@@ -74,10 +91,11 @@ export async function POST(request: Request) {
       })
     );
 
-    // Create tasks in Convex
+    // Create tasks in Convex (scoped to this business)
     const createdTasks = await Promise.all(
       tasksWithContext.map((task: any) =>
         client.mutation(api.tasks.createTask, {
+          businessId,
           title: task.title,
           description: task.description,
           priority: task.priority || 'P2',

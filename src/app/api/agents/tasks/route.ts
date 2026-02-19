@@ -3,9 +3,19 @@
  *
  * Query tasks with optional filters (status, priority, assignedToMe)
  * Supports pagination via limit and offset
+ * Tasks are scoped to a specific business
  *
- * Query params: agentId, agentKey, status?, priority?, assignedToMe?, limit?, offset?
- * Response: { tasks }
+ * Query params:
+ *   agentId (REQUIRED) - Agent ID
+ *   agentKey (REQUIRED) - Agent authentication key
+ *   businessId (REQUIRED) - Business ID for task scoping
+ *   status? - Task status filter
+ *   priority? - Task priority filter
+ *   assignedToMe? - Filter to tasks assigned to this agent
+ *   limit? - Pagination limit (default: 50)
+ *   offset? - Pagination offset (default: 0)
+ *
+ * Response: { tasks[], meta: { count, filters, pagination } }
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -29,11 +39,23 @@ export async function GET(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const agentId = url.searchParams.get("agentId");
     const agentKey = url.searchParams.get("agentKey");
+    const businessId = url.searchParams.get("businessId");
     const status = url.searchParams.get("status") || undefined;
     const priority = url.searchParams.get("priority") || undefined;
     const assignedTo = url.searchParams.get("assignedTo") === "me" ? "me" : undefined;
     const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : undefined;
     const offset = url.searchParams.get("offset") ? parseInt(url.searchParams.get("offset")!) : undefined;
+
+    // Validate businessId is provided
+    if (!businessId) {
+      return jsonResponse(
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: "businessId is required" },
+        },
+        400
+      );
+    }
 
     const input = validateAgentTaskInput(QueryTasksSchema, {
       agentId,
@@ -51,8 +73,9 @@ export async function GET(request: Request): Promise<Response> {
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
-    // Query tasks with filters
+    // Query tasks with filters (scoped to this business)
     const tasks = await convex.query(api.tasks.getFiltered, {
+      businessId: businessId as any,
       agentId: input.agentId as any,
       status: input.status,
       priority: input.priority,
@@ -64,6 +87,7 @@ export async function GET(request: Request): Promise<Response> {
     // Fire-and-forget activity logging (don't break response if logging fails)
     try {
       await convex.mutation(api.activities.create, {
+        businessId: businessId as any,
         type: "tasks_queried",
         agentId: input.agentId,
         agentName: (agent as any).name,
@@ -73,11 +97,12 @@ export async function GET(request: Request): Promise<Response> {
         }`,
       });
     } catch (logErr) {
-      log.warn("Activity logging failed (non-fatal)", { agentId: input.agentId });
+      log.warn("Activity logging failed (non-fatal)", { agentId: input.agentId, businessId });
     }
 
     log.info("Tasks queried", {
       agentId: input.agentId,
+      businessId,
       count: tasks.length,
       filters: { status, priority, assignedTo },
     });

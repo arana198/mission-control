@@ -55,7 +55,7 @@ describe("POST /api/agents/poll", () => {
     const { POST } = await import("../poll/route");
 
     mockVerify.mockResolvedValue(null);
-    const req = makeRequest({ agentId: "abc123", agentKey: "bad_key" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "bad_key", businessId: "business-123" });
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
@@ -71,7 +71,7 @@ describe("POST /api/agents/poll", () => {
 
     mockMutation.mockResolvedValueOnce({ marked: 1 }); // markAllRead
 
-    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
     const res = await POST(req);
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -89,7 +89,7 @@ describe("POST /api/agents/poll", () => {
     mockMutation.mockResolvedValue({ success: true, timestamp: Date.now() });
     mockQuery.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
-    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
     const res = await POST(req);
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -100,7 +100,15 @@ describe("POST /api/agents/poll", () => {
   it("returns 400 for missing agentKey", async () => {
     const { POST } = await import("../poll/route");
 
-    const req = makeRequest({ agentId: "abc123" });
+    const req = makeRequest({ agentId: "abc123", businessId: "business-123" });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for missing businessId", async () => {
+    const { POST } = await import("../poll/route");
+
+    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x" });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });

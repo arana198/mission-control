@@ -23,7 +23,19 @@ export async function POST(request: Request) {
   try {
     // Optional: request can specify custom date range
     const body = await request.json().catch(() => ({}));
-    const { startDate, endDate } = body;
+    const { startDate, endDate, businessId } = body;
+
+    if (!businessId) {
+      return new Response(
+        JSON.stringify({
+          error: "businessId is required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Generate report
     const report = await planningEngine.generateWeeklyReport();
@@ -31,6 +43,7 @@ export async function POST(request: Request) {
     // Persist to database
     try {
       await client.mutation(api.strategicReports.create, {
+        businessId: businessId as any,
         week: report.week,
         year: report.year,
         report: JSON.stringify(report),

@@ -109,6 +109,7 @@ export const claimNextTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: taskToClaim.businessId,
       type: "task_updated",
       agentId,
       agentName: agent.name,
@@ -284,6 +285,7 @@ export const claimNextTaskByName = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: taskToClaim.businessId,
       type: "agent_claimed",
       agentId,
       agentName: agent.name,

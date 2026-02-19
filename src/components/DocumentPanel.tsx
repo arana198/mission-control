@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
 import { GlassCard } from "./ui/GlassCard";
-import { 
-  FileText, Plus, Search, Clock, FileCode, 
+import {
+  FileText, Plus, Search, Clock, FileCode,
   BookOpen, ScrollText, FileSearch, X, ChevronLeft,
   Save, Trash2, Loader2
 } from "lucide-react";
@@ -29,7 +30,8 @@ const DOC_TYPE_COLORS = {
 };
 
 export function DocumentPanel() {
-  const documents = useQuery(api.documents.getAll, { limit: 50 });
+  const { currentBusiness } = useBusiness();
+  const documents = currentBusiness ? useQuery(api.documents.getAll, { businessId: currentBusiness._id as any, limit: 50 }) : null;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<any>(null);
@@ -57,7 +59,7 @@ export function DocumentPanel() {
     type: "draft",
   });
 
-  if (documents === undefined) {
+  if (!currentBusiness || documents === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-violet-500" />

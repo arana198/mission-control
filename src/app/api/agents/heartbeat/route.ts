@@ -57,12 +57,20 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     // Optionally update status
-    if (input.status) {
-      await convex.mutation(api.agents.updateStatus, {
-        agentId,
-        status: input.status,
-        currentTaskId: input.currentTaskId as Id<"tasks"> | undefined,
+    if (input.status && input.currentTaskId) {
+      // Get businessId from current task (agents are shared across businesses)
+      const task = await convex.query(api.tasks.getTaskById, {
+        taskId: input.currentTaskId as Id<"tasks">,
       });
+
+      if (task) {
+        await convex.mutation(api.agents.updateStatus, {
+          businessId: task.businessId,
+          agentId,
+          status: input.status,
+          currentTaskId: input.currentTaskId as Id<"tasks">,
+        });
+      }
     }
 
     log.info("Agent heartbeat received", {

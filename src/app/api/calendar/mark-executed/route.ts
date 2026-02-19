@@ -52,18 +52,8 @@ export async function POST(request: Request): Promise<Response> {
       executedAt: timestamp,
     });
 
-    // Fire-and-forget activity logging
-    try {
-      await convex.mutation(api.activities.create, {
-        type: "task_completed",
-        agentId,
-        agentName: (agent as any).name,
-        agentRole: (agent as any).role,
-        message: `${(agent as any).name} marked calendar event as executed at ${new Date(timestamp).toISOString()}`,
-      });
-    } catch (logErr) {
-      log.warn("Activity logging failed (non-fatal)", { agentId });
-    }
+    // Note: Activity logging skipped for calendar events
+    // (calendar events are globally shared, not tied to a specific businessId)
 
     log.info("Event marked as executed", {
       agentId,

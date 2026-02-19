@@ -68,18 +68,8 @@ export async function POST(request: Request): Promise<Response> {
       color: color || (type === "ai_workflow" ? "#f97316" : "#22c55e"),
     });
 
-    // Fire-and-forget activity logging (use task_created for now)
-    try {
-      await convex.mutation(api.activities.create, {
-        type: "task_created",
-        agentId,
-        agentName: (agent as any).name,
-        agentRole: (agent as any).role,
-        message: `${(agent as any).name} created ${type} calendar event: "${title}"`,
-      });
-    } catch (logErr) {
-      log.warn("Activity logging failed (non-fatal)", { agentId });
-    }
+    // Note: Activity logging skipped for calendar events
+    // (calendar events are globally shared, not tied to a specific businessId)
 
     log.info("Calendar event created", {
       agentId,

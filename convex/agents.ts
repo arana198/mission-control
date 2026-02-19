@@ -45,11 +45,12 @@ export const getByName = query({
 // Update agent status
 export const updateStatus = mutation({
   args: {
+    businessId: convexVal.id("businesses"),
     agentId: convexVal.id("agents"),
     status: convexVal.union(convexVal.literal("idle"), convexVal.literal("active"), convexVal.literal("blocked")),
     currentTaskId: convexVal.optional(convexVal.id("tasks")),
   },
-  handler: async (ctx, { agentId, status, currentTaskId }) => {
+  handler: async (ctx, { businessId, agentId, status, currentTaskId }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) throw new Error("Agent not found");
 
@@ -61,6 +62,7 @@ export const updateStatus = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId,
       type: "agent_status_changed",
       agentId,
       agentName: agent.name,
@@ -187,14 +189,8 @@ export const register = mutation({
       personality: args.personality,
     });
 
-    // Log activity
-    await ctx.db.insert("activities", {
-      type: "agent_status_changed",
-      agentId: agentId,
-      agentName: lowerName,
-      message: `Agent ${lowerName} registered via API`,
-      createdAt: Date.now(),
-    });
+    // Note: Agent registration is a global event, not business-specific, so we don't log activity
+    // Activities are always scoped to a business, but agent registration spans all businesses
 
     return { agentId, apiKey: args.generatedApiKey, isNew: true };
   },
