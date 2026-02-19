@@ -48,6 +48,7 @@ export default defineSchema({
     personality: convexVal.optional(convexVal.string()),
     capabilities: convexVal.optional(convexVal.array(convexVal.string())),
     model: convexVal.optional(convexVal.string()),
+    workspacePath: convexVal.string(),  // Agent's workspace directory path (required)
     metadata: convexVal.optional(convexVal.object({
       totalTasksCompleted: convexVal.optional(convexVal.number()),
       avgTaskDuration: convexVal.optional(convexVal.number()),

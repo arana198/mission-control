@@ -38,6 +38,7 @@ export const RegisterAgentSchema = z.object({
     .optional(),
   model: z.string().max(100).optional(),
   personality: z.string().max(2000).optional(),
+  workspacePath: z.string().min(1, "Workspace path is required"),  // Agent's workspace directory path
 });
 
 export type RegisterAgentInput = z.infer<typeof RegisterAgentSchema>;

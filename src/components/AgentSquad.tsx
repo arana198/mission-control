@@ -5,13 +5,14 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Task } from "@/types/task";
 import { api } from "../../convex/_generated/api";
-import { 
-  Shield, Search, Flame, Eye, Feather, PenTool, 
+import {
+  Shield, Search, Flame, Eye, Feather, PenTool,
   Sparkles, Mail, Cpu, FileText, Zap,
   CheckCircle, Activity, Users,
-  MapPin, Briefcase, MessageSquare, ExternalLink
+  MapPin, Briefcase, MessageSquare, ExternalLink, Folder
 } from "lucide-react";
 import { AgentDetailModal } from "./AgentDetailModal";
+import { AgentWorkspaceModal } from "./AgentWorkspaceModal";
 
 interface Agent {
   _id: string;
@@ -63,6 +64,7 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [workspaceAgent, setWorkspaceAgent] = useState<Agent | null>(null);
 
   // Load selected agent from URL on mount or when agents change
   useEffect(() => {
@@ -189,13 +191,13 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
                 >
                   View Profile
                 </button>
-                <button 
-                  onClick={() => notif.info(`Agent ${agent.name} workspace integration coming soon. Use OpenClaw CLI to interact with this agent.`)}
-                  className="btn btn-secondary text-sm opacity-75"
-                  title="Agent workspace integration in development"
+                <button
+                  onClick={() => setWorkspaceAgent(agent)}
+                  className="btn btn-secondary text-sm"
+                  title="View agent workspace files"
                 >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Workspace (Soon)
+                  <Folder className="w-4 h-4 mr-2" />
+                  Workspace
                 </button>
               </div>
             </div>
@@ -247,6 +249,15 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
           levelBadge={levelBadges[selectedAgent.level]}
           tasks={getAgentTasks(selectedAgent._id)}
           onClose={handleCloseAgent}
+        />
+      )}
+
+      {/* Agent Workspace Modal */}
+      {workspaceAgent && (
+        <AgentWorkspaceModal
+          agentId={workspaceAgent._id}
+          agentName={workspaceAgent.name}
+          onClose={() => setWorkspaceAgent(null)}
         />
       )}
     </div>

@@ -56,6 +56,7 @@ export async function POST(request: Request): Promise<Response> {
       capabilities: input.capabilities,
       model: input.model,
       personality: input.personality,
+      workspacePath: input.workspacePath,
       generatedApiKey,
     });
 

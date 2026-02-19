@@ -47,6 +47,7 @@ describe("POST /api/agents/register", () => {
       role: "Squad Lead",
       level: "lead",
       sessionKey: "agent:main:main",
+      workspacePath: "/Users/arana/.openclaw/workspace",
     });
 
     const res = await POST(req);
@@ -72,6 +73,7 @@ describe("POST /api/agents/register", () => {
       role: "Squad Lead",
       level: "lead",
       sessionKey: "agent:main:main",
+      workspacePath: "/Users/arana/.openclaw/workspace",
     });
 
     const res = await POST(req);
@@ -125,6 +127,7 @@ describe("POST /api/agents/register", () => {
       role: "Lead",
       level: "lead",
       sessionKey: "k",
+      workspacePath: "/Users/arana/.openclaw/workspace",
     });
     const res = await POST(req);
     expect(res.status).toBe(500);

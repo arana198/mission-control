@@ -14,6 +14,7 @@ describe("agentValidators", () => {
         role: "Squad Lead",
         level: "lead",
         sessionKey: "agent:main:main",
+        workspacePath: "/Users/arana/.openclaw/workspace",
       });
       expect(result.success).toBe(true);
     });
@@ -24,6 +25,7 @@ describe("agentValidators", () => {
         role: "Squad Lead",
         level: "lead",
         sessionKey: "agent:main:main",
+        workspacePath: "/Users/arana/.openclaw/workspace",
         capabilities: ["planning", "coding"],
         model: "gpt-4",
         personality: "helpful",
@@ -70,6 +72,7 @@ describe("agentValidators", () => {
         role: "Lead",
         level: "god",
         sessionKey: "k",
+        workspacePath: "/Users/arana/.openclaw/workspace",
       });
       expect(result.success).toBe(false);
     });
@@ -247,6 +250,7 @@ describe("agentValidators", () => {
         role: "Lead",
         level: "lead",
         sessionKey: "k",
+        workspacePath: "/Users/arana/.openclaw/workspace",
       };
       const result = validateAgentInput(RegisterAgentSchema, input);
       expect(result.name).toBe("jarvis");
@@ -257,6 +261,7 @@ describe("agentValidators", () => {
         name: "j",  // too short
         role: "Lead",
         level: "lead",
+        workspacePath: "/Users/arana/.openclaw/workspace",
         sessionKey: "k",
       };
       expect(() => validateAgentInput(RegisterAgentSchema, input)).toThrow();

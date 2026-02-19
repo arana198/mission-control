@@ -808,3 +808,42 @@ function getEpicKeywords(title: string, description?: string): string[] {
   // Default: extract words from title
   return title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
 }
+
+/**
+ * MIG-05: Add Agent Workspace Paths (2026-02-19)
+ *
+ * Schema changes:
+ * - Added workspacePath to agents table (required field)
+ *
+ * Reason: Store agent workspace directory paths for workspace viewer feature
+ *
+ * Migration action:
+ * 1. For each agent without workspacePath, set to /Users/arana/.openclaw/workspace
+ *
+ * Idempotent: Check if workspacePath exists before updating.
+ */
+export const migrationAgentWorkspacePaths = mutation({
+  args: {
+    defaultWorkspacePath: convexVal.optional(convexVal.string()),
+  },
+  handler: async (ctx, { defaultWorkspacePath = "/Users/arana/.openclaw/workspace" }) => {
+    const agents = await ctx.db.query("agents").collect();
+    let updated = 0;
+
+    for (const agent of agents) {
+      if (!agent.workspacePath) {
+        await ctx.db.patch(agent._id, {
+          workspacePath: defaultWorkspacePath,
+        });
+        updated++;
+      }
+    }
+
+    return {
+      success: true,
+      updated,
+      total: agents.length,
+      message: `Updated ${updated} agents with workspace path: ${defaultWorkspacePath}`,
+    };
+  },
+});
