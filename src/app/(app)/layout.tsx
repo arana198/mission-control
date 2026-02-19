@@ -69,24 +69,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+      <div className="md:hidden flex items-center justify-between p-4 border-b gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
             <Sparkles className="w-5 h-5 text-accent-foreground" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-semibold text-sm">Mission Control</h1>
           </div>
         </div>
-        <button onClick={toggleTheme} className="p-2 hover:bg-muted rounded">
+        <button onClick={toggleTheme} className="p-2 hover:bg-muted rounded flex-shrink-0">
           {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
         </button>
       </div>
 
       {/* Sidebar */}
       <aside className="w-full md:w-64 md:sticky md:top-0 md:h-screen border-r bg-muted/30 flex-shrink-0 flex flex-col max-h-screen overflow-y-auto">
-        <div className="hidden md:block p-4 border-b space-y-3">
-          <div className="flex items-center gap-3">
+        {/* Header - Always visible */}
+        <div className="p-4 border-b space-y-3">
+          <div className="hidden md:flex items-center gap-3">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-accent-foreground" />
             </div>
@@ -96,8 +97,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
 
-          {/* Business Selector */}
-          <div className="pt-2">
+          {/* Business Selector - Always visible */}
+          <div>
             <BusinessSelector />
           </div>
         </div>
