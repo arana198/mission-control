@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server';
  * Get context for an entity (goal, task, strategy)
  *
  * Query params: ?entity=goal_name&type=goal
- * Replaces: POST /api/memory/context
  */
 export async function GET(request: NextRequest) {
   try {
@@ -19,35 +18,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       entity,
       type,
-      relevantSections: [],
-      relatedGoals: [],
-      priorStrategies: [],
-      recommendations: [],
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        relevantSections: [],
-        relatedGoals: [],
-        priorStrategies: [],
-        recommendations: [],
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/memory/context
- * Deprecated: Use GET instead
- * Kept for backward compatibility
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { entityName, type } = body;
-
-    return NextResponse.json({
       relevantSections: [],
       relatedGoals: [],
       priorStrategies: [],
