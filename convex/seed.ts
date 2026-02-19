@@ -1,6 +1,14 @@
 /**
  * Seed Data for Multi-Business Support
- * Initializes 2 demo businesses with sample data for development
+ *
+ * ⚠️ DEVELOPMENT ONLY - DO NOT USE IN PRODUCTION
+ *
+ * This file provides demo data for testing and development.
+ * In production, businesses are created via API (convex/businesses.ts create mutation).
+ *
+ * Usage:
+ * - Development: Call seedAllData mutation manually via Convex dashboard or test
+ * - Production: Businesses created through API endpoints by authenticated users
  */
 
 import { internal } from "./_generated/api";
@@ -8,7 +16,8 @@ import { internalMutation } from "./_generated/server";
 
 export const seedAllData = internalMutation({
   handler: async (ctx) => {
-    console.log("Starting seed data initialization...");
+    console.log("[SEED DATA - DEV ONLY] Starting demo data initialization...");
+    console.warn("[SEED DATA - DEV ONLY] This should NOT run in production");
 
     // Create two demo businesses
     const business1Id = await ctx.db.insert("businesses", {
@@ -185,6 +194,7 @@ export const seedAllData = internalMutation({
     console.log("Created demo goal for business 2");
 
     return {
+      isDevelopmentOnly: true,
       businesses: [
         { id: business1Id, name: "Mission Control HQ" },
         { id: business2Id, name: "Project Alpha" },
@@ -193,7 +203,7 @@ export const seedAllData = internalMutation({
         { id: epic1Id, businessId: business1Id },
         { id: epic2Id, businessId: business2Id },
       ],
-      message: "Seed data initialized successfully",
+      message: "[SEED DATA - DEV ONLY] Demo data initialized successfully. Production businesses created via API.",
     };
   },
 });
