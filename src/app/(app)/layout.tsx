@@ -102,30 +102,71 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                style={isActive ? {
-                  backgroundColor: "var(--accent)",
-                  color: "var(--accent-foreground)",
-                } : {
-                  color: "var(--muted-foreground)",
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  !isActive ? "hover:text-foreground hover:bg-muted" : ""
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-                {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-              </button>
-            );
-          })}
+        <nav className="flex-1 flex flex-col min-h-0">
+          {/* Business-Scoped Tabs */}
+          <div className="flex-shrink-0 p-3 pb-2 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">BUSINESS</p>
+            {tabs
+              .filter(tab => !tab.isGlobal)
+              .map((tab) => {
+                const Icon = tab.icon;
+                const isActive = currentTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    style={isActive ? {
+                      backgroundColor: "var(--accent)",
+                      color: "var(--accent-foreground)",
+                    } : {
+                      color: "var(--muted-foreground)",
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !isActive ? "hover:text-foreground hover:bg-muted" : ""
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </button>
+                );
+              })}
+          </div>
+
+          {/* Divider */}
+          <div className="flex-shrink-0 px-3 py-1">
+            <div className="border-t border-border" />
+          </div>
+
+          {/* Global Tabs */}
+          <div className="flex-1 p-3 pt-2 space-y-1 overflow-y-auto">
+            <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">WORKSPACE</p>
+            {tabs
+              .filter(tab => tab.isGlobal)
+              .map((tab) => {
+                const Icon = tab.icon;
+                const isActive = currentTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    style={isActive ? {
+                      backgroundColor: "var(--accent)",
+                      color: "var(--accent-foreground)",
+                    } : {
+                      color: "var(--muted-foreground)",
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !isActive ? "hover:text-foreground hover:bg-muted" : ""
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </button>
+                );
+              })}
+          </div>
         </nav>
 
         <div className="hidden md:block p-4 border-t">
