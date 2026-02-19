@@ -24,7 +24,11 @@
     "morning-brief": "node scripts/morning-brief.js",
     "morning-brief:setup": "node scripts/setup-morning-brief.js",
     "automation:status": "echo 'Mission Control Automation Status:' && pm2 list",
-    "calendar:sync": "echo 'Calendar sync feature coming soon'"
+    "calendar:sync": "echo 'Calendar sync feature coming soon'",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:debug": "playwright test --debug",
+    "validate": "npm run lint && npm run build && npm test"
   },
   "dependencies": {
     "autoprefixer": "^10.4.0",
@@ -44,6 +48,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
