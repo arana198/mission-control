@@ -52,30 +52,30 @@ function BusinessSelectorContent() {
     setIsOpen(false);
   };
 
-  // Show loading state or fallback
-  if (!currentBusiness || isLoading) {
-    return (
-      <div className="w-full px-3 py-2 rounded-lg border border-input bg-muted text-muted-foreground animate-pulse">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-muted-foreground/20" />
-          <div className="h-3 bg-muted-foreground/20 rounded flex-1" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative">
       {/* Selector Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-input bg-background hover:bg-accent/5 transition-colors"
+        disabled={isLoading || !currentBusiness}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg">{currentBusiness.emoji}</span>
-          <span className="text-sm font-medium truncate text-foreground">
-            {currentBusiness.name}
-          </span>
+          {currentBusiness ? (
+            <>
+              <span className="text-lg">{currentBusiness.emoji}</span>
+              <span className="text-sm font-medium truncate text-foreground">
+                {currentBusiness.name}
+              </span>
+            </>
+          ) : isLoading ? (
+            <>
+              <div className="w-4 h-4 rounded bg-muted-foreground/20 animate-pulse" />
+              <div className="h-3 bg-muted-foreground/20 rounded flex-1 animate-pulse" />
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">Select Business</span>
+          )}
         </div>
         <ChevronDown
           className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform ${
