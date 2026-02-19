@@ -30,14 +30,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, slug, color, emoji, description } = body;
+    const { name, slug, color, emoji, description, missionStatement } = body;
 
     // Validate required fields
-    if (!name || !slug) {
+    if (!name || !slug || !missionStatement) {
       return Response.json(
         {
           success: false,
-          error: "name and slug are required",
+          error: "name, slug, and missionStatement are required",
         },
         { status: 400 }
       );
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       color: color || undefined,
       emoji: emoji || undefined,
       description: description || undefined,
+      missionStatement,
     } as any);
 
     return Response.json(

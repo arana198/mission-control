@@ -12,6 +12,7 @@ export interface Business {
   color?: string;
   emoji?: string;
   description?: string;
+  missionStatement?: string;
   isDefault: boolean;
   createdAt: number;
   updatedAt: number;

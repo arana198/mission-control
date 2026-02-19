@@ -86,6 +86,7 @@ describe("POST /api/businesses", () => {
       body: JSON.stringify({
         name: "Test Business",
         slug: "test-business",
+        missionStatement: "To solve real problems",
       }),
     });
 
@@ -109,6 +110,7 @@ describe("POST /api/businesses", () => {
         color: "blue",
         emoji: "🏢",
         description: "Acme Corporation",
+        missionStatement: "To deliver quality solutions",
       }),
     });
 
@@ -142,6 +144,7 @@ describe("POST /api/businesses", () => {
       method: "POST",
       body: JSON.stringify({
         name: "Test Business",
+        missionStatement: "To solve problems",
       }),
     });
 
@@ -150,6 +153,24 @@ describe("POST /api/businesses", () => {
     const data = await res.json();
     expect(data.success).toBe(false);
     expect(data.error).toContain("slug");
+  });
+
+  it("returns 400 when missionStatement is missing", async () => {
+    const { POST } = await import("../route");
+
+    const req = new Request("http://localhost/api/businesses", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Test Business",
+        slug: "test-business",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toContain("missionStatement");
   });
 
   it("returns 500 on mutation error", async () => {
@@ -161,6 +182,7 @@ describe("POST /api/businesses", () => {
       body: JSON.stringify({
         name: "Test Business",
         slug: "test-business",
+        missionStatement: "Test mission",
       }),
     });
 

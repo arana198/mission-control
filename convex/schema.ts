@@ -17,6 +17,7 @@ export default defineSchema({
     color: convexVal.optional(convexVal.string()), // Hex color for UI
     emoji: convexVal.optional(convexVal.string()), // Business emoji/icon
     description: convexVal.optional(convexVal.string()),
+    missionStatement: convexVal.optional(convexVal.string()), // Business purpose/problem being solved
     isDefault: convexVal.boolean(),                // Exactly one default at all times
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),

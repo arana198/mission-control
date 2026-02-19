@@ -19,6 +19,18 @@ export const getAll = query({
 });
 
 /**
+ * Query: Get business by ID
+ * Parameters: businessId
+ * Returns: Business object or null if not found
+ */
+export const getById = query({
+  args: { businessId: convexVal.id("businesses") },
+  handler: async (ctx, { businessId }) => {
+    return await ctx.db.get(businessId);
+  },
+});
+
+/**
  * Query: Get business by slug
  * Parameters: slug (URL-safe identifier)
  * Returns: Business object or null if not found
@@ -63,8 +75,9 @@ export const create = mutation({
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
+    missionStatement: convexVal.string(), // Required: business purpose/problem being solved
   },
-  handler: async (ctx, { name, slug, color, emoji, description }) => {
+  handler: async (ctx, { name, slug, color, emoji, description, missionStatement }) => {
     // Validate slug format: lowercase, alphanumeric, hyphens only
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
@@ -111,6 +124,7 @@ export const create = mutation({
       color: color || "#6366f1", // Default indigo
       emoji: emoji || "🚀",
       description,
+      missionStatement,
       isDefault,
       createdAt: now,
       updatedAt: now,
@@ -131,7 +145,7 @@ export const create = mutation({
 /**
  * Mutation: Update business details
  * Slug cannot be changed (immutable)
- * Can update: name, color, emoji, description
+ * Can update: name, color, emoji, description, missionStatement
  */
 export const update = mutation({
   args: {
@@ -140,8 +154,9 @@ export const update = mutation({
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
+    missionStatement: convexVal.optional(convexVal.string()),
   },
-  handler: async (ctx, { businessId, name, color, emoji, description }) => {
+  handler: async (ctx, { businessId, name, color, emoji, description, missionStatement }) => {
     const business = await ctx.db.get(businessId);
     if (!business) {
       throw new Error("Business not found.");
@@ -153,6 +168,7 @@ export const update = mutation({
     if (color !== undefined) updates.color = color;
     if (emoji !== undefined) updates.emoji = emoji;
     if (description !== undefined) updates.description = description;
+    if (missionStatement !== undefined) updates.missionStatement = missionStatement;
 
     await ctx.db.patch(businessId, updates);
     return await ctx.db.get(businessId);

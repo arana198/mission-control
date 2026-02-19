@@ -847,3 +847,40 @@ export const migrationAgentWorkspacePaths = mutation({
     };
   },
 });
+
+/**
+ * MIG-06: Add missionStatement to businesses (2026-02-19)
+ *
+ * Schema change:
+ * - Added missionStatement field to businesses table (optional in schema, required in API)
+ *
+ * Reason: Enable businesses to define their purpose/mission, displayed on overview and
+ * accessible to agents as context for their work.
+ *
+ * Migration action:
+ * 1. For each business without missionStatement, set to their description or a default value
+ * 2. Idempotent: skip if missionStatement already exists
+ */
+export const migrationAddMissionStatement = mutation({
+  args: { defaultMissionStatement: convexVal.optional(convexVal.string()) },
+  handler: async (ctx, { defaultMissionStatement = "To deliver exceptional value and solve real problems for our users." }) => {
+    const businesses = await ctx.db.query("businesses").collect();
+    let updated = 0;
+
+    for (const b of businesses) {
+      if (!(b as any).missionStatement) {
+        await ctx.db.patch(b._id, {
+          missionStatement: (b as any).description || defaultMissionStatement,
+        } as any);
+        updated++;
+      }
+    }
+
+    return {
+      success: true,
+      updated,
+      total: businesses.length,
+      message: `MIG-06: Added missionStatement to ${updated} businesses.`,
+    };
+  },
+});

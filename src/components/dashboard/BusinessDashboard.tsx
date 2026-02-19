@@ -39,6 +39,7 @@ export function BusinessDashboard({
   const agents = useQuery(api.agents.getAllAgents);
   const tasks = useQuery(api.tasks.getAllTasks, { businessId: businessId as any });
   const epics = useQuery(api.epics.getAllEpics, { businessId: businessId as any });
+  const business = useQuery(api.businesses.getById, { businessId: businessId as any });
   const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
 
   // Render content based on tab
@@ -53,6 +54,12 @@ export function BusinessDashboard({
         return (
           <ErrorBoundary>
             <div className="space-y-6">
+              {business?.missionStatement && (
+                <div className="card p-6 border-l-4" style={{ borderLeftColor: (business as any).color || '#6366f1' }}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mission Statement</p>
+                  <p className="text-lg font-medium text-foreground">{business.missionStatement}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="card p-4">
                   <p className="text-sm text-muted-foreground mb-2">Active Agents</p>
