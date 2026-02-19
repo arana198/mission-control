@@ -30,23 +30,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Extract current tab from pathname
   const currentTab = ((pathname || "").split("/").pop() || "overview") as TabType;
 
+  // Extract business slug from pathname (e.g., "/mission-control-hq/board" -> "mission-control-hq")
+  const pathParts = (pathname || "").split("/").filter(Boolean);
+  const currentBusinessSlug = pathParts[0] || null;
+
   const tabs = [
-    { id: "overview", label: "Overview", icon: BarChart3 },
-    { id: "epics", label: "Roadmap", icon: Map },
-    { id: "board", label: "Task Board", icon: LayoutGrid },
-    { id: "agents", label: "Your Squad", icon: Users },
-    { id: "workload", label: "Workload", icon: Briefcase },
-    { id: "activity", label: "Activity", icon: Activity },
-    { id: "calendar", label: "Calendar", icon: Calendar },
-    { id: "brain", label: "2nd Brain", icon: Brain },
-    { id: "bottlenecks", label: "Bottlenecks", icon: AlertCircle },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "api-docs", label: "API Docs", icon: BookOpen },
-    { id: "settings", label: "Settings", icon: Zap },
+    // Business-scoped tabs
+    { id: "overview", label: "Overview", icon: BarChart3, isGlobal: false },
+    { id: "epics", label: "Roadmap", icon: Map, isGlobal: false },
+    { id: "board", label: "Task Board", icon: LayoutGrid, isGlobal: false },
+    { id: "documents", label: "Documents", icon: BookOpen, isGlobal: false },
+    { id: "settings", label: "Settings", icon: Zap, isGlobal: false },
+    // Global tabs
+    { id: "agents", label: "Your Squad", icon: Users, isGlobal: true },
+    { id: "workload", label: "Workload", icon: Briefcase, isGlobal: true },
+    { id: "activity", label: "Activity", icon: Activity, isGlobal: true },
+    { id: "calendar", label: "Calendar", icon: Calendar, isGlobal: true },
+    { id: "brain", label: "2nd Brain", icon: Brain, isGlobal: true },
+    { id: "bottlenecks", label: "Bottlenecks", icon: AlertCircle, isGlobal: true },
+    { id: "analytics", label: "Analytics", icon: BarChart3, isGlobal: true },
+    { id: "api-docs", label: "API Docs", icon: BookOpen, isGlobal: true },
   ];
 
   const handleTabChange = (tabId: string) => {
-    router.push(`/${tabId}`);
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab?.isGlobal) {
+      router.push(`/global/${tabId}`);
+    } else {
+      // Use current business slug or default to overview
+      const slug = currentBusinessSlug || "mission-control-hq";
+      router.push(`/${slug}/${tabId}`);
+    }
   };
 
   return (
