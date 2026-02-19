@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { POST } from "../tasks/tag/route";
+import { POST } from "../[agentId]/tasks/[taskId]/tags/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("POST /api/agents/tasks/{taskId}/tag", () => {
+describe("PATCH /api/agents/{agentId}/tasks/{taskId}/tags", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -47,7 +47,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
   it("adds tag to task", async () => {
     mockMutation.mockResolvedValueOnce({ tags: ["bug", "urgent"] });
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/tag", {
       method: "POST",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -58,7 +58,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -68,7 +68,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
   it("removes tag from task", async () => {
     mockMutation.mockResolvedValueOnce({ success: true, tags: ["bug"] });
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/tag", {
       method: "POST",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -79,7 +79,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -87,7 +87,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
   });
 
   it("rejects empty tags array", async () => {
-    const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/tag", {
       method: "POST",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -98,7 +98,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -106,7 +106,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
   });
 
   it("rejects invalid action", async () => {
-    const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/tag", {
       method: "POST",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -117,14 +117,14 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(response.status).toBe(400);
   });
 
   it("rejects invalid credentials", async () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/tag", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/tag", {
       method: "POST",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -135,7 +135,7 @@ describe("POST /api/agents/tasks/{taskId}/tag", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(response.status).toBe(401);
   });
 });

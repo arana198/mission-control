@@ -1,12 +1,11 @@
 /**
- * GET /api/agents/tasks
+ * GET /api/agents/{agentId}/tasks
  *
  * Query tasks with optional filters (status, priority, assignedToMe)
  * Supports pagination via limit and offset
  * Tasks are scoped to a specific business
  *
  * Query params:
- *   agentId (REQUIRED) - Agent ID
  *   agentKey (REQUIRED) - Agent authentication key
  *   businessId (REQUIRED) - Business ID for task scoping
  *   status? - Task status filter
@@ -33,11 +32,14 @@ import { verifyAgent } from "@/lib/agent-auth";
 const log = createLogger("api:agents:tasks:query");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function GET(request: Request): Promise<Response> {
+export async function GET(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId } = context.params;
   try {
     // Parse query params
     const url = new URL(request.url);
-    const agentId = url.searchParams.get("agentId");
     const agentKey = url.searchParams.get("agentKey");
     const businessId = url.searchParams.get("businessId");
     const status = url.searchParams.get("status") || undefined;
@@ -46,12 +48,22 @@ export async function GET(request: Request): Promise<Response> {
     const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : undefined;
     const offset = url.searchParams.get("offset") ? parseInt(url.searchParams.get("offset")!) : undefined;
 
-    // Validate businessId is provided
+    // Validate required params
+    if (!agentKey) {
+      return jsonResponse(
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: "agentKey query param is required" },
+        },
+        400
+      );
+    }
+
     if (!businessId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "businessId is required" },
+          error: { code: "VALIDATION_ERROR", message: "businessId query param is required" },
         },
         400
       );

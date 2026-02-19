@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { GET } from "../tasks/[taskId]/route";
+import { GET } from "../[agentId]/tasks/[taskId]/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("GET /api/agents/tasks/{taskId}", () => {
+describe("GET /api/agents/{agentId}/tasks/{taskId}", () => {
   const mockQuery = jest.fn();
   const mockConvex = {
     query: mockQuery,
@@ -58,12 +58,11 @@ describe("GET /api/agents/tasks/{taskId}", () => {
   it("returns task details with valid credentials", async () => {
     mockQuery.mockResolvedValueOnce(mockTask);
 
-    const url = new URL("http://localhost/api/agents/tasks/task-456");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks/task-456");
     url.searchParams.set("agentKey", "ak_key");
 
     const request = new Request(url.toString());
-    const response = await GET(request, { params: { taskId: "task-456" } });
+    const response = await GET(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -75,12 +74,11 @@ describe("GET /api/agents/tasks/{taskId}", () => {
   it("returns full task object with all fields", async () => {
     mockQuery.mockResolvedValueOnce(mockTask);
 
-    const url = new URL("http://localhost/api/agents/tasks/task-456");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks/task-456");
     url.searchParams.set("agentKey", "ak_key");
 
     const request = new Request(url.toString());
-    const response = await GET(request, { params: { taskId: "task-456" } });
+    const response = await GET(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(data.data.task).toMatchObject({
@@ -97,12 +95,11 @@ describe("GET /api/agents/tasks/{taskId}", () => {
   it("rejects invalid credentials", async () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const url = new URL("http://localhost/api/agents/tasks/task-456");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks/task-456");
     url.searchParams.set("agentKey", "wrong");
 
     const request = new Request(url.toString());
-    const response = await GET(request, { params: { taskId: "task-456" } });
+    const response = await GET(request, { params: { agentId: "agent-123", taskId: "task-456" } });
 
     expect(response.status).toBe(401);
   });
@@ -110,22 +107,21 @@ describe("GET /api/agents/tasks/{taskId}", () => {
   it("returns 404 for non-existent task", async () => {
     mockQuery.mockResolvedValueOnce(null);
 
-    const url = new URL("http://localhost/api/agents/tasks/nonexistent");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks/nonexistent");
     url.searchParams.set("agentKey", "ak_key");
 
     const request = new Request(url.toString());
-    const response = await GET(request, { params: { taskId: "nonexistent" } });
+    const response = await GET(request, { params: { agentId: "agent-123", taskId: "nonexistent" } });
 
     expect(response.status).toBe(404);
   });
 
   it("returns error for missing agentId", async () => {
-    const url = new URL("http://localhost/api/agents/tasks/task-456");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks/task-456");
     url.searchParams.set("agentKey", "ak_key");
 
     const request = new Request(url.toString());
-    const response = await GET(request, { params: { taskId: "task-456" } });
+    const response = await GET(request, { params: { agentId: "agent-123", taskId: "task-456" } });
 
     expect(response.status).toBe(400);
   });

@@ -1,5 +1,5 @@
 /**
- * POST /api/agents/heartbeat
+ * POST /api/agents/{agentId}/heartbeat
  *
  * Lightweight heartbeat endpoint.
  * Updates lastHeartbeat + optional status.
@@ -9,7 +9,7 @@
  * - Safe to retry: YES
  * - Side effects on repeat: None (idempotent operation)
  *
- * Request: HeartbeatInput
+ * Request: HeartbeatInput (agentKey, currentTaskId?, status?)
  * Response: { success, serverTime }
  */
 
@@ -32,7 +32,11 @@ import { createLogger } from "@/lib/utils/logger";
 const log = createLogger("api:agents:heartbeat");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function POST(request: Request): Promise<Response> {
+export async function POST(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -45,7 +49,12 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const input = validateAgentInput(HeartbeatSchema, body);
+    const input = validateAgentInput(HeartbeatSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      currentTaskId: body.currentTaskId,
+      status: body.status,
+    });
 
     // Verify credentials
     const agent = await verifyAgent(input.agentId, input.agentKey);
@@ -53,11 +62,11 @@ export async function POST(request: Request): Promise<Response> {
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
-    const agentId = input.agentId as Id<"agents">;
+    const resolvedAgentId = input.agentId as Id<"agents">;
 
     // Update heartbeat
     await convex.mutation(api.agents.heartbeat, {
-      agentId,
+      agentId: resolvedAgentId,
       currentTaskId: input.currentTaskId as Id<"tasks"> | undefined,
     });
 
@@ -71,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
       if (task) {
         await convex.mutation(api.agents.updateStatus, {
           businessId: task.businessId,
-          agentId,
+          agentId: resolvedAgentId,
           status: input.status,
           currentTaskId: input.currentTaskId as Id<"tasks">,
         });

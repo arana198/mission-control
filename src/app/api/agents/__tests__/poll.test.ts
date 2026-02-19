@@ -52,16 +52,16 @@ describe("POST /api/agents/poll", () => {
   };
 
   it("returns 401 for invalid credentials", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     mockVerify.mockResolvedValue(null);
     const req = makeRequest({ agentId: "abc123", agentKey: "bad_key", businessId: "business-123" });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(401);
   });
 
   it("returns tasks and notifications on valid credentials", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     mockVerify.mockResolvedValue(mockAgent);
     mockMutation.mockResolvedValue({ success: true, timestamp: Date.now() });
@@ -72,7 +72,7 @@ describe("POST /api/agents/poll", () => {
     mockMutation.mockResolvedValueOnce({ marked: 1 }); // markAllRead
 
     const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
@@ -83,14 +83,14 @@ describe("POST /api/agents/poll", () => {
   });
 
   it("returns empty arrays when no tasks or notifications", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     mockVerify.mockResolvedValue(mockAgent);
     mockMutation.mockResolvedValue({ success: true, timestamp: Date.now() });
     mockQuery.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
     const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.data.assignedTasks).toEqual([]);
@@ -98,30 +98,30 @@ describe("POST /api/agents/poll", () => {
   });
 
   it("returns 400 for missing agentKey", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     const req = makeRequest({ agentId: "abc123", businessId: "business-123" });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for missing businessId", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     const req = makeRequest({ agentId: "abc123", agentKey: "ak_x" });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for malformed JSON", async () => {
-    const { POST } = await import("../poll/route");
+    const { POST } = await import("../[agentId]/poll/route");
 
     const req = new Request("http://localhost/api/agents/poll", {
       method: "POST",
       body: "invalid json",
       headers: { "Content-Type": "application/json" },
     });
-    const res = await POST(req);
+    const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(400);
   });
 });

@@ -22,7 +22,7 @@ jest.mock("@/lib/utils/logger", () => ({
 
 import { ConvexHttpClient } from "convex/browser";
 
-describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
+describe("PATCH /api/agents/{agentId} (Idempotent Update)", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -40,7 +40,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
     status: "idle",
   };
 
-  let PUT: any;
+  let PATCH: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -48,7 +48,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
     (ConvexHttpClient as any).mockImplementation(() => mockConvex);
     // Import route after mocks are set up
     const route = await import("../[agentId]/route");
-    PUT = route.PUT;
+    PATCH = route.PATCH;
   });
 
   describe("Authentication", () => {
@@ -60,7 +60,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -68,7 +68,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       expect(response.status).toBe(200);
       expect(mockMutation).toHaveBeenCalledWith(
         expect.anything(),
@@ -84,7 +84,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiKey: "api-key-123",
@@ -92,7 +92,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       expect(response.status).toBe(200);
       expect(mockMutation).toHaveBeenCalledWith(
         expect.anything(),
@@ -102,12 +102,12 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("rejects requests without API key", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -118,7 +118,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       mockMutation.mockRejectedValueOnce(new Error("Invalid credentials"));
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer wrong-key",
           "Content-Type": "application/json",
@@ -126,7 +126,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -137,7 +137,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       mockMutation.mockRejectedValueOnce(new Error("Agent not found"));
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key",
           "Content-Type": "application/json",
@@ -145,7 +145,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -163,7 +163,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -171,7 +171,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ workspacePath: "/new/path" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -188,7 +188,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -196,7 +196,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "claude-3-sonnet" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -213,7 +213,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -221,7 +221,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ personality: "Friendly and helpful" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -239,7 +239,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -247,7 +247,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ capabilities: newCapabilities }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -269,7 +269,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -281,7 +281,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -298,7 +298,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -306,7 +306,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({}),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -318,7 +318,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
   describe("Validation", () => {
     it("rejects empty workspace path", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -326,7 +326,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ workspacePath: "" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -335,7 +335,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("rejects model exceeding max length", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -343,7 +343,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "a".repeat(101) }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -352,7 +352,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("rejects personality exceeding max length", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -360,7 +360,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ personality: "a".repeat(2001) }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -369,7 +369,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("rejects capabilities with items exceeding max length", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -377,7 +377,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ capabilities: ["valid", "a".repeat(101)] }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -386,12 +386,12 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("handles invalid JSON gracefully", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: "invalid json",
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -409,7 +409,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -417,7 +417,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(data).toHaveProperty("success", true);
@@ -439,12 +439,12 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
 
     it("returns error structure on validation failure", async () => {
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "a".repeat(101) }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(data).toHaveProperty("success", false);
@@ -465,7 +465,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       });
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -473,7 +473,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      await PUT(request, { params: { agentId: "agent-123" } });
+      await PATCH(request, { params: { agentId: "agent-123" } });
 
       expect(mockMutation).toHaveBeenCalledWith(
         expect.anything(),
@@ -492,7 +492,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
       mockMutation.mockRejectedValueOnce(new Error("Database error"));
 
       const request = new Request("http://localhost/api/agents/agent-123", {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           Authorization: "Bearer api-key-123",
           "Content-Type": "application/json",
@@ -500,7 +500,7 @@ describe("PUT /api/agents/{agentId} (Idempotent Update)", () => {
         body: JSON.stringify({ model: "gpt-4-turbo" }),
       });
 
-      const response = await PUT(request, { params: { agentId: "agent-123" } });
+      const response = await PATCH(request, { params: { agentId: "agent-123" } });
       const data = await response.json();
 
       expect(response.status).toBe(500);

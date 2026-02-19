@@ -1,7 +1,9 @@
 /**
- * PUT /api/agents/{agentId}
+ * GET /api/agents/{agentId}
+ * PATCH /api/agents/{agentId}
  *
- * Agent self-service endpoint to update their own details (idempotent).
+ * GET: Retrieve agent details
+ * PATCH: Agent self-service endpoint to update their own details (idempotent).
  * Supports partial updates - only provided fields are updated.
  * Requires authentication via API key in Authorization header or body.
  *
@@ -20,17 +22,69 @@ import { api } from "@/convex/_generated/api";
 import { jsonResponse, successResponse, handleApiError } from "@/lib/utils/apiResponse";
 import { createLogger } from "@/lib/utils/logger";
 import { UpdateAgentSchema, validateAgentInput } from "@/lib/validators/agentValidators";
+import { verifyAgent } from "@/lib/agent-auth";
+import { UnauthorizedError } from "@/lib/utils/apiResponse";
 
-const log = createLogger("api:agents:update");
+const log = createLogger("api:agents:details");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function PUT(
+export async function GET(
   request: Request,
   context: any
 ): Promise<Response> {
-  const { params } = context;
+  const { agentId } = context.params;
   try {
-    const { agentId } = params;
+    // Parse query params or headers for authentication
+    const url = new URL(request.url);
+    const agentKey = url.searchParams.get("agentKey") || request.headers.get("agentKey");
+
+    if (!agentKey) {
+      return jsonResponse(
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: "agentKey is required (query param or header)" },
+        },
+        400
+      );
+    }
+
+    // Verify credentials
+    const agent = await verifyAgent(agentId, agentKey);
+    if (!agent) {
+      throw new UnauthorizedError("Invalid agent credentials");
+    }
+
+    log.info("Agent details retrieved", { agentId });
+
+    return jsonResponse(
+      successResponse({
+        agent: {
+          id: agent._id,
+          name: agent.name,
+          role: agent.role,
+          level: agent.level,
+          status: agent.status,
+          workspacePath: agent.workspacePath,
+          model: agent.model,
+          personality: agent.personality,
+          capabilities: agent.capabilities,
+          lastHeartbeat: agent.lastHeartbeat,
+          currentTaskId: agent.currentTaskId,
+        },
+      })
+    );
+  } catch (error) {
+    const [errorData, statusCode] = handleApiError(error);
+    return jsonResponse(errorData, statusCode);
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId } = context.params;
+  try {
     const body = await request.json().catch(() => ({}));
 
     // Extract apiKey from Authorization header or body

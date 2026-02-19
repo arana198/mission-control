@@ -1,9 +1,9 @@
 /**
- * GET /api/agents/tasks/{taskId}
+ * GET /api/agents/{agentId}/tasks/{taskId}
  *
  * Get full details for a specific task
  *
- * Query params: agentId, agentKey
+ * Query params: agentKey (required)
  * Response: { task }
  */
 
@@ -26,12 +26,21 @@ export async function GET(
   request: Request,
   context: any
 ): Promise<Response> {
-  const { taskId } = context.params;
+  const { agentId, taskId } = context.params;
   try {
     // Parse query params
     const url = new URL(request.url);
-    const agentId = url.searchParams.get("agentId");
     const agentKey = url.searchParams.get("agentKey");
+
+    if (!agentKey) {
+      return jsonResponse(
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: "agentKey query param is required" },
+        },
+        400
+      );
+    }
 
     const input = validateAgentTaskInput(GetTaskDetailsSchema, {
       agentId,

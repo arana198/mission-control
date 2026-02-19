@@ -33,16 +33,16 @@ beforeEach(() => {
 });
 
 function makeRequest(params: Record<string, string>): Request {
-  const url = new URL("http://localhost/api/agents/list");
+  const url = new URL("http://localhost/api/agents");
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });
-  return new Request(url, { method: "GET" });
+  return new Request(url, { method: "GET", headers: { agentId: params.agentId, agentKey: params.agentKey } });
 }
 
-describe("GET /api/agents/list", () => {
+describe("GET /api/agents", () => {
   it("returns agent list for authenticated agent", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     mockQuery.mockResolvedValue([
       { _id: "a1", name: "jarvis", role: "lead", level: "lead", status: "active" },

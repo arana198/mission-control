@@ -23,7 +23,7 @@ jest.mock("@/lib/utils/logger", () => ({
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("POST /api/agents/tasks/{taskId}/comment", () => {
+describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -47,11 +47,11 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("adds comment to task with valid credentials", async () => {
-    const { POST } = await import("../tasks/comment/route");
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
     const messageId = "msg-789";
     mockMutation.mockResolvedValueOnce(messageId);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: JSON.stringify({
         agentId: mockAgentId,
@@ -71,11 +71,11 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("adds comment with agent mentions", async () => {
-    const { POST } = await import("../tasks/comment/route");
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
     const messageId = "msg-789";
     mockMutation.mockResolvedValueOnce(messageId);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: JSON.stringify({
         agentId: mockAgentId,
@@ -100,10 +100,10 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("rejects invalid credentials", async () => {
-    const { POST } = await import("../tasks/comment/route");
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: JSON.stringify({
         agentId: mockAgentId,
@@ -122,8 +122,8 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("rejects empty comment", async () => {
-    const { POST } = await import("../tasks/comment/route");
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: JSON.stringify({
         agentId: mockAgentId,
@@ -142,8 +142,8 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("rejects comment exceeding max length", async () => {
-    const { POST } = await import("../tasks/comment/route");
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: JSON.stringify({
         agentId: mockAgentId,
@@ -161,8 +161,8 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("handles bad JSON", async () => {
-    const { POST } = await import("../tasks/comment/route");
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       body: "not valid json",
     });
@@ -174,12 +174,12 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
   });
 
   it("accepts Idempotency-Key header for retry support", async () => {
-    const { POST } = await import("../tasks/comment/route");
+    const { POST } = await import("../[agentId]/tasks/[taskId]/comments/route");
     const messageId = "msg-789";
     const idempotencyKey = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
     mockMutation.mockResolvedValueOnce(messageId);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/comment", {
       method: "POST",
       headers: {
         "Idempotency-Key": idempotencyKey,

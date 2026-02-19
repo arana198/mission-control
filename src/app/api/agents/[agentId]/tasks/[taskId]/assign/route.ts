@@ -1,10 +1,10 @@
 /**
- * PUT /api/agents/tasks/{taskId}/status
+ * POST /api/agents/{agentId}/tasks/{taskId}/assign
  *
- * Update task status (idempotent resource update)
+ * Assign task to one or more agents (create/action endpoint)
  *
- * Request: UpdateTaskStatusInput (agentId, agentKey, taskId, status)
- * Response: { success: true, data: { success: true }, timestamp }
+ * Request: { agentKey, assigneeIds }
+ * Response: { success: true, timestamp }
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -16,20 +16,17 @@ import {
   UnauthorizedError,
 } from "@/lib/utils/apiResponse";
 import { createLogger } from "@/lib/utils/logger";
-import { validateAgentTaskInput, UpdateTaskStatusSchema } from "@/lib/validators/agentTaskValidators";
+import { validateAgentTaskInput, AssignTaskSchema } from "@/lib/validators/agentTaskValidators";
 import { verifyAgent } from "@/lib/agent-auth";
 
-const log = createLogger("api:agents:tasks:status");
+const log = createLogger("api:agents:tasks:assign");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-type Props = {
-  params: {
-    taskId: string;
-  };
-};
-
-export async function PUT(request: Request, context: any): Promise<Response> {
-  const { taskId } = context.params;
+export async function POST(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId, taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -42,7 +39,12 @@ export async function PUT(request: Request, context: any): Promise<Response> {
       );
     }
 
-    const input = validateAgentTaskInput(UpdateTaskStatusSchema, { ...body, taskId });
+    const input = validateAgentTaskInput(AssignTaskSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      taskId,
+      assigneeIds: body.assigneeIds,
+    });
 
     // Verify credentials
     const agent = await verifyAgent(input.agentId, input.agentKey);
@@ -50,20 +52,20 @@ export async function PUT(request: Request, context: any): Promise<Response> {
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
-    // Update task status
-    await convex.mutation(api.tasks.updateStatus, {
+    // Assign task to agents
+    await convex.mutation(api.tasks.assign, {
       taskId: input.taskId as any,
-      status: input.status,
-      updatedBy: input.agentId,
+      assigneeIds: input.assigneeIds as any,
+      assignedBy: input.agentId as any,
     });
 
-    log.info("Task status updated", {
+    log.info("Task assigned to agents", {
       agentId: input.agentId,
       taskId: input.taskId,
-      status: input.status,
+      assigneeIds: input.assigneeIds,
     });
 
-    return jsonResponse(successResponse({ success: true }));
+    return jsonResponse(successResponse({ success: true }), 200);
   } catch (error) {
     const [errorData, statusCode] = handleApiError(error);
     return jsonResponse(errorData, statusCode);

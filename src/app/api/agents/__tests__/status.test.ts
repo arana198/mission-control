@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { PUT } from "../tasks/status/route";
+import { PUT } from "../[agentId]/tasks/[taskId]/status/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("PUT /api/agents/tasks/{taskId}/status", () => {
+describe("PATCH /api/agents/{agentId}/tasks/{taskId}/status", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -46,7 +46,7 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
   it("updates task status with valid credentials", async () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/status", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -56,7 +56,7 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -69,7 +69,7 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
     const statuses = ["backlog", "ready", "in_progress", "review", "blocked", "done"];
 
     for (const status of statuses) {
-      const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
+      const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/status", {
         method: "PUT",
         body: JSON.stringify({
           agentId: "agent-123",
@@ -79,13 +79,13 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
         }),
       });
 
-      const response = await PUT(request, { params: { taskId: "task-456" } });
+      const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
       expect(response.status).toBe(200);
     }
   });
 
   it("rejects invalid status", async () => {
-    const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/status", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -95,7 +95,7 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -105,7 +105,7 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
   it("rejects invalid credentials", async () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/status", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -115,17 +115,17 @@ describe("PUT /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(response.status).toBe(401);
   });
 
   it("handles bad JSON", async () => {
-    const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/status", {
       method: "PUT",
       body: "invalid json",
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(response.status).toBe(400);
   });
 });

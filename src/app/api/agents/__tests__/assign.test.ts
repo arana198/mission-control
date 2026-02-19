@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { PUT } from "../tasks/assign/route";
+import { PUT } from "../[agentId]/tasks/[taskId]/assign/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
+describe("POST /api/agents/{agentId}/tasks/{taskId}/assign", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -46,7 +46,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   it("assigns task to single agent", async () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/assign", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -56,7 +56,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -66,7 +66,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   it("assigns task to multiple agents", async () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/assign", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -76,7 +76,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -84,7 +84,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   });
 
   it("rejects empty assigneeIds", async () => {
-    const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/assign", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -94,7 +94,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -103,7 +103,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
 
   it("rejects too many assignees (>10)", async () => {
     const assigneeIds = Array.from({ length: 11 }, (_, i) => `agent-${i}`);
-    const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/assign", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -113,7 +113,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -122,7 +122,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   it("rejects invalid credentials", async () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
+    const request = new Request("http://localhost/api/agents/agent-123/tasks/task-456/assign", {
       method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
@@ -132,7 +132,7 @@ describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await PUT(request, { params: { taskId: "task-456" } });
+    const response = await HANDLER(request, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(response.status).toBe(401);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * POST /api/agents/tasks/{taskId}/comment
+ * POST /api/agents/{agentId}/tasks/{taskId}/comments
  *
  * Add comment to task with optional @mentions.
  * Returns 201 Created when comment is successfully added.
@@ -9,8 +9,8 @@
  * - Safe to retry: NO (use Idempotency-Key header to enable retries)
  * - Side effects on repeat: Duplicate comments created
  *
- * Request: AddCommentInput (agentId, agentKey, taskId, content, mentions)
- * Response: { success, messageId } [201 Created]
+ * Request: { agentKey, content, mentions? }
+ * Response: { messageId } [201 Created]
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -27,14 +27,14 @@ import { validateAgentTaskInput, AddCommentSchema } from "@/lib/validators/agent
 import { verifyAgent } from "@/lib/agent-auth";
 import { HTTP_HEADERS } from "@/lib/constants/business";
 
-const log = createLogger("api:agents:tasks:comment");
+const log = createLogger("api:agents:tasks:comments");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(
   request: Request,
   context: any
 ): Promise<Response> {
-  const { taskId } = context.params;
+  const { agentId, taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -47,7 +47,13 @@ export async function POST(
       );
     }
 
-    const input = validateAgentTaskInput(AddCommentSchema, { ...body, taskId });
+    const input = validateAgentTaskInput(AddCommentSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      taskId,
+      content: body.content,
+      mentions: body.mentions,
+    });
 
     // Verify credentials
     const agent = await verifyAgent(input.agentId, input.agentKey);

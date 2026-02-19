@@ -39,12 +39,12 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { GET } from "../tasks/route";
 import { handleApiError } from "@/lib/utils/apiResponse";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("GET /api/agents/tasks", () => {
+describe("GET /api/agents/{agentId}/tasks", () => {
+  let GET: any;
   const mockAgent = {
     _id: "agent-123",
     name: "TestBot",
@@ -74,23 +74,24 @@ describe("GET /api/agents/tasks", () => {
     },
   ];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
     (verifyAgent as jest.Mock).mockResolvedValue(mockAgent);
     mockMutation!.mockResolvedValue({ success: true }); // Activity logging succeeds by default
+    const route = await import("../[agentId]/tasks/route");
+    GET = route.GET;
   });
 
   it("returns all tasks for agent", async () => {
     mockQuery.mockResolvedValueOnce(mockTasks);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     if (response.status !== 200) {
@@ -106,14 +107,13 @@ describe("GET /api/agents/tasks", () => {
     const filtered = [mockTasks[0]];
     mockQuery.mockResolvedValueOnce(filtered);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("status", "in_progress");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -124,14 +124,13 @@ describe("GET /api/agents/tasks", () => {
     const filtered = [mockTasks[0]];
     mockQuery.mockResolvedValueOnce(filtered);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("priority", "P0");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -142,14 +141,13 @@ describe("GET /api/agents/tasks", () => {
     const filtered = [mockTasks[0]];
     mockQuery.mockResolvedValueOnce(filtered);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("assignedToMe", "true");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -158,15 +156,14 @@ describe("GET /api/agents/tasks", () => {
   it("applies pagination", async () => {
     mockQuery!.mockResolvedValueOnce(mockTasks);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("limit", "1");
     url.searchParams.set("offset", "0");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -182,35 +179,33 @@ describe("GET /api/agents/tasks", () => {
   it("rejects invalid credentials", async () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "wrong");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
 
     expect(response.status).toBe(401);
   });
 
   it("returns error for missing businessId", async () => {
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
 
     expect(response.status).toBe(400);
   });
 
   it("returns error for missing agentId", async () => {
-    const url = new URL("http://localhost/api/agents/tasks");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
 
     expect(response.status).toBe(400);
   });
@@ -218,13 +213,12 @@ describe("GET /api/agents/tasks", () => {
   it("includes ticketNumber in response", async () => {
     mockQuery.mockResolvedValueOnce(mockTasks);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -236,8 +230,7 @@ describe("GET /api/agents/tasks", () => {
   it("includes meta object with count, filters, and pagination", async () => {
     mockQuery.mockResolvedValueOnce(mockTasks);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("status", "in_progress");
@@ -246,7 +239,7 @@ describe("GET /api/agents/tasks", () => {
     url.searchParams.set("offset", "0");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -266,13 +259,12 @@ describe("GET /api/agents/tasks", () => {
   it("logs activity on successful task query", async () => {
     mockQuery.mockResolvedValueOnce(mockTasks);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
 
     expect(response.status).toBe(200);
     expect(mockMutation).toHaveBeenCalledWith(
@@ -291,13 +283,12 @@ describe("GET /api/agents/tasks", () => {
     mockQuery.mockResolvedValueOnce(mockTasks);
     mockMutation.mockRejectedValueOnce(new Error("Activity logging failed"));
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     // Should still return 200 even if activity logging fails
@@ -309,14 +300,13 @@ describe("GET /api/agents/tasks", () => {
   it("returns empty array when no tasks match filters", async () => {
     mockQuery.mockResolvedValueOnce([]);
 
-    const url = new URL("http://localhost/api/agents/tasks");
-    url.searchParams.set("agentId", "agent-123");
+    const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
     url.searchParams.set("businessId", "business-123");
     url.searchParams.set("status", "done");
 
     const request = new Request(url.toString());
-    const response = await GET(request);
+    const response = await GET(request, { params: { agentId: "agent-123" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);

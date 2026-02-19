@@ -1,10 +1,10 @@
 /**
- * POST /api/agents/tasks/complete
+ * POST /api/agents/{agentId}/tasks/{taskId}/complete
  *
  * Mark a task as complete from an agent's perspective.
  * Atomically updates task status, agent status, and logs activity.
  *
- * Request: CompleteTaskInput
+ * Request: { agentKey, completionNotes?, timeSpent?, status? }
  * Response: { success, taskId, completedAt }
  */
 
@@ -27,7 +27,11 @@ import { createLogger } from "@/lib/utils/logger";
 const log = createLogger("api:agents:tasks:complete");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function POST(request: Request): Promise<Response> {
+export async function POST(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId, taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -40,7 +44,14 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const input = validateAgentInput(CompleteTaskSchema, body);
+    const input = validateAgentInput(CompleteTaskSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      taskId,
+      completionNotes: body.completionNotes,
+      timeSpent: body.timeSpent,
+      status: body.status,
+    });
 
     // Verify credentials
     const agent = await verifyAgent(input.agentId, input.agentKey);
@@ -48,15 +59,15 @@ export async function POST(request: Request): Promise<Response> {
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
-    const taskId = input.taskId as Id<"tasks">;
-    const agentId = input.agentId as Id<"agents">;
+    const resolvedTaskId = input.taskId as Id<"tasks">;
+    const resolvedAgentId = input.agentId as Id<"agents">;
 
     const completedAt = Date.now();
 
     // Call atomic mutation to complete task
     const result = await convex.mutation(api.tasks.completeByAgent, {
-      taskId,
-      agentId,
+      taskId: resolvedTaskId,
+      agentId: resolvedAgentId,
       completionNotes: input.completionNotes,
       timeTracked: input.timeSpent,
       status: (input.status as "done" | "review") || "done",
@@ -64,7 +75,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // Create execution log entry
     await convex.mutation(api.executionLog.create, {
-      taskId,
+      taskId: resolvedTaskId,
       agentId: input.agentId,
       status: "success",
       output: input.completionNotes,

@@ -1,9 +1,9 @@
 /**
- * POST /api/agents/tasks/{taskId}/tag
+ * PATCH /api/agents/{agentId}/tasks/{taskId}/tags
  *
  * Add or remove tags from task
  *
- * Request: TagTaskInput (agentId, agentKey, taskId, tags, action)
+ * Request: { agentKey, tags, action }
  * Response: { success, tags }
  */
 
@@ -19,16 +19,13 @@ import { createLogger } from "@/lib/utils/logger";
 import { validateAgentTaskInput, TagTaskSchema } from "@/lib/validators/agentTaskValidators";
 import { verifyAgent } from "@/lib/agent-auth";
 
-const log = createLogger("api:agents:tasks:tag");
+const log = createLogger("api:agents:tasks:tags");
 
-type Props = {
-  params: {
-    taskId: string;
-  };
-};
-
-export async function POST(request: Request, context: any): Promise<Response> {
-  const { taskId } = context.params;
+export async function PATCH(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId, taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -41,7 +38,13 @@ export async function POST(request: Request, context: any): Promise<Response> {
       );
     }
 
-    const input = validateAgentTaskInput(TagTaskSchema, { ...body, taskId });
+    const input = validateAgentTaskInput(TagTaskSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      taskId,
+      tags: body.tags,
+      action: body.action,
+    });
 
     // Verify credentials
     const agent = await verifyAgent(input.agentId, input.agentKey);

@@ -35,6 +35,7 @@ export interface VerifiedAgent {
   sessionKey: string;
   apiKey: string;
   lastHeartbeat: number;
+  workspacePath: string;
   capabilities?: string[];
   model?: string;
   personality?: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useBusiness } from "./BusinessProvider";
@@ -9,6 +9,7 @@ import { NotificationPanel } from "./NotificationPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsPanel } from "./SettingsPanel";
+import { Breadcrumbs } from "./Breadcrumbs";
 import { log } from "../lib/logger";
 import { metrics } from "../lib/monitoring";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
@@ -96,6 +97,11 @@ export function DashboardTabClientContent({
         canAutoAssign={isBusinessSpecificTab}
       />
 
+      {/* Breadcrumb navigation */}
+      <div className="px-6 py-3 border-b bg-background/50">
+        <Breadcrumbs tab={tab} />
+      </div>
+
       {/* Render appropriate dashboard based on tab type */}
       {isBusinessSpecificTab && targetBusinessId ? (
         <BusinessDashboard
@@ -107,7 +113,9 @@ export function DashboardTabClientContent({
           setAutoAssigning={setAutoAssigning}
         />
       ) : (
-        <GlobalDashboard tab={tab as "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs"} />
+        <Suspense fallback={<LoadingSkeleton />}>
+          <GlobalDashboard tab={tab as "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs"} />
+        </Suspense>
       )}
 
       {/* Modals */}

@@ -1,12 +1,11 @@
 /**
- * POST /api/agents/poll
+ * POST /api/agents/{agentId}/poll
  *
  * Agent polling endpoint — returns work queue + notifications.
  * Updates lastHeartbeat and marks notifications as read.
  *
  * Request body:
  * {
- *   agentId: string (REQUIRED) - Agent ID
  *   agentKey: string (REQUIRED) - Agent authentication key
  *   businessId: string (REQUIRED) - Business ID for task scoping
  * }
@@ -33,7 +32,11 @@ import { createLogger } from "@/lib/utils/logger";
 const log = createLogger("api:agents:poll");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function POST(request: Request): Promise<Response> {
+export async function POST(
+  request: Request,
+  context: any
+): Promise<Response> {
+  const { agentId } = context.params;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
@@ -46,7 +49,11 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const input = validateAgentInput(PollAgentSchema, body);
+    const input = validateAgentInput(PollAgentSchema, {
+      agentId,
+      agentKey: body.agentKey,
+      businessId: body.businessId,
+    });
 
     // Extract businessId (REQUIRED for multi-business support)
     const { businessId } = body;
@@ -66,24 +73,24 @@ export async function POST(request: Request): Promise<Response> {
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
-    const agentId = input.agentId as Id<"agents">;
+    const resolvedAgentId = input.agentId as Id<"agents">;
 
     // Parallel: fetch tasks + notifications + update heartbeat
     // Tasks scoped to the business this agent is polling for
     const [assignedTasks, notifications] = await Promise.all([
-      convex.query(api.tasks.getForAgent, { businessId, agentId }),
+      convex.query(api.tasks.getForAgent, { businessId, agentId: resolvedAgentId }),
       convex.query(api.notifications.getForAgent, {
-        agentId,
+        agentId: resolvedAgentId,
         includeRead: false,
       }),
     ]);
 
     // Update heartbeat
-    await convex.mutation(api.agents.heartbeat, { agentId });
+    await convex.mutation(api.agents.heartbeat, { agentId: resolvedAgentId });
 
     // Mark notifications as read
     if (notifications.length > 0) {
-      await convex.mutation(api.notifications.markAllRead, { agentId });
+      await convex.mutation(api.notifications.markAllRead, { agentId: resolvedAgentId });
     }
 
     log.info("Agent polled", {

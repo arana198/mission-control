@@ -126,5 +126,12 @@ export function BusinessDashboard({
     }
   };
 
-  return renderContent();
+  return (
+    <div
+      className="border-l-4 transition-colors"
+      style={{ borderLeftColor: (business as any)?.color || '#6366f1' }}
+    >
+      {renderContent()}
+    </div>
+  );
 }

@@ -2,7 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AgentSquad } from "../AgentSquad";
 import { AgentWorkload } from "../AgentWorkload";
 import { ActivityFeed } from "../ActivityFeed";
@@ -28,7 +29,20 @@ interface GlobalDashboardProps {
  * Handles tabs that don't require specific businessId: agents, workload, activity, calendar, etc.
  */
 export function GlobalDashboard({ tab }: GlobalDashboardProps) {
-  const [selectedBusinessFilter, setSelectedBusinessFilter] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedBusinessFilter = searchParams?.get("businessId");
+
+  // Handle filter changes and persist to URL
+  const handleFilterChange = (businessId: string | null) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (businessId) {
+      params.set("businessId", businessId);
+    } else {
+      params.delete("businessId");
+    }
+    router.push(`?${params.toString()}`);
+  };
 
   // Global data fetching
   const agents = useQuery(api.agents.getAllAgents);
@@ -142,10 +156,15 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
   const showBusinessFilter = ["workload", "activity", "analytics"].includes(tab);
 
   return (
-    <div className="p-6">
+    <div className="p-6 border-l-4 border-l-muted-foreground/20">
+      {/* Global workspace indicator */}
+      <div className="mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        🌐 Workspace View
+      </div>
+
       {showBusinessFilter && (
         <div className="mb-6 pb-4 border-b">
-          <BusinessFilter onFilterChange={setSelectedBusinessFilter} />
+          <BusinessFilter onFilterChange={handleFilterChange} />
         </div>
       )}
       {renderContent()}
