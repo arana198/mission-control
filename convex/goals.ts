@@ -12,10 +12,13 @@ import { Id } from './_generated/dataModel';
 /**
  * GET all active goals
  */
-export const getActiveGoals = query(async (ctx) => {
+export const getActiveGoals = query(async (ctx, args: { businessId: Id<'businesses'> }) => {
   return await ctx.db
     .query('goals')
-    .filter(q => q.eq(q.field('status'), 'active'))
+    .filter(q => q.and(
+      q.eq(q.field('businessId'), args.businessId),
+      q.eq(q.field('status'), 'active')
+    ))
     .collect();
 });
 
@@ -89,6 +92,7 @@ export const getByProgress = query(async (ctx) => {
  * CREATE a new goal
  */
 export const create = mutation(async (ctx, args: {
+  businessId: Id<'businesses'>;  // REQUIRED: business scoping
   title: string;
   description: string;
   category: 'business' | 'personal' | 'learning' | 'health';
@@ -98,6 +102,7 @@ export const create = mutation(async (ctx, args: {
   parentGoalId?: Id<'goals'>;
 }) => {
   const goalId = await ctx.db.insert('goals', {
+    businessId: args.businessId,  // ADD: business scoping
     title: args.title,
     description: args.description,
     category: args.category,

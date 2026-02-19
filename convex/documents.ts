@@ -9,6 +9,7 @@ import { query, mutation } from "./_generated/server";
 // Create document
 export const create = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     title: convexVal.string(),
     content: convexVal.string(),
     type: convexVal.union(
@@ -23,8 +24,9 @@ export const create = mutation({
     createdByName: convexVal.string(),
     taskId: convexVal.optional(convexVal.id("tasks")),
   },
-  handler: async (ctx, { title, content, type, createdBy, createdByName, taskId }) => {
+  handler: async (ctx, { businessId, title, content, type, createdBy, createdByName, taskId }) => {
     const docId = await ctx.db.insert("documents", {
+      businessId,  // ADD: business scoping
       title,
       content,
       type,
@@ -43,6 +45,7 @@ export const create = mutation({
 // Get all documents
 export const getAll = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     type: convexVal.optional(convexVal.union(
       convexVal.literal("deliverable"),
       convexVal.literal("research"),
@@ -53,16 +56,21 @@ export const getAll = query({
     )),
     limit: convexVal.optional(convexVal.number())
   },
-  handler: async (ctx, { type, limit }) => {
+  handler: async (ctx, { businessId, type, limit }) => {
     let docs;
     if (type) {
       docs = await ctx.db
         .query("documents")
-        .withIndex("by_type", (q) => q.eq("type", type))
+        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .filter((q) => q.eq(q.field("type"), type))
         .order("desc")
         .take(limit || 50);
     } else {
-      docs = await ctx.db.query("documents").order("desc").take(limit || 50);
+      docs = await ctx.db
+        .query("documents")
+        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .order("desc")
+        .take(limit || 50);
     }
 
     return docs;

@@ -9,21 +9,37 @@ import { api } from "./_generated/api";
 
 // Get all epics
 export const getAllEpics = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("epics").order("desc").take(500);
+  args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+  },
+  handler: async (ctx, { businessId }) => {
+    return await ctx.db
+      .query("epics")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .order("desc")
+      .take(500);
   },
 });
 
 // Get epic with details
 export const getEpicWithDetails = query({
-  args: { epicId: convexVal.id("epics") },
-  handler: async (ctx, { epicId }) => {
+  args: {
+    epicId: convexVal.id("epics"),
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+  },
+  handler: async (ctx, { epicId, businessId }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) return null;
 
+    // Verify epic belongs to the requested business
+    if (epic.businessId !== businessId) {
+      throw new Error("Epic does not belong to this business");
+    }
+
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_epic", (q) => q.eq("epicId", epicId))
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .filter((q) => q.eq(q.field("epicId"), epicId))
       .collect();
 
     return {
@@ -39,12 +55,14 @@ export const getEpicWithDetails = query({
 // Create epic
 export const createEpic = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     title: convexVal.string(),
     description: convexVal.string(),
     ownerId: convexVal.optional(convexVal.id("agents")),
   },
-  handler: async (ctx, { title, description, ownerId }) => {
+  handler: async (ctx, { businessId, title, description, ownerId }) => {
     const epicId = await ctx.db.insert("epics", {
+      businessId,  // ADD: business scoping
       title,
       description,
       status: "planning",
@@ -58,6 +76,7 @@ export const createEpic = mutation({
     // Log activity
     const ownerName = ownerId ? (await ctx.db.get(ownerId))?.name : "system";
     await ctx.db.insert("activities", {
+      businessId,  // ADD: business scoping
       type: "epic_created",
       agentId: ownerId ? ownerId : "system",
       agentName: ownerName || "system",
@@ -74,14 +93,20 @@ export const createEpic = mutation({
 // Update epic
 export const updateEpic = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     epicId: convexVal.id("epics"),
     title: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
     status: convexVal.optional(convexVal.union(convexVal.literal("planning"), convexVal.literal("active"), convexVal.literal("completed"))),
   },
-  handler: async (ctx, { epicId, ...updates }) => {
+  handler: async (ctx, { businessId, epicId, ...updates }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) throw new Error("Epic not found");
+
+    // Verify epic belongs to the requested business
+    if (epic.businessId !== businessId) {
+      throw new Error("Epic does not belong to this business");
+    }
 
     await ctx.db.patch(epicId, {
       ...updates,
@@ -91,6 +116,7 @@ export const updateEpic = mutation({
     // Log status change (only when completed)
     if (updates.status === "completed" && updates.status !== epic.status) {
       await ctx.db.insert("activities", {
+        businessId,  // ADD: business scoping
         type: "epic_completed",
         agentId: "system",
         agentName: "system",

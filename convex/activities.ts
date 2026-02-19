@@ -8,15 +8,23 @@ import { query, mutation } from "./_generated/server";
 
 // Get recent activities (for the feed)
 export const getRecent = query({
-  args: { limit: convexVal.optional(convexVal.number()) },
-  handler: async (ctx, { limit }) => {
-    const activities = await ctx.db
+  args: {
+    limit: convexVal.optional(convexVal.number()),
+    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
+  },
+  handler: async (ctx, { limit, businessId }) => {
+    let activities = await ctx.db
       .query("activities")
       .withIndex("by_created_at")
       .order("desc")
-      .take(limit || 50);
+      .take((limit || 50) * 2);  // Load extra to account for filtering
 
-    return activities;
+    // Filter by business if provided
+    if (businessId) {
+      activities = activities.filter((a) => a.businessId === businessId);
+    }
+
+    return activities.slice(0, limit || 50);
   },
 });
 
@@ -54,20 +62,29 @@ export const getByType = query({
       convexVal.literal("tags_updated"),
       convexVal.literal("tasks_queried")
     ),
-    limit: convexVal.optional(convexVal.number())
+    limit: convexVal.optional(convexVal.number()),
+    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
   },
-  handler: async (ctx, { type, limit }) => {
-    return await ctx.db
+  handler: async (ctx, { type, limit, businessId }) => {
+    let activities = await ctx.db
       .query("activities")
       .withIndex("by_type", (indexQuery) => indexQuery.eq("type", type))
       .order("desc")
-      .take(limit || 30);
+      .take((limit || 30) * 2);  // Load extra to account for filtering
+
+    // Filter by business if provided
+    if (businessId) {
+      activities = activities.filter((a) => a.businessId === businessId);
+    }
+
+    return activities.slice(0, limit || 30);
   },
 });
 
 // Create activity entry
 export const create = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     type: convexVal.union(
       convexVal.literal("task_created"),
       convexVal.literal("task_updated"),
@@ -96,8 +113,9 @@ export const create = mutation({
     oldValue: convexVal.optional(convexVal.any()),
     newValue: convexVal.optional(convexVal.any()),
   },
-  handler: async (ctx, { type, agentId, agentName, message, agentRole, taskId, taskTitle, epicId, epicTitle, oldValue, newValue }) => {
+  handler: async (ctx, { businessId, type, agentId, agentName, message, agentRole, taskId, taskTitle, epicId, epicTitle, oldValue, newValue }) => {
     return await ctx.db.insert("activities", {
+      businessId,  // ADD: business scoping
       type,
       agentId,
       agentName,
@@ -118,9 +136,10 @@ export const create = mutation({
 export const getFeed = query({
   args: {
     since: convexVal.optional(convexVal.number()),
-    limit: convexVal.optional(convexVal.number())
+    limit: convexVal.optional(convexVal.number()),
+    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
   },
-  handler: async (ctx, { since, limit }) => {
+  handler: async (ctx, { since, limit, businessId }) => {
     let activitiesQuery = ctx.db.query("activities").withIndex("by_created_at").order("desc");
 
     if (since) {
@@ -128,8 +147,13 @@ export const getFeed = query({
       activitiesQuery = activitiesQuery.filter((filterQuery) => filterQuery.gt(filterQuery.field("createdAt"), since));
     }
 
-    const activities = await activitiesQuery.take(limit || 100);
+    let activities = await activitiesQuery.take((limit || 100) * 2);  // Load extra to account for filtering
 
-    return activities;
+    // Filter by business if provided
+    if (businessId) {
+      activities = activities.filter((a) => a.businessId === businessId);
+    }
+
+    return activities.slice(0, limit || 100);
   },
 });

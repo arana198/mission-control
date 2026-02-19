@@ -55,6 +55,7 @@ function inferTagsFromContent(title: string, description: string): string[] {
 
 export const createTask = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     title: convexVal.string(),
     description: convexVal.string(),
     priority: convexVal.optional(convexVal.union(convexVal.literal("P0"), convexVal.literal("P1"), convexVal.literal("P2"), convexVal.literal("P3"))),
@@ -107,8 +108,9 @@ export const createTask = mutation({
     // OBS-01: Apply inferred tags if none provided
     const finalTags = tags.length > 0 ? tags : inferTagsFromContent(title, description);
 
-    // Create task
+    // Create task (now includes businessId for multi-tenant isolation)
     const taskId = await ctx.db.insert("tasks", {
+      businessId,  // ADD: business scoping
       title,
       description,
       status: "backlog",
@@ -134,16 +136,24 @@ export const createTask = mutation({
       await syncEpicTaskLink(ctx, taskId, undefined, epicId);
     }
 
-    // TKT-01: Assign atomic ticket number (MC-001, MC-002...)
+    // TKT-01: Assign atomic ticket number per business (ACME-001, ACME-002... per business)
     const counterSetting = await ctx.db
       .query("settings")
-      .withIndex("by_key", (q: any) => q.eq("key", "taskCounter"))
+      .withIndex("by_business_key", (q: any) => q.eq("businessId", businessId).eq("key", "taskCounter"))
       .first();
     const nextNum = counterSetting ? parseInt((counterSetting as any).value) + 1 : 1;
-    const ticketNumber = `MC-${String(nextNum).padStart(3, "0")}`;
+
+    // Get ticket prefix from business settings, fallback to "TASK"
+    const prefixSetting = await ctx.db
+      .query("settings")
+      .withIndex("by_business_key", (q: any) => q.eq("businessId", businessId).eq("key", "ticketPrefix"))
+      .first();
+    const prefix = prefixSetting ? (prefixSetting as any).value : "TASK";
+
+    const ticketNumber = `${prefix}-${String(nextNum).padStart(3, "0")}`;
     await ctx.db.patch(taskId, { ticketNumber } as any);
 
-    // Upsert counter in settings
+    // Upsert per-business counter in settings
     if (counterSetting) {
       await ctx.db.patch((counterSetting as any)._id, {
         value: String(nextNum),
@@ -151,6 +161,7 @@ export const createTask = mutation({
       });
     } else {
       await ctx.db.insert("settings", {
+        businessId,  // ADD: business scoping
         key: "taskCounter",
         value: "1",
         updatedAt: Date.now(),
@@ -160,6 +171,7 @@ export const createTask = mutation({
     // Log activity (LOG-01: resolve actor name)
     const actorName = await resolveActorName(ctx, createdBy);
     await ctx.db.insert("activities", {
+      businessId,  // ADD: business scoping
       type: "task_created",
       agentId: createdBy,
       agentName: actorName,
@@ -178,6 +190,7 @@ export const createTask = mutation({
 
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
+          businessId,  // ADD: business scoping
           agentId,
           taskId,
           level: "all",
@@ -206,9 +219,15 @@ export const createTask = mutation({
 // Get all tasks (H-02 fix: removed message loading, reduces memory pressure)
 // Comment counts available via separate query if needed
 export const getAllTasks = query({
-  args: {},
-  handler: async (ctx) => {
-    const allTasks = await ctx.db.query("tasks").order("desc").take(500);
+  args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+  },
+  handler: async (ctx, { businessId }) => {
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .order("desc")
+      .take(500);
     return allTasks;
   },
 });
@@ -269,6 +288,7 @@ export const moveStatus = mutation({
 // Get tasks by status (L-02 fix: added limit to prevent large collections)
 export const getByStatus = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     status: convexVal.union(
       convexVal.literal("backlog"),
       convexVal.literal("ready"),
@@ -279,10 +299,10 @@ export const getByStatus = query({
     ),
     limit: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { status, limit = 200 }) => {
+  handler: async (ctx, { businessId, status, limit = 200 }) => {
     return await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", status))
+      .withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", status))
       .order("desc")
       .take(limit);
   },
@@ -291,16 +311,17 @@ export const getByStatus = query({
 // Get tasks assigned to specific agent (H-01 fix: scope to active tasks only)
 export const getForAgent = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     agentId: convexVal.id("agents"),
     limit: convexVal.optional(convexVal.number()), // Optional limit to prevent large scans
   },
-  handler: async (ctx, { agentId, limit = 50 }) => {
+  handler: async (ctx, { businessId, agentId, limit = 50 }) => {
     // Only load active/in-progress tasks to limit scope, not all tasks
     // Note: Convex doesn't support array membership queries via indexes
     // This is a known limitation - full scan is necessary here
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "in_progress"))
+      .withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", "in_progress"))
       .take(limit * 2); // Load more than limit to account for filtering
 
     // Filter to assigned tasks
@@ -312,6 +333,7 @@ export const getForAgent = query({
 // Get filtered tasks (for agent API queries)
 export const getFiltered = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     agentId: convexVal.id("agents"),
     status: convexVal.optional(convexVal.string()),
     priority: convexVal.optional(convexVal.string()),
@@ -321,11 +343,11 @@ export const getFiltered = query({
   },
   handler: async (
     ctx,
-    { agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
+    { businessId, agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
   ) => {
     let tasks = await (status
-      ? ctx.db.query("tasks").withIndex("by_status", (indexQuery) => indexQuery.eq("status", status as any)).collect()
-      : ctx.db.query("tasks").collect());
+      ? ctx.db.query("tasks").withIndex("by_business_status", (indexQuery) => indexQuery.eq("businessId", businessId).eq("status", status as any)).collect()
+      : ctx.db.query("tasks").withIndex("by_business", (q) => q.eq("businessId", businessId)).collect());
 
     // Apply priority filter
     if (priority) {
@@ -384,6 +406,7 @@ export const assign = mutation({
     // L-04 fix: Use agent name, not ID, in activity log
     const assigner = await ctx.db.get(assignedBy);
     await ctx.db.insert("activities", {
+      businessId: task.businessId,  // ADD: inherit businessId from task
       type: "task_assigned",
       agentId: assignedBy,
       agentName: assigner?.name || String(assignedBy),
@@ -399,9 +422,10 @@ export const assign = mutation({
         .query("threadSubscriptions")
         .withIndex("by_agent_task", (q) => q.eq("agentId", agentId).eq("taskId", taskId))
         .first();
-      
+
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
+          businessId: task.businessId,  // ADD: inherit businessId from task
           agentId,
           taskId,
           level: "all",
@@ -473,6 +497,7 @@ export const updateStatus = mutation({
     const actorId = updatedBy || "system";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
+      businessId: task.businessId,  // ADD: inherit businessId from task
       type: activityType,
       agentId: actorId,
       agentName: actorName,
@@ -601,6 +626,7 @@ export const update = mutation({
     if (patch.status && patch.status !== task.status) {
       const actorName = await resolveActorName(ctx, "user");
       await ctx.db.insert("activities", {
+        businessId: task.businessId,  // ADD: inherit businessId from task
         type: patch.status === "done" ? "task_completed" : "task_updated",
         agentId: "user",
         agentName: actorName,
@@ -773,6 +799,7 @@ export const unassign = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: task.businessId,  // ADD: inherit businessId from task
       type: "task_updated",
       agentId: unassignedBy || "system",
       agentName: unassignedBy || "system",
@@ -869,6 +896,7 @@ export const smartAssign = mutation({
 
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
+          businessId: task.businessId,  // ADD: inherit businessId from task
           agentId: agentId as any,
           taskId,
           level: "all",
@@ -886,6 +914,7 @@ export const smartAssign = mutation({
     const actorId = assignedBy?.toString() || "system:auto-assign";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
+      businessId: task.businessId,  // ADD: inherit businessId from task
       type: "task_assigned",
       agentId: actorId,
       agentName: actorName,
@@ -1037,6 +1066,7 @@ export const createSubtask = mutation({
 
     // Create subtask
     const subtaskId = await ctx.db.insert("tasks", {
+      businessId: parent.businessId,  // ADD: inherit businessId from parent
       title,
       description: description || "",
       status: "backlog",
@@ -1064,6 +1094,7 @@ export const createSubtask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
+      businessId: parent.businessId,  // ADD: inherit businessId from parent
       type: "task_created",
       agentId: createdBy,
       agentName: createdBy,

@@ -9,6 +9,7 @@ import { Id } from "./_generated/dataModel";
 
 export const create = mutation({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     week: convexVal.number(),
     year: convexVal.number(),
     report: convexVal.string(), // JSON stringified
@@ -18,6 +19,7 @@ export const create = mutation({
     const reportData = typeof args.report === "string" ? JSON.parse(args.report) : args.report;
 
     return await ctx.db.insert("strategicReports", {
+      businessId: args.businessId,  // ADD: business scoping
       week: args.week,
       year: args.year,
       goalsReview: reportData.goalsReview || {
@@ -41,9 +43,13 @@ export const create = mutation({
 });
 
 export const getLatest = query({
-  async handler(ctx) {
+  args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+  },
+  async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
+      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
       .order("desc")
       .take(1);
     return reports[0] || null;
@@ -52,12 +58,14 @@ export const getLatest = query({
 
 export const getByWeek = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     week: convexVal.number(),
     year: convexVal.number(),
   },
   async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
+      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
       .filter((q) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
       .take(1);
     return reports[0] || null;
@@ -66,11 +74,13 @@ export const getByWeek = query({
 
 export const getAll = query({
   args: {
+    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
     limit: convexVal.optional(convexVal.number()),
   },
   async handler(ctx, args) {
     return await ctx.db
       .query("strategicReports")
+      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
       .order("desc")
       .take(args.limit || 10);
   },
