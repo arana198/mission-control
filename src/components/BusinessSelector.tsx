@@ -107,12 +107,12 @@ function BusinessSelectorContent() {
                   key={business._id}
                   onClick={() => handleSelectBusiness(business)}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
-                    business._id === currentBusiness._id
+                    business._id === currentBusiness?._id
                       ? "bg-accent text-accent-foreground font-medium"
                       : "hover:bg-muted text-foreground"
                   }`}
                   style={
-                    business._id === currentBusiness._id
+                    business._id === currentBusiness?._id
                       ? {}
                       : { borderLeftColor: business.color }
                   }
@@ -124,7 +124,7 @@ function BusinessSelectorContent() {
                       <div className="text-xs opacity-70">Default</div>
                     )}
                   </div>
-                  {business._id === currentBusiness._id && (
+                  {business._id === currentBusiness?._id && (
                     <span className="text-sm">✓</span>
                   )}
                 </button>
