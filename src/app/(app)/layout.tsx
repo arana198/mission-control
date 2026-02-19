@@ -10,6 +10,8 @@
 import { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
+import { BusinessSelector } from "@/components/BusinessSelector";
+import { useBusiness } from "@/components/BusinessProvider";
 import {
   BarChart3, Map, LayoutGrid, Users, Briefcase, Activity, Calendar,
   Brain, AlertCircle, Zap, Moon, Sun, Sparkles, ChevronRight, BookOpen
@@ -26,6 +28,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { currentBusiness } = useBusiness();
 
   // Extract current tab from pathname
   const currentTab = ((pathname || "").split("/").pop() || "overview") as TabType;
@@ -82,7 +85,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Sidebar */}
       <aside className="w-full md:w-64 md:sticky md:top-0 md:h-screen border-r bg-muted/30 flex-shrink-0 flex flex-col max-h-screen overflow-y-auto">
-        <div className="hidden md:block p-4 border-b">
+        <div className="hidden md:block p-4 border-b space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-accent-foreground" />
@@ -91,6 +94,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <h1 className="font-semibold text-sm">Mission Control</h1>
               <p className="text-xs text-muted-foreground">Agent Squad</p>
             </div>
+          </div>
+
+          {/* Business Selector */}
+          <div className="pt-2">
+            <BusinessSelector />
           </div>
         </div>
 
