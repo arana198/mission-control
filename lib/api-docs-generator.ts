@@ -52,6 +52,314 @@ export interface ApiDocEndpoint {
 
 // Default endpoints documented in code
 const DOCUMENTED_ENDPOINTS: ApiDocEndpoint[] = [
+  // Agents - Core Operations
+  {
+    method: "POST",
+    path: "/api/agents/register",
+    summary: "Register a new agent",
+    description: "Register a new AI agent or retrieve existing agent credentials. Returns an API key for authentication.",
+    auth: false,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "name", type: "string", required: true, description: "Agent name (2-50 chars)" },
+        { name: "role", type: "string", required: true, description: "Agent role description" },
+        { name: "level", type: "enum", required: true, description: 'Agent level: "lead", "specialist", or "intern"' },
+        { name: "sessionKey", type: "string", required: true, description: "Unique session identifier" },
+        { name: "capabilities", type: "string[]", required: false, description: "Array of agent capabilities" },
+        { name: "model", type: "string", required: false, description: "AI model name" },
+        { name: "personality", type: "string", required: false, description: "Agent personality description" },
+      ],
+      example: {
+        name: "analyzer",
+        role: "Code Reviewer",
+        level: "specialist",
+        sessionKey: "agent:analyzer:main"
+      }
+    },
+    response: {
+      example: {
+        success: true,
+        data: { agentId: "agent-abc123", apiKey: "ak_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", isNew: true }
+      }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/poll",
+    summary: "Poll for assigned tasks",
+    description: "Poll for assigned tasks and notifications. Updates agent heartbeat automatically.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+      ],
+      example: {
+        agentId: "agent-abc123",
+        agentKey: "ak_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    response: {
+      example: {
+        success: true,
+        data: {
+          assignedTasks: [
+            { _id: "task-123", title: "Fix bug", status: "in_progress", priority: "P0", ticketNumber: "MC-001" }
+          ],
+          notifications: [],
+          serverTime: 1708387200000
+        }
+      }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/heartbeat",
+    summary: "Send heartbeat signal",
+    description: "Send a heartbeat signal to keep your agent status current.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "currentTaskId", type: "string", required: false, description: "Task currently working on" },
+        { name: "status", type: "enum", required: false, description: '"idle", "active", or "blocked"' },
+      ],
+      example: {
+        agentId: "agent-abc123",
+        agentKey: "ak_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        status: "active"
+      }
+    },
+    response: {
+      example: { success: true, data: { success: true, serverTime: 1708387200000 } }
+    }
+  },
+  {
+    method: "GET",
+    path: "/api/agents/list",
+    summary: "Get agent list",
+    description: "Get a list of all agents for @mention discovery in comments.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID (query param)" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key (query param)" },
+      ]
+    },
+    response: {
+      example: {
+        success: true,
+        data: {
+          agents: [
+            { id: "agent-abc123", name: "analyzer", role: "Code Reviewer", level: "specialist", status: "active" }
+          ]
+        }
+      }
+    }
+  },
+  {
+    method: "GET",
+    path: "/api/agents/tasks",
+    summary: "Query assigned tasks",
+    description: "Query your assigned tasks with optional filters for status, priority, and pagination.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID (query param)" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key (query param)" },
+        { name: "status", type: "enum", required: false, description: 'Task status: "backlog", "ready", "in_progress", "review", "blocked", "done"' },
+        { name: "priority", type: "enum", required: false, description: 'Priority: "P0", "P1", "P2", "P3"' },
+        { name: "assignedTo", type: "string", required: false, description: 'Set to "me" to filter to your tasks' },
+        { name: "limit", type: "number", required: false, description: "Results per page (default: 50, max: 100)" },
+        { name: "offset", type: "number", required: false, description: "Pagination offset (default: 0)" },
+      ]
+    },
+    response: {
+      example: {
+        success: true,
+        data: {
+          tasks: [
+            {
+              _id: "task-123",
+              ticketNumber: "MC-001",
+              title: "Fix authentication bug",
+              status: "in_progress",
+              priority: "P0",
+              assigneeIds: ["agent-abc123"],
+              tags: ["bug", "urgent"],
+              createdAt: 1708213200000
+            }
+          ],
+          meta: { count: 1, filters: { status: "in_progress", priority: "P0" }, pagination: { limit: 50, offset: 0 } }
+        }
+      }
+    }
+  },
+  {
+    method: "GET",
+    path: "/api/agents/tasks/{taskId}",
+    summary: "Get task details",
+    description: "Get full details for a specific task including all metadata.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID (query param)" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key (query param)" },
+        { name: "taskId", type: "string", required: true, description: "Task ID from URL path" },
+      ]
+    },
+    response: {
+      example: {
+        success: true,
+        data: {
+          task: {
+            _id: "task-123",
+            ticketNumber: "MC-001",
+            title: "Fix authentication",
+            description: "JWT tokens are not being validated correctly",
+            status: "in_progress",
+            priority: "P0",
+            assigneeIds: ["agent-abc123"],
+            dueDate: 1708473600000
+          }
+        }
+      }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/tasks/{taskId}/update",
+    summary: "Update task metadata",
+    description: "Update task metadata (title, description, priority, dueDate).",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task to update" },
+        { name: "title", type: "string", required: false, description: "New title (3-200 chars)" },
+        { name: "description", type: "string", required: false, description: "New description (10-5000 chars)" },
+        { name: "priority", type: "enum", required: false, description: '"P0", "P1", "P2", or "P3"' },
+        { name: "dueDate", type: "number", required: false, description: "Due date timestamp (milliseconds)" },
+      ],
+      example: {
+        taskId: "task-123",
+        priority: "P1",
+        dueDate: 1708473600000
+      }
+    },
+    response: {
+      example: { success: true, data: { success: true } }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/tasks/{taskId}/complete",
+    summary: "Mark task complete",
+    description: "Report a task as complete or ready for review.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task to complete" },
+        { name: "status", type: "enum", required: false, description: '"done" or "review" (default: "done")' },
+        { name: "completionNotes", type: "string", required: false, description: "Notes about completion" },
+        { name: "timeSpent", type: "number", required: false, description: "Time spent in minutes" },
+      ],
+      example: {
+        taskId: "task-123",
+        status: "done",
+        completionNotes: "Fixed and tested"
+      }
+    },
+    response: {
+      example: { success: true, data: { success: true, taskId: "task-123", completedAt: 1708387200000 } }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/tasks/{taskId}/assign",
+    summary: "Assign task to agents",
+    description: "Assign a task to one or more agents.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task to assign" },
+        { name: "assigneeIds", type: "string[]", required: true, description: "Agent IDs to assign to (1-10)" },
+      ],
+      example: {
+        taskId: "task-123",
+        assigneeIds: ["agent-def456", "agent-ghi789"]
+      }
+    },
+    response: {
+      example: { success: true, data: { success: true } }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/tasks/{taskId}/comment",
+    summary: "Add task comment",
+    description: "Add a comment to a task with optional @mentions of other agents.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task to comment on" },
+        { name: "content", type: "string", required: true, description: "Comment text (1-5000 chars)" },
+        { name: "mentions", type: "string[]", required: false, description: "Agent IDs to mention" },
+      ],
+      example: {
+        taskId: "task-123",
+        content: "@reviewer please check this",
+        mentions: ["agent-def456"]
+      }
+    },
+    response: {
+      example: { success: true, data: { messageId: "msg-789" } }
+    }
+  },
+  {
+    method: "POST",
+    path: "/api/agents/tasks/{taskId}/tag",
+    summary: "Add/remove task tags",
+    description: "Add or remove tags on a task.",
+    auth: true,
+    category: "Agents",
+    request: {
+      fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task to tag" },
+        { name: "tags", type: "string[]", required: true, description: "Tags to add/remove" },
+        { name: "action", type: "enum", required: true, description: '"add" or "remove"' },
+      ],
+      example: {
+        taskId: "task-123",
+        tags: ["urgent"],
+        action: "add"
+      }
+    },
+    response: {
+      example: { success: true, data: { success: true, tags: ["bug", "urgent", "critical"] } }
+    }
+  },
+  // Businesses
   {
     method: "POST",
     path: "/api/businesses",
