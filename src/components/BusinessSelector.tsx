@@ -1,22 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useBusiness } from "./BusinessProvider";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, AlertCircle } from "lucide-react";
 
 /**
  * Business Selector Component
- * 
+ *
  * Dropdown for switching between businesses in the sidebar.
  * Displays current business with emoji and name.
  * On selection, navigates to that business's current tab.
  */
-export function BusinessSelector() {
+function BusinessSelectorContent() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { currentBusiness, businesses, setCurrentBusiness, isLoading } = useBusiness();
+
+  let currentBusiness, businesses, setCurrentBusiness, isLoading;
+
+  try {
+    const context = useBusiness();
+    currentBusiness = context.currentBusiness;
+    businesses = context.businesses;
+    setCurrentBusiness = context.setCurrentBusiness;
+    isLoading = context.isLoading;
+  } catch (error) {
+    console.error("[BusinessSelector] Failed to get context:", error);
+    return (
+      <div className="w-full px-3 py-2 rounded-lg border border-red-900/30 bg-red-900/10 text-red-400 flex items-center gap-2 text-xs">
+        <AlertCircle className="w-3 h-3" />
+        <span>Business selector unavailable</span>
+      </div>
+    );
+  }
 
   // Extract current tab from pathname (last part after /)
   const pathParts = (pathname || "").split("/").filter(Boolean);
@@ -116,5 +133,22 @@ export function BusinessSelector() {
         />
       )}
     </div>
+  );
+}
+
+export function BusinessSelector() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full px-3 py-2 rounded-lg border border-input bg-muted text-muted-foreground animate-pulse">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-muted-foreground/20" />
+            <div className="h-3 bg-muted-foreground/20 rounded flex-1" />
+          </div>
+        </div>
+      }
+    >
+      <BusinessSelectorContent />
+    </Suspense>
   );
 }
