@@ -661,7 +661,7 @@ describe("Tasks (convex/tasks.ts)", () => {
       });
 
       const checklist = db.get(taskId).doneChecklist || [];
-      const itemIndex = checklist.findIndex((i) => i.id === "item-1");
+      const itemIndex = checklist.findIndex((i: any) => i.id === "item-1");
       if (itemIndex !== -1) {
         checklist[itemIndex] = {
           ...checklist[itemIndex],
@@ -673,7 +673,7 @@ describe("Tasks (convex/tasks.ts)", () => {
       db.patch(taskId, { doneChecklist: checklist });
 
       const task = db.get(taskId);
-      const item = task.doneChecklist?.find((i) => i.id === "item-1");
+      const item = task.doneChecklist?.find((i: any) => i.id === "item-1");
       expect(item?.completed).toBe(true);
       expect(item?.completedAt).toBeDefined();
       expect(item?.completedBy).toBe("agent-1");
@@ -740,7 +740,7 @@ describe("Tasks (convex/tasks.ts)", () => {
       });
 
       const checklist =
-        db.get(taskId).doneChecklist?.filter((i) => i.id !== "item-1") || [];
+        db.get(taskId).doneChecklist?.filter((i: any) => i.id !== "item-1") || [];
       db.patch(taskId, { doneChecklist: checklist });
 
       const task = db.get(taskId);
@@ -770,7 +770,7 @@ describe("Tasks (convex/tasks.ts)", () => {
       });
 
       const checklist =
-        db.get(taskId).doneChecklist?.filter((i) => i.id !== "item-999") || [];
+        db.get(taskId).doneChecklist?.filter((i: any) => i.id !== "item-999") || [];
       db.patch(taskId, { doneChecklist: checklist });
 
       const task = db.get(taskId);
