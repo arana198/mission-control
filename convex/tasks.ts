@@ -1532,3 +1532,149 @@ export const addTags = mutation({
     return { success: true, tags: newTags };
   },
 });
+
+/**
+ * ============================================
+ * Phase 1: Definition of Done Checklist
+ * ============================================
+ */
+
+export const addChecklistItem = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    text: convexVal.string(),
+    addedBy: convexVal.optional(convexVal.string()),
+  },
+  handler: async (ctx, { taskId, text, addedBy = "user" }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    // Generate UUID for item
+    const itemId = crypto.randomUUID();
+    const newItem = {
+      id: itemId,
+      text,
+      completed: false,
+      completedAt: undefined,
+      completedBy: undefined,
+    };
+
+    const checklist = task.doneChecklist || [];
+    checklist.push(newItem);
+
+    await ctx.db.patch(taskId, {
+      doneChecklist: checklist,
+      updatedAt: Date.now(),
+    });
+
+    return { itemId, item: newItem };
+  },
+});
+
+export const updateChecklistItem = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    itemId: convexVal.string(),
+    completed: convexVal.boolean(),
+    updatedBy: convexVal.optional(convexVal.string()),
+  },
+  handler: async (ctx, { taskId, itemId, completed, updatedBy = "user" }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    const checklist = task.doneChecklist || [];
+    const itemIndex = checklist.findIndex((i) => i.id === itemId);
+
+    if (itemIndex === -1) throw new Error("Checklist item not found");
+
+    const now = Date.now();
+    checklist[itemIndex] = {
+      ...checklist[itemIndex],
+      completed,
+      completedAt: completed ? now : undefined,
+      completedBy: completed ? updatedBy : undefined,
+    };
+
+    await ctx.db.patch(taskId, {
+      doneChecklist: checklist,
+      updatedAt: now,
+    });
+
+    return { success: true, item: checklist[itemIndex] };
+  },
+});
+
+export const removeChecklistItem = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    itemId: convexVal.string(),
+    removedBy: convexVal.optional(convexVal.string()),
+  },
+  handler: async (ctx, { taskId, itemId, removedBy = "user" }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    const checklist = task.doneChecklist || [];
+    const filtered = checklist.filter((i) => i.id !== itemId);
+
+    await ctx.db.patch(taskId, {
+      doneChecklist: filtered,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, remaining: filtered };
+  },
+});
+
+/**
+ * ============================================
+ * Phase 1: Agent Inbox Query
+ * ============================================
+ */
+
+export const getInboxForAgent = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+    agentId: convexVal.id("agents"),
+  },
+  handler: async (ctx, { businessId, agentId }) => {
+    // Fetch all tasks for the business
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .collect();
+
+    // Filter tasks assigned to the agent
+    const agentTasks = allTasks.filter((task) =>
+      task.assigneeIds?.includes(agentId)
+    );
+
+    // Group by status
+    const myTasks = agentTasks.filter((t) => t.status === "in_progress");
+    const ready = agentTasks.filter((t) => t.status === "ready");
+    const blocked = agentTasks.filter((t) => t.status === "blocked");
+    const inReview = agentTasks.filter((t) => t.status === "review");
+
+    // Only return last 10 completed tasks to avoid huge lists
+    const done = agentTasks
+      .filter((t) => t.status === "done")
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+      .slice(0, 10);
+
+    return {
+      myTasks,
+      ready,
+      blocked,
+      inReview,
+      done,
+      summary: {
+        totalTasks: agentTasks.length,
+        inProgress: myTasks.length,
+        readyCount: ready.length,
+        blockedCount: blocked.length,
+        inReviewCount: inReview.length,
+        completedCount: done.length,
+      },
+    };
+  },
+});

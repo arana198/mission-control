@@ -2,6 +2,14 @@
  * Shared Task type used across components
  */
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  completedAt?: number;
+  completedBy?: string;
+}
+
 export interface Task {
   _id: string;
   title: string;
@@ -17,4 +25,5 @@ export interface Task {
   blocks?: string[];
   createdAt?: number;
   updatedAt?: number;
+  doneChecklist?: ChecklistItem[];
 }

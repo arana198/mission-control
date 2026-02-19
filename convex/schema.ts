@@ -170,6 +170,15 @@ export default defineSchema({
 
     // === NEW: Ticket Number ===
     ticketNumber: convexVal.optional(convexVal.string()),  // e.g. "MC-001" — human-readable ID for API
+
+    // === NEW: Definition of Done Checklist ===
+    doneChecklist: convexVal.optional(convexVal.array(convexVal.object({
+      id: convexVal.string(),                             // UUID for item
+      text: convexVal.string(),                           // Checklist item description
+      completed: convexVal.boolean(),                     // Is item done?
+      completedAt: convexVal.optional(convexVal.number()), // Timestamp when completed
+      completedBy: convexVal.optional(convexVal.string()), // Agent/user who completed it
+    }))),
   })
     .index("by_business", ["businessId"])
     .index("by_business_status", ["businessId", "status"])
@@ -213,7 +222,8 @@ export default defineSchema({
       convexVal.literal("status_change"),
       convexVal.literal("assignment"),
       convexVal.literal("dependency_added"),
-      convexVal.literal("blocker_added")
+      convexVal.literal("blocker_added"),
+      convexVal.literal("help_request")
     )),
 
     createdAt: convexVal.number(),
@@ -289,7 +299,8 @@ export default defineSchema({
       convexVal.literal("assignment"),
       convexVal.literal("status_change"),
       convexVal.literal("block"),
-      convexVal.literal("dependency_unblocked")
+      convexVal.literal("dependency_unblocked"),
+      convexVal.literal("help_request")
     ),
     
     content: convexVal.string(),

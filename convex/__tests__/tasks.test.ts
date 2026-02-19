@@ -580,4 +580,276 @@ describe("Tasks (convex/tasks.ts)", () => {
       expect(task.status).toBe("backlog");
     });
   });
+
+  // ============================================
+  // Phase 1: Definition of Done Checklist Tests
+  // ============================================
+
+  describe("Mutation: addChecklistItem", () => {
+    it("adds checklist item to task", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task with Checklist",
+        doneChecklist: [],
+      });
+
+      const item = {
+        id: "item-1",
+        text: "Complete unit tests",
+        completed: false,
+      };
+
+      const checklist = db.get(taskId).doneChecklist || [];
+      checklist.push(item);
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toContainEqual(item);
+      expect(task.doneChecklist).toHaveLength(1);
+    });
+
+    it("preserves existing checklist items when adding new one", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          { id: "item-1", text: "First item", completed: false },
+        ],
+      });
+
+      const newItem = {
+        id: "item-2",
+        text: "Second item",
+        completed: false,
+      };
+
+      const checklist = db.get(taskId).doneChecklist || [];
+      checklist.push(newItem);
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toHaveLength(2);
+      expect(task.doneChecklist?.[0].id).toBe("item-1");
+      expect(task.doneChecklist?.[1].id).toBe("item-2");
+    });
+
+    it("handles task with no initial checklist", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task without checklist",
+      });
+
+      const item = {
+        id: "item-1",
+        text: "New item",
+        completed: false,
+      };
+
+      const checklist = [];
+      checklist.push(item);
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toEqual([item]);
+    });
+  });
+
+  describe("Mutation: updateChecklistItem", () => {
+    it("toggles checklist item completion", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          { id: "item-1", text: "Do something", completed: false },
+        ],
+      });
+
+      const checklist = db.get(taskId).doneChecklist || [];
+      const itemIndex = checklist.findIndex((i) => i.id === "item-1");
+      if (itemIndex !== -1) {
+        checklist[itemIndex] = {
+          ...checklist[itemIndex],
+          completed: true,
+          completedAt: Date.now(),
+          completedBy: "agent-1",
+        };
+      }
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      const item = task.doneChecklist?.find((i) => i.id === "item-1");
+      expect(item?.completed).toBe(true);
+      expect(item?.completedAt).toBeDefined();
+      expect(item?.completedBy).toBe("agent-1");
+    });
+
+    it("tracks completion timestamp and actor", async () => {
+      const now = Date.now();
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          { id: "item-1", text: "Task", completed: false },
+        ],
+      });
+
+      const checklist = db.get(taskId).doneChecklist || [];
+      checklist[0] = {
+        ...checklist[0],
+        completed: true,
+        completedAt: now,
+        completedBy: "user",
+      };
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const item = db.get(taskId).doneChecklist?.[0];
+      expect(item?.completed).toBe(true);
+      expect(item?.completedAt).toBe(now);
+      expect(item?.completedBy).toBe("user");
+    });
+
+    it("handles toggling item back to incomplete", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          {
+            id: "item-1",
+            text: "Task",
+            completed: true,
+            completedAt: Date.now(),
+            completedBy: "agent-1",
+          },
+        ],
+      });
+
+      const checklist = db.get(taskId).doneChecklist || [];
+      checklist[0] = {
+        ...checklist[0],
+        completed: false,
+      };
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const item = db.get(taskId).doneChecklist?.[0];
+      expect(item?.completed).toBe(false);
+    });
+  });
+
+  describe("Mutation: removeChecklistItem", () => {
+    it("removes checklist item by id", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          { id: "item-1", text: "Item 1", completed: false },
+          { id: "item-2", text: "Item 2", completed: false },
+        ],
+      });
+
+      const checklist =
+        db.get(taskId).doneChecklist?.filter((i) => i.id !== "item-1") || [];
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toHaveLength(1);
+      expect(task.doneChecklist?.[0].id).toBe("item-2");
+    });
+
+    it("handles removing from single-item list", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [{ id: "item-1", text: "Only item", completed: false }],
+      });
+
+      db.patch(taskId, { doneChecklist: [] });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toEqual([]);
+    });
+
+    it("ignores removal of non-existent item", async () => {
+      const taskId = db.insert("tasks", {
+        title: "Task",
+        doneChecklist: [
+          { id: "item-1", text: "Item 1", completed: false },
+          { id: "item-2", text: "Item 2", completed: false },
+        ],
+      });
+
+      const checklist =
+        db.get(taskId).doneChecklist?.filter((i) => i.id !== "item-999") || [];
+      db.patch(taskId, { doneChecklist: checklist });
+
+      const task = db.get(taskId);
+      expect(task.doneChecklist).toHaveLength(2);
+    });
+  });
+
+  describe("Query: getInboxForAgent", () => {
+    it("returns empty sections for agent with no tasks", async () => {
+      const agentId = "agent-1";
+      db.insert("tasks", {
+        title: "Task for other agent",
+        status: "in_progress",
+        assigneeIds: ["agent-2"],
+      });
+
+      const agentTasks = db.getTasksByAssignee(agentId);
+      expect(agentTasks).toHaveLength(0);
+    });
+
+    it("groups agent tasks by status", async () => {
+      const agentId = "agent-1";
+      db.insert("tasks", {
+        title: "In Progress Task",
+        status: "in_progress",
+        assigneeIds: [agentId],
+      });
+      db.insert("tasks", {
+        title: "Ready Task",
+        status: "ready",
+        assigneeIds: [agentId],
+      });
+      db.insert("tasks", {
+        title: "Blocked Task",
+        status: "blocked",
+        assigneeIds: [agentId],
+      });
+      db.insert("tasks", {
+        title: "Review Task",
+        status: "review",
+        assigneeIds: [agentId],
+      });
+      db.insert("tasks", {
+        title: "Done Task",
+        status: "done",
+        assigneeIds: [agentId],
+      });
+
+      const allTasks = db.getTasksByAssignee(agentId);
+      expect(allTasks).toHaveLength(5);
+
+      const inProgress = allTasks.filter((t) => t.status === "in_progress");
+      const ready = allTasks.filter((t) => t.status === "ready");
+      const blocked = allTasks.filter((t) => t.status === "blocked");
+      const inReview = allTasks.filter((t) => t.status === "review");
+      const done = allTasks.filter((t) => t.status === "done");
+
+      expect(inProgress).toHaveLength(1);
+      expect(ready).toHaveLength(1);
+      expect(blocked).toHaveLength(1);
+      expect(inReview).toHaveLength(1);
+      expect(done).toHaveLength(1);
+    });
+
+    it("excludes other agents' tasks", async () => {
+      db.insert("tasks", {
+        title: "Agent 1 task",
+        status: "in_progress",
+        assigneeIds: ["agent-1"],
+      });
+      db.insert("tasks", {
+        title: "Agent 2 task",
+        status: "in_progress",
+        assigneeIds: ["agent-2"],
+      });
+
+      const agent1Tasks = db.getTasksByAssignee("agent-1");
+      expect(agent1Tasks).toHaveLength(1);
+      expect(agent1Tasks[0].title).toBe("Agent 1 task");
+    });
+  });
 });

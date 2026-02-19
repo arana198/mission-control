@@ -884,3 +884,44 @@ export const migrationAddMissionStatement = mutation({
     };
   },
 });
+
+/**
+ * MIG-07: Add doneChecklist to tasks (2026-02-19)
+ *
+ * Schema change:
+ * - Added doneChecklist field to tasks table (optional array of checklist items)
+ * - doneChecklist format: Array<{ id, text, completed, completedAt?, completedBy? }>
+ *
+ * Reason: Enable agents to define and track Definition of Done criteria for tasks,
+ * ensuring shared understanding of completion requirements between humans and AI.
+ *
+ * Migration action:
+ * 1. For each existing task without doneChecklist, set to empty array []
+ * 2. Idempotent: skip if doneChecklist already exists (check === undefined)
+ * 3. Batch processing to avoid overwhelming the database
+ */
+export const migrationAddDoneChecklist = mutation({
+  args: { batchSize: convexVal.optional(convexVal.number()) },
+  handler: async (ctx, { batchSize = 200 }) => {
+    const tasks = await ctx.db.query("tasks").collect();
+    let patched = 0;
+
+    const tasksBatch = tasks.slice(0, batchSize);
+    for (const task of tasksBatch) {
+      if ((task as any).doneChecklist === undefined) {
+        await ctx.db.patch(task._id, {
+          doneChecklist: [],
+        } as any);
+        patched++;
+      }
+    }
+
+    return {
+      success: true,
+      patched,
+      total: tasks.length,
+      message: `MIG-07: Added doneChecklist to ${patched} tasks (batch ${batchSize}).`,
+      remaining: tasks.length - patched,
+    };
+  },
+});

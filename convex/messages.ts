@@ -307,3 +307,81 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+/**
+ * ============================================
+ * Phase 1: Help Request System
+ * ============================================
+ */
+
+export const createHelpRequest = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    fromId: convexVal.string(),
+    fromName: convexVal.string(),
+    reason: convexVal.string(), // "Blocked on dependency", "Need design input", etc.
+    context: convexVal.optional(convexVal.string()), // Additional context/details
+    leadAgentId: convexVal.optional(convexVal.id("agents")), // Escalate to lead agent
+  },
+  handler: async (
+    ctx,
+    { taskId, fromId, fromName, reason, context, leadAgentId }
+  ) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw new Error("Task not found");
+
+    // Build help request message content
+    const content = context
+      ? `${reason}: ${context}`
+      : reason;
+
+    // Create system message for help request
+    const mentions = leadAgentId ? [leadAgentId] : [];
+    const messageId = await ctx.db.insert("messages", {
+      businessId: task.businessId,
+      taskId,
+      fromId,
+      fromName,
+      content,
+      isSystem: true,
+      systemType: "help_request",
+      mentions,
+      replyIds: [],
+      attachments: [],
+      createdAt: Date.now(),
+    });
+
+    // Create notification for lead agent if specified
+    if (leadAgentId) {
+      await ctx.db.insert("notifications", {
+        recipientId: leadAgentId,
+        type: "help_request",
+        content: `${fromName} needs help on task: "${task.title}" - ${reason}`,
+        fromId,
+        fromName,
+        taskId,
+        messageId,
+        read: false,
+        createdAt: Date.now(),
+      });
+    }
+
+    // Log activity
+    await ctx.db.insert("activities", {
+      businessId: task.businessId,
+      type: "comment_added", // Use comment_added for help request activity
+      agentId: fromId,
+      agentName: fromName,
+      message: `${fromName} requested help: ${reason}`,
+      taskId,
+      taskTitle: task.title,
+      createdAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      messageId,
+      notification: leadAgentId ? { recipientId: leadAgentId } : null,
+    };
+  },
+});
