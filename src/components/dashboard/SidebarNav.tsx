@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import {
   BarChart3, Map, LayoutGrid, Users, Briefcase, Activity,
-  Calendar, Brain, AlertCircle, Zap, Moon, Sun, ChevronLeft, ChevronRight
+  Calendar, Brain, AlertCircle, Zap, Moon, Sun, ChevronLeft, ChevronRight, Inbox
 } from "lucide-react";
 import { Sparkles } from "lucide-react";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings" | "inbox";
 
 interface SidebarNavProps {
   activeTab: TabType;
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { id: "epics", label: "Roadmap", icon: Map },
   { id: "board", label: "Task Board", icon: LayoutGrid },
   { id: "agents", label: "Your Squad", icon: Users },
+  { id: "inbox", label: "Agent Inbox", icon: Inbox },
   { id: "workload", label: "Workload", icon: Briefcase },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "calendar", label: "Calendar", icon: Calendar },

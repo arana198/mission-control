@@ -18,7 +18,7 @@ import { BusinessDashboard } from "./dashboard/BusinessDashboard";
 import { GlobalDashboard } from "./dashboard/GlobalDashboard";
 import { LoadingSkeleton } from "./LoadingSkeletons";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs" | "inbox";
 
 /**
  * Dashboard Tab Content Component (Client)

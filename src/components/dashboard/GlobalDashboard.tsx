@@ -17,8 +17,9 @@ const BrainHub = lazy(() => import("../BrainHub").then(m => ({ default: m.BrainH
 const BottleneckVisualizer = lazy(() => import("../BottleneckVisualizer").then(m => ({ default: m.BottleneckVisualizer })));
 const AnalyticsDashboard = lazy(() => import("../AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const ApiDocsPanel = lazy(() => import("../ApiDocsPanel").then(m => ({ default: m.ApiDocsPanel })));
+const AgentInbox = lazy(() => import("../AgentInbox").then(m => ({ default: m.AgentInbox })));
 
-type GlobalTabType = "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs";
+type GlobalTabType = "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs" | "inbox";
 
 interface GlobalDashboardProps {
   tab: GlobalTabType;
@@ -148,12 +149,24 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
           </ErrorBoundary>
         );
 
+      case "inbox":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSkeleton />}>
+              <AgentInbox
+                agents={agents || []}
+                businessId={selectedBusinessFilter || ""}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        );
+
       default:
         return <div>Unknown tab</div>;
     }
   };
 
-  const showBusinessFilter = ["workload", "activity", "analytics"].includes(tab);
+  const showBusinessFilter = ["workload", "activity", "analytics", "inbox"].includes(tab);
 
   return (
     <div className="p-6 border-l-4 border-l-muted-foreground/20">

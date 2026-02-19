@@ -2,7 +2,7 @@
 
 import { Plus, Bell, Zap, HelpCircle } from "lucide-react";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings" | "inbox" | "api-docs";
 
 interface DashboardHeaderProps {
   activeTab: TabType;
@@ -29,6 +29,8 @@ const TAB_TITLES: Record<TabType, string> = {
   bottlenecks: "Bottleneck Analysis",
   sync: "Schedule",
   settings: "Settings",
+  inbox: "Agent Inbox",
+  "api-docs": "API Documentation",
 };
 
 export function DashboardHeader({
