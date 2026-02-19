@@ -8,8 +8,25 @@ import { v as convexVal } from "convex/values";
 
 export default defineSchema({
   /**
+   * BUSINESSES - Multi-tenant Support
+   * 2-5 businesses sharing a single Mission Control instance
+   */
+  businesses: defineTable({
+    name: convexVal.string(),
+    slug: convexVal.string(),                      // URL-safe unique identifier
+    color: convexVal.optional(convexVal.string()), // Hex color for UI
+    emoji: convexVal.optional(convexVal.string()), // Business emoji/icon
+    description: convexVal.optional(convexVal.string()),
+    isDefault: convexVal.boolean(),                // Exactly one default at all times
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_default", ["isDefault"]),
+
+  /**
    * AGENTS - The Squad
-   * 10 specialized agents with distinct roles
+   * 10 specialized agents with distinct roles (shared across all businesses)
    */
   agents: defineTable({
     name: convexVal.string(),              // "Jarvis"
@@ -45,9 +62,12 @@ export default defineSchema({
 
   /**
    * EPICS - Large Initiatives
-   * Group tasks into strategic objectives
+   * Group tasks into strategic objectives (business-scoped)
    */
   epics: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this epic belongs to
+
     title: convexVal.string(),
     description: convexVal.string(),
     status: convexVal.union(
@@ -62,15 +82,19 @@ export default defineSchema({
     updatedAt: convexVal.number(),
     completedAt: convexVal.optional(convexVal.number()),
   })
+    .index("by_business", ["businessId"])
     .index("by_status", ["status"])
     .index("by_owner", ["ownerId"])
     .index("by_created_at", ["createdAt"]),
 
   /**
    * TASKS - The Work Queue
-   * Kanban-style task management with hierarchy
+   * Kanban-style task management with hierarchy (business-scoped)
    */
   tasks: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this task belongs to
+
     title: convexVal.string(),
     description: convexVal.string(),
     status: convexVal.union(
@@ -87,7 +111,7 @@ export default defineSchema({
       convexVal.literal("P2"),
       convexVal.literal("P3")
     ),
-    
+
     // Hierarchy
     epicId: convexVal.id("epics"),  // REQUIRED: all tasks must belong to an epic
     parentId: convexVal.optional(convexVal.id("tasks")),
@@ -145,6 +169,8 @@ export default defineSchema({
     // === NEW: Ticket Number ===
     ticketNumber: convexVal.optional(convexVal.string()),  // e.g. "MC-001" — human-readable ID for API
   })
+    .index("by_business", ["businessId"])
+    .index("by_business_status", ["businessId", "status"])
     .index("by_status", ["status"])
     .index("by_epic", ["epicId"])
     .index("by_parent", ["parentId"])
@@ -157,25 +183,28 @@ export default defineSchema({
 
   /**
    * MESSAGES - Threaded Discussions
-   * Comments on tasks with @mentions and threading
+   * Comments on tasks with @mentions and threading (business-scoped via taskId)
    */
   messages: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+
     taskId: convexVal.id("tasks"),
     fromId: convexVal.string(),            // agent ID or "user"
     fromName: convexVal.string(),          // display name (denormalized)
     fromRole: convexVal.optional(convexVal.string()), // agent role
     content: convexVal.string(),
-    
+
     // Threading
     parentId: convexVal.optional(convexVal.id("messages")),
     replyIds: convexVal.array(convexVal.id("messages")),
-    
+
     // @mentions
     mentions: convexVal.array(convexVal.id("agents")),
-    
+
     // Attachments
     attachments: convexVal.optional(convexVal.array(convexVal.id("documents"))),
-    
+
     // System messages
     isSystem: convexVal.optional(convexVal.boolean()),
     systemType: convexVal.optional(convexVal.union(
@@ -184,10 +213,11 @@ export default defineSchema({
       convexVal.literal("dependency_added"),
       convexVal.literal("blocker_added")
     )),
-    
+
     createdAt: convexVal.number(),
     editedAt: convexVal.optional(convexVal.number()),
   })
+    .index("by_business", ["businessId"])
     .index("by_task", ["taskId"])
     .index("by_parent", ["parentId"])
     .index("by_from", ["fromId"])
@@ -195,9 +225,12 @@ export default defineSchema({
 
   /**
    * ACTIVITIES - The Feed (Audit Log)
-   * Real-time stream with full denormalization
+   * Real-time stream with full denormalization (business-scoped but globally viewable)
    */
   activities: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this activity belongs to
+
     type: convexVal.union(
       convexVal.literal("task_created"),
       convexVal.literal("task_updated"),
@@ -215,25 +248,27 @@ export default defineSchema({
       convexVal.literal("tags_updated"),
       convexVal.literal("tasks_queried")
     ),
-    
+
     // Actor (denormalized for speed)
     agentId: convexVal.string(),
     agentName: convexVal.string(),
     agentRole: convexVal.optional(convexVal.string()),
-    
+
     // Target
     taskId: convexVal.optional(convexVal.id("tasks")),
     taskTitle: convexVal.optional(convexVal.string()),
     epicId: convexVal.optional(convexVal.id("epics")),
     epicTitle: convexVal.optional(convexVal.string()),
-    
+
     // Change tracking
     message: convexVal.string(),
     oldValue: convexVal.optional(convexVal.any()),
     newValue: convexVal.optional(convexVal.any()),
-    
+
     createdAt: convexVal.number(),
   })
+    .index("by_business", ["businessId"])
+    .index("by_business_created_at", ["businessId", "createdAt"])
     .index("by_created_at", ["createdAt"])
     .index("by_agent", ["agentId"])
     .index("by_task", ["taskId"])
@@ -283,23 +318,30 @@ export default defineSchema({
 
   /**
    * THREAD_SUBSCRIPTIONS - Auto-Notify
-   * Agents auto-subscribed to relevant threads
+   * Agents auto-subscribed to relevant threads (business-scoped via taskId)
    */
   threadSubscriptions: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+
     agentId: convexVal.id("agents"),
     taskId: convexVal.id("tasks"),
     level: convexVal.union(convexVal.literal("all"), convexVal.literal("mentions_only")),
     createdAt: convexVal.number(),
   })
+    .index("by_business", ["businessId"])
     .index("by_agent_task", ["agentId", "taskId"])
     .index("by_task", ["taskId"])
     .index("by_agent", ["agentId"]),
 
   /**
    * DOCUMENTS - Deliverables
-   * Research, protocols, specs, drafts
+   * Research, protocols, specs, drafts (business-scoped)
    */
   documents: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this document belongs to
+
     title: convexVal.string(),
     content: convexVal.string(),
     type: convexVal.union(
@@ -318,6 +360,7 @@ export default defineSchema({
     updatedAt: convexVal.number(),
     version: convexVal.number(),
   })
+    .index("by_business", ["businessId"])
     .index("by_task", ["taskId"])
     .index("by_epic", ["epicId"])
     .index("by_type", ["type"])
@@ -372,9 +415,12 @@ export default defineSchema({
 
   /**
    * GOALS - Long-term Objectives
-   * AI-native goal tracking with memory integration
+   * AI-native goal tracking with memory integration (business-scoped)
    */
   goals: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this goal belongs to
+
     title: convexVal.string(),
     description: convexVal.string(),
     category: convexVal.union(
@@ -389,26 +435,27 @@ export default defineSchema({
       convexVal.literal("completed"),
       convexVal.literal("archived")
     ),
-    
+
     // Hierarchy
     parentGoalId: convexVal.optional(convexVal.id("goals")),
     childGoalIds: convexVal.array(convexVal.id("goals")),
-    
+
     // Progress
     progress: convexVal.number(),          // 0-100% (calculated from tasks)
     deadline: convexVal.optional(convexVal.number()),
-    
+
     // Strategy
     keyResults: convexVal.optional(convexVal.array(convexVal.string())),  // OKR-style measures
     relatedTaskIds: convexVal.array(convexVal.id("tasks")),
     relatedMemoryRefs: convexVal.array(convexVal.string()),       // Paths in MEMORY.md
-    
+
     // Metadata
     owner: convexVal.string(),            // "user" or agentId
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
     completedAt: convexVal.optional(convexVal.number()),
   })
+    .index("by_business", ["businessId"])
     .index("by_status", ["status"])
     .index("by_owner", ["owner"])
     .index("by_created_at", ["createdAt"])
@@ -492,12 +539,15 @@ export default defineSchema({
 
   /**
    * STRATEGIC_REPORTS - Weekly Analysis
-   * Generated reports on goal progress + recommendations
+   * Generated reports on goal progress + recommendations (business-scoped)
    */
   strategicReports: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this report is for
+
     week: convexVal.number(),             // ISO week number
     year: convexVal.number(),
-    
+
     // Analysis
     goalsReview: convexVal.object({
       activeGoals: convexVal.number(),
@@ -505,7 +555,7 @@ export default defineSchema({
       blockedGoals: convexVal.array(convexVal.id("goals")),
       acceleratingGoals: convexVal.array(convexVal.id("goals")),
     }),
-    
+
     taskMetrics: convexVal.object({
       tasksGenerated: convexVal.number(),
       tasksCompleted: convexVal.number(),
@@ -513,34 +563,43 @@ export default defineSchema({
       avgTimePerTask: convexVal.number(),     // hours
       blockedBy: convexVal.array(convexVal.string()), // Goal titles
     }),
-    
+
     insights: convexVal.array(convexVal.string()),
     recommendations: convexVal.array(convexVal.string()),
-    
+
     createdAt: convexVal.number(),
   })
+    .index("by_business", ["businessId"])
+    .index("by_business_week", ["businessId", "year", "week"])
     .index("by_week", ["year", "week"])
     .index("by_created_at", ["createdAt"]),
 
   /**
    * SETTINGS - Configuration
-   * App-wide settings including ticket patterns for GitHub integration
+   * Split between global (no businessId) and business-scoped (with businessId)
+   * Global keys: theme, taskCounterFormat, features
+   * Business keys: githubOrg, githubRepo, ticketPrefix, taskCounter
    */
   settings: defineTable({
-    key: convexVal.string(),               // e.g., "ticketPattern", "githubRepo"
-    value: convexVal.string(),             // e.g., "[A-Z]+-\\d+", "owner/repo"
+    key: convexVal.string(),               // e.g., "theme", "githubRepo", "taskCounter"
+    value: convexVal.string(),             // JSON-encoded value
+    businessId: convexVal.optional(convexVal.id("businesses")), // null=global, set=business-scoped
     updatedAt: convexVal.number(),
   })
-    .index("by_key", ["key"]),
+    .index("by_key", ["key"])
+    .index("by_business_key", ["businessId", "key"]),
 
   /**
    * EXECUTION_LOG - Task Execution History
-   * Track when tasks run, outcomes, time spent
+   * Track when tasks run, outcomes, time spent (business-scoped via taskId)
    */
   executionLog: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+
     taskId: convexVal.id("tasks"),
     agentId: convexVal.optional(convexVal.string()),  // who executed it
-    
+
     status: convexVal.union(
       convexVal.literal("started"),
       convexVal.literal("success"),
@@ -548,23 +607,24 @@ export default defineSchema({
       convexVal.literal("incomplete"),
       convexVal.literal("retry")
     ),
-    
+
     // Execution details
     startedAt: convexVal.number(),
     completedAt: convexVal.optional(convexVal.number()),
     timeSpent: convexVal.optional(convexVal.number()),  // minutes
-    
+
     // Outcomes
     output: convexVal.optional(convexVal.string()),
     error: convexVal.optional(convexVal.string()),
     nextAction: convexVal.optional(convexVal.string()),
-    
+
     // Retry tracking
     attemptNumber: convexVal.number(),
     maxAttempts: convexVal.number(),
-    
+
     createdAt: convexVal.number(),
   })
+    .index("by_business", ["businessId"])
     .index("by_task", ["taskId"])
     .index("by_status", ["status"])
     .index("by_agent", ["agentId"])

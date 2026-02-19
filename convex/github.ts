@@ -54,40 +54,77 @@ async function fetchLocalCommitsInternal(repoPath: string, limit: number): Promi
 
 /**
  * Save settings value
+ * Supports both global (no businessId) and business-scoped (with businessId)
  */
 export const setSetting = mutation({
   args: {
     key: convexVal.string(),
     value: convexVal.string(),
+    businessId: convexVal.optional(convexVal.id("businesses")),
   },
-  handler: async (ctx, { key, value }) => {
-    const existing = await ctx.db
-      .query("settings")
-      .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
-      .first();
-    
+  handler: async (ctx, { key, value, businessId }) => {
+    let existing;
+
+    if (businessId) {
+      // Business-scoped setting
+      existing = await ctx.db
+        .query("settings")
+        .withIndex("by_business_key", (indexQuery: any) =>
+          indexQuery.eq("businessId", businessId).eq("key", key)
+        )
+        .first();
+    } else {
+      // Global setting (no businessId)
+      const allMatching = await ctx.db
+        .query("settings")
+        .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
+        .collect();
+      existing = allMatching.find((s) => !s.businessId);
+    }
+
     if (existing) {
       await ctx.db.patch(existing._id, { value, updatedAt: Date.now() });
       return existing._id;
     } else {
-      return await ctx.db.insert("settings", { key, value, updatedAt: Date.now() });
+      return await ctx.db.insert("settings", {
+        key,
+        value,
+        businessId: businessId || undefined,
+        updatedAt: Date.now(),
+      });
     }
   },
 });
 
 /**
  * Get setting value
+ * Supports both global (no businessId) and business-scoped (with businessId)
  */
 export const getSetting = query({
   args: {
     key: convexVal.string(),
+    businessId: convexVal.optional(convexVal.id("businesses")),
   },
-  handler: async (ctx, { key }) => {
-    const setting = await ctx.db
-      .query("settings")
-      .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
-      .first();
-    
+  handler: async (ctx, { key, businessId }) => {
+    let setting;
+
+    if (businessId) {
+      // Business-scoped setting
+      setting = await ctx.db
+        .query("settings")
+        .withIndex("by_business_key", (indexQuery: any) =>
+          indexQuery.eq("businessId", businessId).eq("key", key)
+        )
+        .first();
+    } else {
+      // Global setting (no businessId)
+      const allMatching = await ctx.db
+        .query("settings")
+        .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
+        .collect();
+      setting = allMatching.find((s) => !s.businessId);
+    }
+
     return setting?.value || null;
   },
 });

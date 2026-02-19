@@ -12,6 +12,7 @@ import type * as activities from "../activities.js";
 import type * as agentMetrics from "../agentMetrics.js";
 import type * as agentSelfCheck from "../agentSelfCheck.js";
 import type * as agents from "../agents.js";
+import type * as businesses from "../businesses.js";
 import type * as calendarEvents from "../calendarEvents.js";
 import type * as debug from "../debug.js";
 import type * as documents from "../documents.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   agentMetrics: typeof agentMetrics;
   agentSelfCheck: typeof agentSelfCheck;
   agents: typeof agents;
+  businesses: typeof businesses;
   calendarEvents: typeof calendarEvents;
   debug: typeof debug;
   documents: typeof documents;
