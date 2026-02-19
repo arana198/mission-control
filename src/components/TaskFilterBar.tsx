@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X, User, CheckCircle2 } from "lucide-react";
 import { Agent } from "@/types/agent";
 import { Epic } from "@/types/epic";
 
@@ -10,6 +10,8 @@ interface TaskFilterBarProps {
   filterAssignee: string;
   filterEpic: string;
   showBlockedOnly: boolean;
+  quickFilter?: string | null;
+  onQuickFilterChange?: (filter: string | null) => void;
   agents: Agent[];
   epics: Epic[];
   onSearchChange: (value: string) => void;
@@ -27,6 +29,8 @@ export function TaskFilterBar({
   filterAssignee,
   filterEpic,
   showBlockedOnly,
+  quickFilter,
+  onQuickFilterChange,
   agents,
   epics,
   onSearchChange,
@@ -37,8 +41,38 @@ export function TaskFilterBar({
   onClearFilters,
   hasFilters,
 }: TaskFilterBarProps) {
+  const quickFilterPills = [
+    { id: "my_tasks", label: "My Tasks", icon: User },
+    { id: "ready", label: "Ready", icon: CheckCircle2 },
+    { id: "blocked", label: "Blocked", icon: AlertCircle },
+  ];
+
   return (
-    <div className="card p-4 mb-4">
+    <div className="card p-4 mb-4 space-y-3">
+      {/* Quick Filter Pills */}
+      <div className="flex items-center gap-2">
+        {quickFilterPills.map((pill) => (
+          <button
+            key={pill.id}
+            onClick={() =>
+              onQuickFilterChange?.(
+                quickFilter === pill.id ? null : pill.id
+              )
+            }
+            className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 transition-colors ${
+              quickFilter === pill.id
+                ? "bg-accent text-accent-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+            title={`Filter by ${pill.label}`}
+          >
+            <pill.icon className="w-3.5 h-3.5" />
+            {pill.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search and Advanced Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <input

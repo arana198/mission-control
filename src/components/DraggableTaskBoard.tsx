@@ -50,6 +50,9 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
     } as FilterState
   );
 
+  // Quick filter state (mutually exclusive)
+  const [quickFilter, setQuickFilter] = useState<string | null>(null);
+
   // Selection state for bulk actions - using centralized hook
   const { set: selectedTasks, toggle: toggleTaskSelection, addAll, clear: clearSelection } = useSetState<string>();
 
@@ -101,9 +104,25 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
         }
       }
       if (filters.showBlockedOnly && (!task.blockedBy || task.blockedBy.length === 0)) return false;
+
+      // Quick filter pills (mutually exclusive)
+      if (quickFilter === "my_tasks") {
+        // Show tasks assigned to first agent (representative of "my" tasks)
+        const firstAgentId = agents[0]?._id;
+        if (!firstAgentId || !task.assigneeIds?.includes(firstAgentId)) {
+          return false;
+        }
+      }
+      if (quickFilter === "blocked") {
+        if (task.status !== "blocked") return false;
+      }
+      if (quickFilter === "ready") {
+        if (task.status !== "ready") return false;
+      }
+
       return true;
     });
-  }, [tasks, filters]);
+  }, [tasks, filters, quickFilter, agents]);
 
   const tasksByStatus = useMemo(() => {
     return kanbanColumns.reduce((acc, col) => {
@@ -190,6 +209,8 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
         filterAssignee={filters.filterAssignee}
         filterEpic={filters.filterEpic}
         showBlockedOnly={filters.showBlockedOnly}
+        quickFilter={quickFilter}
+        onQuickFilterChange={setQuickFilter}
         agents={agents}
         epics={epics}
         onSearchChange={filterSetters.setSearchQuery}
