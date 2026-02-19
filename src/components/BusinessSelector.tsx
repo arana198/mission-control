@@ -37,7 +37,12 @@ function BusinessSelectorContent() {
 
   // Extract current tab from pathname (last part after /)
   const pathParts = (pathname || "").split("/").filter(Boolean);
+  const isGlobalPath = pathParts[0] === "global";
   const currentTab = pathParts[pathParts.length - 1] || "overview";
+
+  // Global tabs that don't belong to a specific business
+  const globalTabs = ["agents", "workload", "activity", "calendar", "brain", "bottlenecks", "analytics", "api-docs"];
+  const isCurrentTabGlobal = globalTabs.includes(currentTab);
 
   const handleSelectBusiness = (business: any) => {
     if (business._id === currentBusiness?._id) {
@@ -47,8 +52,16 @@ function BusinessSelectorContent() {
     }
 
     setCurrentBusiness(business);
-    // Navigate to the selected business with current tab
-    router.push(`/${business.slug}/${currentTab}`);
+
+    // Navigate based on whether we're on a global or business-scoped tab
+    if (isGlobalPath || isCurrentTabGlobal) {
+      // Stay in global tabs (they're not business-scoped)
+      router.push(`/global/${currentTab}`);
+    } else {
+      // Navigate to the selected business with current business tab
+      router.push(`/${business.slug}/${currentTab}`);
+    }
+
     setIsOpen(false);
   };
 
