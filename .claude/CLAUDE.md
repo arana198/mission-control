@@ -49,11 +49,14 @@ Before commit:
 
 1. **Unit tests written** for all new logic.
 2. **Integration tests written** for all Convex mutations.
-3. `npm test` passes.
-4. `npm run lint` passes.
-5. **Manual validation performed:** Run both `npm run convex:dev` (Terminal 1) and `npm run dev` (Terminal 2) and verify the feature works as expected.
+3. **E2E tests written** for all UI changes (use Playwright).
+4. `npm test` passes (all unit/integration tests).
+5. `npm run build` passes (TypeScript compilation, imports verified).
+6. `npm run lint` passes.
+7. `npm run validate` passes (lint + build + tests - comprehensive validation).
+8. **Manual validation performed:** Run both `npm run convex:dev` (Terminal 1) and `npm run dev` (Terminal 2) and verify the feature works as expected in browser.
 
-**No exceptions. Tests first.**
+**No exceptions. Tests first. Build must pass. UI changes need E2E tests.**
 
 ---
 
@@ -136,16 +139,49 @@ Before commit:
 |---------|---------|
 | `npm run convex:dev` | Start Convex backend (Terminal 1) |
 | `npm run dev` | Start Next.js frontend (Terminal 2) |
-| `npm test` | Run all tests |
+| `npm test` | Run all unit/integration tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Generate test coverage report |
 | `npm run lint` | Lint code with ESLint |
+| `npm run build` | Build for production (TypeScript validation) |
+| `npm run validate` | Run lint + build + tests (comprehensive validation) |
+| `npm run e2e` | Run E2E tests with Playwright |
+| `npm run e2e:ui` | Run E2E tests with Playwright UI mode |
+| `npm run e2e:debug` | Run E2E tests in debug mode |
 | `npm run seed:all` | Seed all demo data |
-| `npm run build` | Build for production |
 
 ---
 
-## 11. Deployment
+## 11. E2E Testing (UI Validation)
+
+All **UI changes MUST include E2E tests** to prevent runtime rendering errors:
+
+**E2E Test Coverage:**
+- UI components render correctly
+- Navigation and routing work as expected
+- Component interactions function properly
+- No broken imports or compilation errors
+
+**Writing E2E Tests:**
+1. Create test files in `/e2e` directory
+2. Use Playwright (configured in `playwright.config.ts`)
+3. Test critical user paths and component interactions
+4. Example: `/e2e/business-selector.spec.ts`, `/e2e/layout.spec.ts`
+
+**Running E2E Tests:**
+- `npm run e2e` — Run all E2E tests
+- `npm run e2e:ui` — Interactive UI mode (pause and inspect)
+- `npm run e2e:debug` — Step-through debugging
+
+**Why E2E tests matter for UI:**
+- Unit tests pass but page fails to render → E2E catches it
+- Broken imports cause runtime errors → Build validation catches it
+- Component composition issues → E2E tests catch it
+- Tests + Build validation + E2E tests = Confident deployments
+
+---
+
+## 12. Deployment
 
 - **Production builds must pass all tests** — `npm test && npm run build`.
 - **Convex migrations are auto-applied on deploy** — ensure they are tested locally first.
