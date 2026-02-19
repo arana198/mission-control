@@ -55,6 +55,24 @@ export const PollAgentSchema = z.object({
 export type PollAgentInput = z.infer<typeof PollAgentSchema>;
 
 /**
+ * Schema for agent self-update
+ * PUT /api/agents/{agentId}/update
+ */
+export const UpdateAgentSchema = z.object({
+  agentId: convexId(),
+  apiKey: z.string().min(1, "API key is required for authentication"),
+  // Optional fields - agent can update any of these
+  workspacePath: z.string().min(1, "Workspace path must not be empty").optional(),
+  model: z.string().max(100).optional(),
+  personality: z.string().max(2000).optional(),
+  capabilities: z
+    .array(z.string().min(1).max(100))
+    .optional(),
+});
+
+export type UpdateAgentInput = z.infer<typeof UpdateAgentSchema>;
+
+/**
  * Schema for task completion
  * POST /api/agents/tasks/complete
  */

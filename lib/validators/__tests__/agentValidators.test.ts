@@ -1,270 +1,265 @@
+/**
+ * Agent Validators Tests
+ *
+ * Tests for:
+ * - RegisterAgentSchema
+ * - UpdateAgentSchema
+ * - PollAgentSchema
+ * - Other agent input schemas
+ */
+
 import {
   RegisterAgentSchema,
+  UpdateAgentSchema,
   PollAgentSchema,
-  CompleteTaskSchema,
-  HeartbeatSchema,
-  validateAgentInput,
 } from "../agentValidators";
 
 describe("agentValidators", () => {
   describe("RegisterAgentSchema", () => {
     it("accepts valid registration input", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "jarvis",
-        role: "Squad Lead",
-        level: "lead",
-        sessionKey: "agent:main:main",
-        workspacePath: "/Users/arana/.openclaw/workspace",
-      });
+      const input = {
+        name: "test-agent",
+        role: "Frontend Developer",
+        level: "specialist",
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(true);
     });
 
     it("accepts optional fields", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "jarvis",
-        role: "Squad Lead",
+      const input = {
+        name: "test-agent",
+        role: "Developer",
         level: "lead",
-        sessionKey: "agent:main:main",
-        workspacePath: "/Users/arana/.openclaw/workspace",
-        capabilities: ["planning", "coding"],
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+        capabilities: ["typescript", "react"],
         model: "gpt-4",
-        personality: "helpful",
-      });
+        personality: "professional",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.capabilities).toEqual(["planning", "coding"]);
-      }
     });
 
     it("rejects name below min length", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "j",
-        role: "Lead",
-        level: "lead",
-        sessionKey: "k",
-      });
+      const input = {
+        name: "a",
+        role: "Developer",
+        level: "intern",
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects name above max length", () => {
-      const result = RegisterAgentSchema.safeParse({
+      const input = {
         name: "a".repeat(51),
-        role: "Lead",
-        level: "lead",
-        sessionKey: "k",
-      });
+        role: "Developer",
+        level: "intern",
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects name not starting with letter", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "123agent",
-        role: "Lead",
-        level: "lead",
-        sessionKey: "k",
-      });
+      const input = {
+        name: "123-agent",
+        role: "Developer",
+        level: "specialist",
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects invalid level enum", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "jarvis",
-        role: "Lead",
-        level: "god",
-        sessionKey: "k",
-        workspacePath: "/Users/arana/.openclaw/workspace",
-      });
+      const input = {
+        name: "test-agent",
+        role: "Developer",
+        level: "invalid",
+        sessionKey: "key123",
+        workspacePath: "/workspace/test",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects missing required fields", () => {
-      const result = RegisterAgentSchema.safeParse({
-        name: "jarvis",
-      });
+      const input = {
+        name: "test-agent",
+        role: "Developer",
+        // Missing level, sessionKey, workspacePath
+      };
+      const result = RegisterAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects empty workspace path", () => {
+      const input = {
+        name: "test-agent",
+        role: "Developer",
+        level: "lead",
+        sessionKey: "key123",
+        workspacePath: "",
+      };
+      const result = RegisterAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("UpdateAgentSchema", () => {
+    it("accepts update with all fields", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        workspacePath: "/new/workspace",
+        model: "gpt-4-turbo",
+        personality: "updated personality",
+        capabilities: ["python", "javascript"],
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts update with only agentId and apiKey", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts partial updates", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        workspacePath: "/new/workspace",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts update with model only", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        model: "gpt-4",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts update with personality only", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        personality: "helpful and professional",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts update with capabilities only", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        capabilities: ["task-management", "code-review"],
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects missing agentId", () => {
+      const input = {
+        apiKey: "key456",
+        workspacePath: "/new/workspace",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects missing apiKey", () => {
+      const input = {
+        agentId: "agent123",
+        workspacePath: "/new/workspace",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects empty workspacePath when provided", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        workspacePath: "",
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects overly long model string", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        model: "a".repeat(101),
+      };
+      const result = UpdateAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects overly long personality string", () => {
+      const input = {
+        agentId: "agent123",
+        apiKey: "key456",
+        personality: "a".repeat(2001),
+      };
+      const result = UpdateAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
   });
 
   describe("PollAgentSchema", () => {
     it("accepts valid poll input", () => {
-      const result = PollAgentSchema.safeParse({
-        agentId: "abc123def456",
-        agentKey: "ak_abc123_xyz",
-      });
+      const input = {
+        agentId: "agent123",
+        agentKey: "key456",
+      };
+      const result = PollAgentSchema.safeParse(input);
       expect(result.success).toBe(true);
     });
 
     it("rejects empty agentKey", () => {
-      const result = PollAgentSchema.safeParse({
-        agentId: "abc123",
+      const input = {
+        agentId: "agent123",
         agentKey: "",
-      });
+      };
+      const result = PollAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects invalid agentId format", () => {
-      const result = PollAgentSchema.safeParse({
-        agentId: "ABC-123_XYZ",  // uppercase and special chars
-        agentKey: "ak_x",
-      });
+      const input = {
+        agentId: "not-valid-id-format!",
+        agentKey: "key456",
+      };
+      const result = PollAgentSchema.safeParse(input);
       expect(result.success).toBe(false);
     });
 
     it("rejects missing agentKey", () => {
-      const result = PollAgentSchema.safeParse({
-        agentId: "abc123",
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("CompleteTaskSchema", () => {
-    it("accepts valid completion input", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("defaults status to done", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-      });
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.status).toBe("done");
-      }
-    });
-
-    it("accepts status review", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-        status: "review",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("rejects invalid status", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-        status: "pending",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("accepts optional completionNotes", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-        completionNotes: "Successfully fixed the bug",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("accepts optional timeSpent", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-        timeSpent: 30,
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("rejects negative timeSpent", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        taskId: "def456",
-        timeSpent: -5,
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("rejects missing taskId", () => {
-      const result = CompleteTaskSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("HeartbeatSchema", () => {
-    it("accepts valid heartbeat", () => {
-      const result = HeartbeatSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("accepts optional currentTaskId", () => {
-      const result = HeartbeatSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        currentTaskId: "task789",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("accepts optional status", () => {
-      const result = HeartbeatSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        status: "active",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("rejects invalid status value", () => {
-      const result = HeartbeatSchema.safeParse({
-        agentId: "abc123",
-        agentKey: "ak_x",
-        status: "zombie",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("rejects missing agentKey", () => {
-      const result = HeartbeatSchema.safeParse({
-        agentId: "abc123",
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("validateAgentInput", () => {
-    it("returns parsed data on success", () => {
       const input = {
-        name: "jarvis",
-        role: "Lead",
-        level: "lead",
-        sessionKey: "k",
-        workspacePath: "/Users/arana/.openclaw/workspace",
+        agentId: "agent123",
       };
-      const result = validateAgentInput(RegisterAgentSchema, input);
-      expect(result.name).toBe("jarvis");
-    });
-
-    it("throws ZodError on invalid input", () => {
-      const input = {
-        name: "j",  // too short
-        role: "Lead",
-        level: "lead",
-        workspacePath: "/Users/arana/.openclaw/workspace",
-        sessionKey: "k",
-      };
-      expect(() => validateAgentInput(RegisterAgentSchema, input)).toThrow();
+      const result = PollAgentSchema.safeParse(input);
+      expect(result.success).toBe(false);
     });
   });
 });

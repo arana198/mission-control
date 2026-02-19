@@ -225,3 +225,51 @@ export const verifyKey = query({
     return agent;
   },
 });
+
+/**
+ * Update agent details (self-service by agent)
+ * Agent authenticates with their apiKey and can update their own details
+ */
+export const updateDetails = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+    apiKey: convexVal.string(),
+    workspacePath: convexVal.optional(convexVal.string()),
+    model: convexVal.optional(convexVal.string()),
+    personality: convexVal.optional(convexVal.string()),
+    capabilities: convexVal.optional(convexVal.array(convexVal.string())),
+  },
+  handler: async (ctx, { agentId, apiKey, workspacePath, model, personality, capabilities }) => {
+    // Verify agent credentials
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw new Error("Agent not found");
+    if (!agent.apiKey || agent.apiKey !== apiKey) {
+      throw new Error("Invalid credentials");
+    }
+
+    // Build update object with only provided fields
+    const updates: any = {};
+    if (workspacePath !== undefined) updates.workspacePath = workspacePath;
+    if (model !== undefined) updates.model = model;
+    if (personality !== undefined) updates.personality = personality;
+    if (capabilities !== undefined) updates.capabilities = capabilities;
+
+    // If no fields to update, return current state
+    if (Object.keys(updates).length === 0) {
+      return { success: true, agent, updated: false };
+    }
+
+    // Update agent
+    await ctx.db.patch(agentId, updates);
+
+    // Get updated agent
+    const updatedAgent = await ctx.db.get(agentId);
+
+    return {
+      success: true,
+      agent: updatedAgent,
+      updated: true,
+      updatedFields: Object.keys(updates),
+    };
+  },
+});
