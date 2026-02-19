@@ -1,10 +1,10 @@
 /**
- * POST /api/agents/tasks/{taskId}/assign (Phase 2)
+ * PUT /api/agents/tasks/{taskId}/assign (Phase 2)
  *
- * Assign task to one or more agents
+ * Assign task to one or more agents (idempotent resource update)
  *
  * Request: AssignTaskInput (agentId, agentKey, taskId, assigneeIds)
- * Response: { success }
+ * Response: { success: true, data: { success: true }, timestamp }
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -28,7 +28,7 @@ type Props = {
   };
 };
 
-export async function POST(request: Request, context: any): Promise<Response> {
+export async function PUT(request: Request, context: any): Promise<Response> {
   const { taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);

@@ -31,16 +31,16 @@ beforeEach(() => {
 });
 
 function makeRequest(body: unknown): Request {
-  return new Request("http://localhost/api/calendar/create-event", {
+  return new Request("http://localhost/api/calendar/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
 
-describe("POST /api/calendar/create-event", () => {
+describe("POST /api/calendar/events", () => {
   it("creates calendar event for valid request", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
     mockMutation.mockResolvedValueOnce("event-1");
 
     const now = Date.now();
@@ -54,14 +54,15 @@ describe("POST /api/calendar/create-event", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.eventId).toBe("event-1");
+    expect(data.data.eventId).toBe("event-1");
+    expect(data.timestamp).toBeDefined();
   });
 
   it("returns 400 for missing required fields", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
 
     const req = makeRequest({
       agentId: "agent-1",
@@ -74,7 +75,7 @@ describe("POST /api/calendar/create-event", () => {
   });
 
   it("returns 400 for invalid event type", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
 
     const now = Date.now();
     const req = makeRequest({
@@ -91,7 +92,7 @@ describe("POST /api/calendar/create-event", () => {
   });
 
   it("returns 400 when startTime >= endTime", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
 
     const now = Date.now();
     const req = makeRequest({
@@ -108,7 +109,7 @@ describe("POST /api/calendar/create-event", () => {
   });
 
   it("returns 401 for invalid credentials", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
     const now = Date.now();
@@ -126,7 +127,7 @@ describe("POST /api/calendar/create-event", () => {
   });
 
   it("includes description if provided", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
     mockMutation.mockResolvedValueOnce("event-1");
 
     const now = Date.now();
@@ -141,12 +142,12 @@ describe("POST /api/calendar/create-event", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(mockMutation).toHaveBeenCalled();
   });
 
   it("returns 500 when mutation fails", async () => {
-    const { POST } = await import("../create-event/route");
+    const { POST } = await import("../events/route");
     mockMutation.mockRejectedValueOnce(new Error("DB error"));
 
     const now = Date.now();

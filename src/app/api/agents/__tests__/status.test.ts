@@ -1,5 +1,5 @@
 /**
- * POST /api/agents/tasks/{taskId}/status route tests
+ * PUT /api/agents/tasks/{taskId}/status route tests
  */
 
 jest.mock("convex/browser");
@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { POST } from "../tasks/status/route";
+import { PUT } from "../tasks/status/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("POST /api/agents/tasks/{taskId}/status", () => {
+describe("PUT /api/agents/tasks/{taskId}/status", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -47,7 +47,7 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -56,7 +56,7 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -70,7 +70,7 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
 
     for (const status of statuses) {
       const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
-        method: "POST",
+        method: "PUT",
         body: JSON.stringify({
           agentId: "agent-123",
           agentKey: "ak_key",
@@ -79,14 +79,14 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
         }),
       });
 
-      const response = await POST(request, { params: { taskId: "task-456" } });
+      const response = await PUT(request, { params: { taskId: "task-456" } });
       expect(response.status).toBe(200);
     }
   });
 
   it("rejects invalid status", async () => {
     const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -95,7 +95,7 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -106,7 +106,7 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "wrong_key",
@@ -115,17 +115,17 @@ describe("POST /api/agents/tasks/{taskId}/status", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     expect(response.status).toBe(401);
   });
 
   it("handles bad JSON", async () => {
     const request = new Request("http://localhost/api/agents/tasks/task-456/status", {
-      method: "POST",
+      method: "PUT",
       body: "invalid json",
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     expect(response.status).toBe(400);
   });
 });

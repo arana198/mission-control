@@ -196,3 +196,22 @@ export function jsonResponse<T>(
     },
   });
 }
+
+/**
+ * Extract Idempotency-Key header from request
+ * Used to support idempotent behavior for non-idempotent operations
+ *
+ * Per RFC 7231, the Idempotency-Key header allows clients to safely retry
+ * requests without worrying about duplicate side effects.
+ *
+ * @param request - The incoming HTTP request
+ * @returns The Idempotency-Key value, or undefined if not provided
+ *
+ * @example
+ * const idempotencyKey = extractIdempotencyKey(request);
+ * // Use key to check for duplicate execution and return cached response
+ */
+export function extractIdempotencyKey(request: Request): string | undefined {
+  const key = request.headers.get("Idempotency-Key");
+  return key ? key.trim() : undefined;
+}

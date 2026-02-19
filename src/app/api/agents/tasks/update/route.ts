@@ -1,10 +1,10 @@
 /**
- * POST /api/agents/tasks/{taskId}/update (Phase 2)
+ * PUT /api/agents/tasks/{taskId}/update (Phase 2)
  *
- * Update task metadata (title, description, priority, dueDate)
+ * Update task metadata (title, description, priority, dueDate) — idempotent resource update
  *
  * Request: UpdateTaskMetadataInput (agentId, agentKey, taskId, title?, description?, priority?, dueDate?)
- * Response: { success }
+ * Response: { success: true, data: { success: true }, timestamp }
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -28,7 +28,7 @@ type Props = {
   };
 };
 
-export async function POST(request: Request, context: any): Promise<Response> {
+export async function PUT(request: Request, context: any): Promise<Response> {
   const { taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);

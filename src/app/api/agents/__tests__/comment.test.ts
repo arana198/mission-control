@@ -65,7 +65,7 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
     const response = await POST(request, { params: { taskId: mockTaskId } });
     const data = await response.json();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(data.success).toBe(true);
     expect(data.data.messageId).toBe(messageId);
   });
@@ -89,7 +89,7 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
     const response = await POST(request, { params: { taskId: mockTaskId } });
     const data = await response.json();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(data.success).toBe(true);
     expect(mockMutation).toHaveBeenCalledWith(
       expect.anything(),
@@ -171,5 +171,34 @@ describe("POST /api/agents/tasks/{taskId}/comment", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
+  });
+
+  it("accepts Idempotency-Key header for retry support", async () => {
+    const { POST } = await import("../tasks/comment/route");
+    const messageId = "msg-789";
+    const idempotencyKey = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    mockMutation.mockResolvedValueOnce(messageId);
+
+    const request = new Request("http://localhost/api/agents/tasks/task-456/comment", {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        agentId: mockAgentId,
+        agentKey: mockAgentKey,
+        taskId: mockTaskId,
+        content: "This comment has idempotency support",
+        mentions: [],
+      }),
+    });
+
+    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.data.messageId).toBe(messageId);
+    expect(data.data.idempotencyKey).toBe(idempotencyKey);
   });
 });

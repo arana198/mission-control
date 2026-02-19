@@ -1,5 +1,5 @@
 /**
- * POST /api/agents/tasks/{taskId}/assign route tests (Phase 2)
+ * PUT /api/agents/tasks/{taskId}/assign route tests (Phase 2)
  */
 
 jest.mock("convex/browser");
@@ -20,11 +20,11 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { POST } from "../tasks/assign/route";
+import { PUT } from "../tasks/assign/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 
-describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
+describe("PUT /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   const mockMutation = jest.fn();
   const mockConvex = {
     mutation: mockMutation,
@@ -47,7 +47,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -56,7 +56,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -67,7 +67,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
     mockMutation.mockResolvedValueOnce({ success: true });
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -76,7 +76,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -85,7 +85,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
 
   it("rejects empty assigneeIds", async () => {
     const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -94,7 +94,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -104,7 +104,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
   it("rejects too many assignees (>10)", async () => {
     const assigneeIds = Array.from({ length: 11 }, (_, i) => `agent-${i}`);
     const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "ak_key",
@@ -113,7 +113,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -123,7 +123,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
     const request = new Request("http://localhost/api/agents/tasks/task-456/assign", {
-      method: "POST",
+      method: "PUT",
       body: JSON.stringify({
         agentId: "agent-123",
         agentKey: "wrong",
@@ -132,7 +132,7 @@ describe("POST /api/agents/tasks/{taskId}/assign (Phase 2)", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: "task-456" } });
+    const response = await PUT(request, { params: { taskId: "task-456" } });
     expect(response.status).toBe(401);
   });
 });

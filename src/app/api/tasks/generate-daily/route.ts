@@ -1,8 +1,14 @@
 /**
  * POST /api/tasks/generate-daily
  *
- * Generate 3-5 high-impact tasks for the day
- * Triggered by morning routine or manual call
+ * Generate 3-5 high-impact tasks for the day.
+ * Returns 201 Created when new tasks are successfully generated.
+ * Triggered by morning routine or manual call.
+ *
+ * IDEMPOTENCY: NON-IDEMPOTENT
+ * - Reason: Creates new task records on each call (unless forceRegenerate=false)
+ * - Safe to retry: NO (use Idempotency-Key header to enable retries)
+ * - Side effects on repeat: Duplicate task batches created
  *
  * Request body:
  * {
@@ -10,7 +16,7 @@
  *   forceRegenerate?: boolean
  * }
  *
- * Returns: { tasks: TaskInput[], count: number, generatedAt: timestamp }
+ * Returns: { tasks: TaskInput[], count: number, generatedAt: timestamp } [201 Created if tasks generated]
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -18,6 +24,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { getTaskGenerationService } from "@/lib/services/taskGenerationService";
 import { getMemoryService } from "@/lib/services/memoryService";
+import { extractIdempotencyKey } from "@/lib/utils/apiResponse";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -33,6 +40,9 @@ export async function POST(request: Request) {
     // Validate request
     const body = await request.json().catch(() => ({}));
     const { businessId, forceRegenerate = false } = body;
+
+    // Extract Idempotency-Key header for retry support
+    const idempotencyKey = extractIdempotencyKey(request);
 
     // REQUIRED: businessId for multi-business support
     if (!businessId) {
@@ -114,9 +124,10 @@ export async function POST(request: Request) {
         success: true,
         tasks: createdTasks,
         count: createdTasks.length,
+        idempotencyKey, // Echo back for client confirmation
         generatedAt: new Date().toISOString(),
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 201, headers: { "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     // Task generation error - returned to caller

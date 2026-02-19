@@ -1,10 +1,10 @@
 /**
- * POST /api/agents/tasks/{taskId}/status
+ * PUT /api/agents/tasks/{taskId}/status
  *
- * Update task status
+ * Update task status (idempotent resource update)
  *
  * Request: UpdateTaskStatusInput (agentId, agentKey, taskId, status)
- * Response: { success }
+ * Response: { success: true, data: { success: true }, timestamp }
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -28,7 +28,7 @@ type Props = {
   };
 };
 
-export async function POST(request: Request, context: any): Promise<Response> {
+export async function PUT(request: Request, context: any): Promise<Response> {
   const { taskId } = context.params;
   try {
     const body = await request.json().catch(() => null);

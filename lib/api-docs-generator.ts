@@ -416,48 +416,52 @@ const DOCUMENTED_ENDPOINTS: ApiDocEndpoint[] = [
   },
   {
     method: "POST",
-    path: "/api/calendar/create-event",
+    path: "/api/calendar/events",
     summary: "Create calendar event",
     description: "Schedule a calendar event for task execution or team meeting.",
     auth: true,
     category: "Calendar",
     request: {
       fields: [
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
         { name: "title", type: "string", required: true, description: "Event title" },
         { name: "startTime", type: "number", required: true, description: "Start time (ms)" },
         { name: "endTime", type: "number", required: true, description: "End time (ms)" },
-        { name: "taskId", type: "string", required: false, description: "Associated task ID" }
+        { name: "type", type: "enum", required: true, description: '"ai_workflow" or "bot_generated"' },
+        { name: "description", type: "string", required: false, description: "Event description" },
+        { name: "color", type: "string", required: false, description: "Event color (hex code)" }
       ]
     },
     response: {
       example: {
         success: true,
-        eventId: "evt_123",
-        title: "Task Execution",
-        startTime: 1708387200000,
-        endTime: 1708390800000
+        data: { eventId: "evt_123", message: "Event created" },
+        timestamp: 1708387200000
       }
     }
   },
   {
     method: "POST",
-    path: "/api/calendar/schedule-task",
-    summary: "Schedule task execution",
-    description: "Automatically schedule a task for execution at specified time.",
+    path: "/api/tasks/{taskId}/calendar-events",
+    summary: "Schedule task to calendar",
+    description: "Schedule a task execution on the calendar with specified start time and duration.",
     auth: true,
     category: "Calendar",
     request: {
       fields: [
-        { name: "taskId", type: "string", required: true, description: "Task to schedule" },
-        { name: "scheduledFor", type: "number", required: true, description: "Execution time (ms)" },
-        { name: "agentId", type: "string", required: false, description: "Assign to agent" }
+        { name: "agentId", type: "string", required: true, description: "Your agent ID" },
+        { name: "agentKey", type: "string", required: true, description: "Your API key" },
+        { name: "taskId", type: "string", required: true, description: "Task ID (from URL path)" },
+        { name: "startTime", type: "number", required: true, description: "Start time (ms)" },
+        { name: "durationHours", type: "number", required: true, description: "Duration in hours (0-24)" }
       ]
     },
     response: {
       example: {
         success: true,
-        scheduled: true,
-        scheduledFor: 1708387200000
+        data: { eventId: "evt_124", message: "Task scheduled" },
+        timestamp: 1708387200000
       }
     }
   },

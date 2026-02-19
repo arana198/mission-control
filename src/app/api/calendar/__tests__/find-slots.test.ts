@@ -1,5 +1,5 @@
 /**
- * POST /api/calendar/find-slots Tests
+ * GET /api/calendar/slots Tests
  *
  * Tests calendar slot finding endpoint
  */
@@ -32,17 +32,19 @@ beforeEach(() => {
   });
 });
 
-function makeRequest(body: unknown): Request {
-  return new Request("http://localhost/api/calendar/find-slots", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+function makeRequest(params: Record<string, string | number>): Request {
+  const url = new URL("http://localhost/api/calendar/slots");
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, String(value));
+  });
+  return new Request(url.toString(), {
+    method: "GET",
   });
 }
 
-describe("POST /api/calendar/find-slots", () => {
+describe("GET /api/calendar/slots", () => {
   it("returns available slots for valid request", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     const now = Date.now();
     mockQuery.mockResolvedValue([
@@ -58,15 +60,15 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 60,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.slots).toHaveLength(2);
+    expect(data.data.slots).toHaveLength(2);
   });
 
   it("returns 400 when missing required fields", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     const req = makeRequest({
       agentId: "agent-1",
@@ -75,12 +77,12 @@ describe("POST /api/calendar/find-slots", () => {
       // Missing endDate and durationMinutes
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for invalid durationMinutes (zero)", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     const now = Date.now();
     const req = makeRequest({
@@ -91,12 +93,12 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 0,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for invalid durationMinutes (>1440)", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     const now = Date.now();
     const req = makeRequest({
@@ -107,12 +109,12 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 1441, // Over 24 hours
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when startDate >= endDate", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     const now = Date.now();
     const req = makeRequest({
@@ -123,12 +125,12 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 60,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(400);
   });
 
   it("returns 401 for invalid credentials", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     (verifyAgent as jest.Mock).mockResolvedValue(null);
     const now = Date.now();
@@ -140,12 +142,12 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 60,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(401);
   });
 
   it("supports optional preferences (preferBefore, preferAfter)", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     mockQuery.mockResolvedValue([
       { start: Date.now() + 3600000, end: Date.now() + 7200000, score: 0.95 },
@@ -161,7 +163,7 @@ describe("POST /api/calendar/find-slots", () => {
       preferBefore: 12, // Prefer before noon
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(200);
     // Verify query was called with preferences included
     expect(mockQuery).toHaveBeenCalled();
@@ -172,7 +174,7 @@ describe("POST /api/calendar/find-slots", () => {
   });
 
   it("returns empty slots array when none available", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     mockQuery.mockResolvedValue([]);
 
@@ -185,14 +187,14 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 60,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     const data = await res.json();
-    expect(data.slots).toHaveLength(0);
-    expect(data.message).toContain("0 available");
+    expect(data.data.slots).toHaveLength(0);
+    expect(data.data.message).toContain("0 available");
   });
 
   it("returns 500 when query fails", async () => {
-    const { POST } = await import("../find-slots/route");
+    const { GET } = await import("../slots/route");
 
     mockQuery.mockRejectedValue(new Error("DB error"));
 
@@ -205,7 +207,7 @@ describe("POST /api/calendar/find-slots", () => {
       durationMinutes: 60,
     });
 
-    const res = await POST(req);
+    const res = await GET(req);
     expect(res.status).toBe(500);
   });
 });

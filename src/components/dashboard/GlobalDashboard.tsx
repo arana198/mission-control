@@ -32,21 +32,23 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
 
   // Global data fetching
   const agents = useQuery(api.agents.getAllAgents);
-  const activities = useQuery(api.activities.getRecent, {
-    limit: 10,
-    businessId: selectedBusinessFilter ? (selectedBusinessFilter as any) : undefined
-  });
+  const activities = useQuery(api.activities.getRecent,
+    selectedBusinessFilter ? { limit: 10, businessId: selectedBusinessFilter as any } : "skip"
+  );
 
   // Filtered tasks for workload/activity views
-  const filteredTasks = useQuery(api.tasks.getFiltered, {
-    businessId: selectedBusinessFilter || (agents?.[0] as any)?._id || "",
-    agentId: agents?.[0]?._id || ""
-  });
+  const firstAgentId = agents?.[0]?._id;
+  const filteredTasks = useQuery(api.tasks.getFiltered,
+    firstAgentId ? {
+      businessId: (selectedBusinessFilter as any) || firstAgentId,
+      agentId: firstAgentId
+    } : "skip"
+  );
 
   // Global epics
-  const epics = useQuery(api.epics.getAllEpics, {
-    businessId: selectedBusinessFilter ? (selectedBusinessFilter as any) : undefined
-  });
+  const epics = useQuery(api.epics.getAllEpics,
+    selectedBusinessFilter ? { businessId: selectedBusinessFilter as any } : "skip"
+  );
 
   // Render content based on tab
   const renderContent = (): ReactNode => {

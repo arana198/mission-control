@@ -1,10 +1,16 @@
 /**
  * POST /api/agents/tasks/{taskId}/comment
  *
- * Add comment to task with optional @mentions
+ * Add comment to task with optional @mentions.
+ * Returns 201 Created when comment is successfully added.
+ *
+ * IDEMPOTENCY: NON-IDEMPOTENT
+ * - Reason: Creates a new message record on each call
+ * - Safe to retry: NO (use Idempotency-Key header to enable retries)
+ * - Side effects on repeat: Duplicate comments created
  *
  * Request: AddCommentInput (agentId, agentKey, taskId, content, mentions)
- * Response: { success, messageId }
+ * Response: { success, messageId } [201 Created]
  */
 
 import { ConvexHttpClient } from "convex/browser";
@@ -14,10 +20,12 @@ import {
   handleApiError,
   jsonResponse,
   UnauthorizedError,
+  extractIdempotencyKey,
 } from "@/lib/utils/apiResponse";
 import { createLogger } from "@/lib/utils/logger";
 import { validateAgentTaskInput, AddCommentSchema } from "@/lib/validators/agentTaskValidators";
 import { verifyAgent } from "@/lib/agent-auth";
+import { HTTP_HEADERS } from "@/lib/constants/business";
 
 const log = createLogger("api:agents:tasks:comment");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -47,6 +55,9 @@ export async function POST(
       throw new UnauthorizedError("Invalid agent credentials");
     }
 
+    // Extract Idempotency-Key header for retry support (Phase 3 will implement deduplication)
+    const idempotencyKey = extractIdempotencyKey(request);
+
     // Add comment via messages.create
     const messageId = await convex.mutation(api.messages.create, {
       taskId: input.taskId as any,
@@ -60,12 +71,15 @@ export async function POST(
       agentId: input.agentId,
       taskId: input.taskId,
       messageId,
+      idempotencyKey: idempotencyKey ? "[present]" : "[absent]",
     });
 
     return jsonResponse(
       successResponse({
         messageId,
-      })
+        idempotencyKey, // Echo back for client confirmation
+      }),
+      201
     );
   } catch (error) {
     const [errorData, statusCode] = handleApiError(error);

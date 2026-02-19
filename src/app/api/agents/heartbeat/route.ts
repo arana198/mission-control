@@ -4,6 +4,11 @@
  * Lightweight heartbeat endpoint.
  * Updates lastHeartbeat + optional status.
  *
+ * IDEMPOTENCY: IDEMPOTENT
+ * - Reason: Only updates timestamp; multiple calls with same params produce same result
+ * - Safe to retry: YES
+ * - Side effects on repeat: None (idempotent operation)
+ *
  * Request: HeartbeatInput
  * Response: { success, serverTime }
  */

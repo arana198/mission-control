@@ -1,5 +1,5 @@
 /**
- * POST /api/calendar/mark-executed Tests
+ * PUT /api/calendar/events/{eventId} Tests
  */
 
 jest.mock("convex/browser");
@@ -29,99 +29,93 @@ beforeEach(() => {
   });
 });
 
-function makeRequest(body: unknown): Request {
-  return new Request("http://localhost/api/calendar/mark-executed", {
-    method: "POST",
+function makeRequest(body: unknown, eventId: string = "event-1"): Request {
+  return new Request(`http://localhost/api/calendar/events/${eventId}`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
 
-describe("POST /api/calendar/mark-executed", () => {
+describe("PUT /api/calendar/events/{eventId}", () => {
   it("marks event as executed with current time", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
     mockMutation.mockResolvedValueOnce({});
 
     const req = makeRequest({
-      eventId: "event-1",
       agentId: "agent-1",
       agentKey: "key-1",
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
   });
 
   it("marks event as executed with provided timestamp", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
     mockMutation.mockResolvedValueOnce({});
 
     const now = Date.now();
     const req = makeRequest({
-      eventId: "event-1",
       agentId: "agent-1",
       agentKey: "key-1",
       executedAt: now - 3600000, // 1 hour ago
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(200);
     expect(mockMutation).toHaveBeenCalled();
   });
 
   it("returns 400 for missing required fields", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
 
     const req = makeRequest({
-      eventId: "event-1",
       // Missing agentId and agentKey
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(400);
   });
 
   it("returns 400 for invalid executedAt timestamp", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
 
     const req = makeRequest({
-      eventId: "event-1",
       agentId: "agent-1",
       agentKey: "key-1",
       executedAt: "not-a-number",
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(400);
   });
 
   it("returns 401 for invalid credentials", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
     (verifyAgent as jest.Mock).mockResolvedValueOnce(null);
 
     const req = makeRequest({
-      eventId: "event-1",
       agentId: "invalid",
       agentKey: "wrong",
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(401);
   });
 
   it("returns 500 when mutation fails", async () => {
-    const { POST } = await import("../mark-executed/route");
+    const { PUT } = await import("../events/[eventId]/route");
     mockMutation.mockRejectedValueOnce(new Error("DB error"));
 
     const req = makeRequest({
-      eventId: "event-1",
       agentId: "agent-1",
       agentKey: "key-1",
-    });
+    }, "event-1");
 
-    const res = await POST(req);
+    const res = await PUT(req, { params: { eventId: "event-1" } });
     expect(res.status).toBe(500);
   });
 });
