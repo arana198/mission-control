@@ -35,8 +35,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const currentTab = ((pathname || "").split("/").pop() || "overview") as TabType;
 
   // Extract business slug from pathname (e.g., "/mission-control-hq/board" -> "mission-control-hq")
+  // Important: "global" is not a business slug, it's a route prefix for global tabs
   const pathParts = (pathname || "").split("/").filter(Boolean);
-  const currentBusinessSlug = pathParts[0] || null;
+  const firstPart = pathParts[0];
+  const currentBusinessSlug = (firstPart && firstPart !== "global") ? firstPart : null;
+
+  // Get the actual business slug from context (fallback if on global page)
+  const businessSlugForNavigation = currentBusinessSlug || currentBusiness?.slug || "mission-control-hq";
 
   const tabs = [
     // Business-scoped tabs
@@ -61,9 +66,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     if (tab?.isGlobal) {
       router.push(`/global/${tabId}`);
     } else {
-      // Use current business slug or default to overview
-      const slug = currentBusinessSlug || "mission-control-hq";
-      router.push(`/${slug}/${tabId}`);
+      // Use business slug from context or navigation logic
+      router.push(`/${businessSlugForNavigation}/${tabId}`);
     }
   };
 
