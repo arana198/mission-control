@@ -257,6 +257,7 @@ export default defineSchema({
     // Target
     taskId: convexVal.optional(convexVal.id("tasks")),
     taskTitle: convexVal.optional(convexVal.string()),
+    ticketNumber: convexVal.optional(convexVal.string()),  // e.g. "MC-001" for human-readable ID
     epicId: convexVal.optional(convexVal.id("epics")),
     epicTitle: convexVal.optional(convexVal.string()),
 

@@ -9,6 +9,7 @@ export interface Activity {
   agentName?: string;
   agentId?: string;
   taskId?: string;
+  ticketNumber?: string;
   timestamp?: number;
   createdAt?: number;
   metadata?: Record<string, any>;

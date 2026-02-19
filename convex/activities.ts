@@ -108,12 +108,13 @@ export const create = mutation({
     agentRole: convexVal.optional(convexVal.string()),
     taskId: convexVal.optional(convexVal.id("tasks")),
     taskTitle: convexVal.optional(convexVal.string()),
+    ticketNumber: convexVal.optional(convexVal.string()),
     epicId: convexVal.optional(convexVal.id("epics")),
     epicTitle: convexVal.optional(convexVal.string()),
     oldValue: convexVal.optional(convexVal.any()),
     newValue: convexVal.optional(convexVal.any()),
   },
-  handler: async (ctx, { businessId, type, agentId, agentName, message, agentRole, taskId, taskTitle, epicId, epicTitle, oldValue, newValue }) => {
+  handler: async (ctx, { businessId, type, agentId, agentName, message, agentRole, taskId, taskTitle, ticketNumber, epicId, epicTitle, oldValue, newValue }) => {
     return await ctx.db.insert("activities", {
       businessId,  // ADD: business scoping
       type,
@@ -123,6 +124,7 @@ export const create = mutation({
       agentRole,
       taskId,
       taskTitle,
+      ticketNumber,
       epicId,
       epicTitle,
       oldValue,

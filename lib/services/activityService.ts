@@ -27,6 +27,7 @@ export async function logActivity(
 ) {
   let agentName = "Unknown";
   let taskTitle: string | undefined;
+  let ticketNumber: string | undefined;
   let epicTitle: string | undefined;
 
   // Fetch denormalized data
@@ -43,6 +44,7 @@ export async function logActivity(
     try {
       const task = await ctx.db.get(payload.taskId);
       taskTitle = task?.title;
+      ticketNumber = task?.ticketNumber;
     } catch (e) {
       console.error(
         `[ActivityService] Failed to fetch task ${payload.taskId}:`,
@@ -68,6 +70,7 @@ export async function logActivity(
     agentId,
     agentName,
     taskTitle,
+    ticketNumber,
     epicTitle,
     ...payload,
     createdAt: Date.now(),

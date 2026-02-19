@@ -1,12 +1,13 @@
 "use client";
 
-import { 
-  MessageSquare, CheckCircle2, PlusCircle, 
+import {
+  MessageSquare, CheckCircle2, PlusCircle,
   UserPlus, AlertCircle, Clock, Target,
   CheckSquare, Send, AtSign, PenTool, Calendar,
   MoreHorizontal, Filter, Activity, TrendingUp, Zap
 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 interface ActivityItem {
   _id: string;
@@ -15,6 +16,9 @@ interface ActivityItem {
   agentName?: string;
   agentRole?: string;
   taskTitle?: string;
+  ticketNumber?: string;
+  taskId?: string;
+  businessId?: string;
   createdAt: number;
 }
 
@@ -288,11 +292,30 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
               <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>
                 {activity.message}
               </p>
-              {activity.taskTitle && (
+              {activity.ticketNumber && activity.taskId && activity.businessId ? (
                 <div className="flex items-center gap-2 mt-2">
-                  <span 
+                  <Link
+                    href={`/${activity.businessId}/board?task=${activity.taskId}`}
+                    className="text-xs px-2 py-1 rounded font-mono font-semibold transition-colors hover:opacity-80"
+                    style={{
+                      background: "rgba(59, 130, 246, 0.2)",
+                      color: "var(--accent)",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {activity.ticketNumber}
+                  </Link>
+                  {activity.taskTitle && (
+                    <span className="text-xs text-muted-foreground">
+                      {activity.taskTitle}
+                    </span>
+                  )}
+                </div>
+              ) : activity.taskTitle ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <span
                     className="text-xs px-2 py-1 rounded"
-                    style={{ 
+                    style={{
                       background: "rgba(59, 130, 246, 0.1)",
                       color: "var(--accent)"
                     }}
@@ -300,7 +323,7 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
                     {activity.taskTitle}
                   </span>
                 </div>
-              )}
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>

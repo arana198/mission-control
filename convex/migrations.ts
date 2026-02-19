@@ -719,6 +719,64 @@ export const deleteTask = mutation({
   },
 });
 
+/**
+ * MIG-05: Add ticketNumber to activities table (2026-02-19)
+ *
+ * Schema change:
+ * - Added ticketNumber field to activities table for human-readable ticket reference
+ *
+ * Reason: Enable activities to display clickable ticket numbers (e.g., "MC-001") instead of just task IDs.
+ * Improves UX by making activity log more human-readable and actionable.
+ *
+ * Migration action:
+ * 1. For each activity with a taskId, fetch the task and update activity with its ticketNumber
+ * 2. Idempotent: Skip if ticketNumber already exists
+ */
+export const migrationAddTicketNumberToActivities = mutation({
+  args: {
+    batchSize: convexVal.optional(convexVal.number()),
+  },
+  handler: async (ctx, { batchSize = 100 }) => {
+    // Fetch all activities
+    const allActivities = await ctx.db.query("activities").collect();
+
+    let updatedCount = 0;
+    const batch = allActivities.slice(0, batchSize);
+
+    for (const activity of batch) {
+      // Skip if already has ticketNumber
+      if (activity.ticketNumber) {
+        continue;
+      }
+
+      // Only process activities with taskId
+      if (!activity.taskId) {
+        continue;
+      }
+
+      try {
+        const task = await ctx.db.get(activity.taskId);
+        if (task && task.ticketNumber) {
+          await ctx.db.patch(activity._id, {
+            ticketNumber: task.ticketNumber,
+          });
+          updatedCount++;
+        }
+      } catch (e) {
+        console.error(`[Migration] Failed to update activity ${activity._id}:`, e);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Updated ${updatedCount} activities with ticketNumber`,
+      processedCount: batch.length,
+      totalActivities: allActivities.length,
+      remainingActivities: Math.max(0, allActivities.length - batchSize),
+    };
+  },
+});
+
 // Helper to extract keywords from epic title/description
 function getEpicKeywords(title: string, description?: string): string[] {
   const text = `${title} ${description || ""}`;
