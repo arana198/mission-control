@@ -39,8 +39,8 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
   // Filtered tasks for workload/activity views
   const firstAgentId = agents?.[0]?._id;
   const filteredTasks = useQuery(api.tasks.getFiltered,
-    firstAgentId ? {
-      businessId: (selectedBusinessFilter as any) || firstAgentId,
+    selectedBusinessFilter && firstAgentId ? {
+      businessId: selectedBusinessFilter as any,
       agentId: firstAgentId
     } : "skip"
   );
