@@ -49,8 +49,9 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
   const containerRef = useRef<HTMLDivElement>(null);
 
   const memoryService = getMemoryService();
-  const goals = currentBusiness ? useQuery(api.goals.getByProgress, { businessId: currentBusiness._id } as any) : null;
-  const tasks = currentBusiness ? useQuery(api.tasks.getAllTasks, { businessId: currentBusiness._id } as any) : null;
+  // Always call hooks - don't conditionally call them (Rules of Hooks)
+  const goals = useQuery(api.goals.getByProgress, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
+  const tasks = useQuery(api.tasks.getAllTasks, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
   const agents = useQuery(api.agents.getAllAgents);
 
   // Keyboard shortcut: Cmd+K or Ctrl+K
