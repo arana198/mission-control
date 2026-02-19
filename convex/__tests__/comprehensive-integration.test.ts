@@ -101,7 +101,7 @@ class ComprehensiveTestDB {
   }
 
   calculateTaskProgress(taskIds: string[]): number {
-    const tasks = taskIds.map((id) => this.get(id)).filter(Boolean);
+    const tasks = taskIds.map((id: any) => this.get(id)).filter(Boolean);
     if (tasks.length === 0) return 0;
     const completed = tasks.filter((t) => t.status === "done").length;
     return Math.round((completed / tasks.length) * 100);
@@ -340,7 +340,7 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
         db.patch(child2, { status: "completed", progress: 100 });
 
         // Parent aggregates progress
-        const allChildren = [child1, child2].map((id) => db.get(id));
+        const allChildren = [child1, child2].map((id: any) => db.get(id));
         const avgProgress = Math.round(
           allChildren.reduce((sum, g) => sum + g.progress, 0) / allChildren.length
         );
@@ -430,7 +430,7 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
         });
 
         // Verify all agents completed their tasks
-        const finalAgents = agents.map((id) => db.get(id));
+        const finalAgents = agents.map((id: any) => db.get(id));
         finalAgents.forEach((agent) => {
           expect(agent.completedTasks).toBeGreaterThan(0);
         });
@@ -558,7 +558,7 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
         }
 
         const goal2 = db.get(goalId);
-        const count = goal2.relatedTaskIds.filter((id) => id === taskId).length;
+        const count = goal2.relatedTaskIds.filter((id: any) => id === taskId).length;
         expect(count).toBe(1); // Should be only 1
       });
     });
@@ -618,7 +618,7 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
         // Should prevent deletion
         const epic = db.get(epicId);
         const hasActiveTasks = epic.taskIds.some(
-          (id) => db.get(id)?.status !== "done"
+          (id: any) => db.get(id)?.status !== "done"
         );
 
         expect(hasActiveTasks).toBe(true);
@@ -722,7 +722,7 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
           );
 
           const progress = db.calculateTaskProgress(
-            tasks.map((id) => id)
+            tasks.map((id: any) => id)
           );
 
           expect(progress).toBe(expected);
@@ -1234,11 +1234,11 @@ describe("Comprehensive Integration Tests: All Scenarios", () => {
       // Quarterly aggregation
       const q1 = db.get(quarters[0]);
       const monthProgresses = q1.childGoalIds
-        .map((id) => db.get(id))
-        .map((g) => g.progress);
+        .map((id: any) => db.get(id))
+        .map((g: any) => g.progress);
 
       const avgQ1Progress = Math.round(
-        monthProgresses.reduce((a, b) => a + b, 0) / monthProgresses.length
+        monthProgresses.reduce((a: any, b: any) => a + b, 0) / monthProgresses.length
       );
 
       db.patch(quarters[0], { progress: avgQ1Progress });

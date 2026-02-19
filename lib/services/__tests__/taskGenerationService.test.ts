@@ -138,7 +138,7 @@ describe("TaskGenerationService", () => {
   describe("generateWeeklyPlan", () => {
     it("generates weekly plan with tasks and report", async () => {
       const goals = [createGoal()];
-      const completedTasks = [];
+      const completedTasks: any[] = [];
 
       const plan = await service.generateWeeklyPlan(goals, completedTasks);
 
@@ -150,7 +150,7 @@ describe("TaskGenerationService", () => {
 
     it("includes week and year in report", async () => {
       const goals = [createGoal()];
-      const completedTasks = [];
+      const completedTasks: any[] = [];
 
       const plan = await service.generateWeeklyPlan(goals, completedTasks);
       const now = new Date();
@@ -175,7 +175,7 @@ describe("TaskGenerationService", () => {
     it("calculates task metrics from completed tasks", async () => {
       const now = Date.now();
       const goals = [createGoal()];
-      const completedTasks = [
+      const completedTasks: any[] = [
         { completedAt: now - 86400000, actualHours: 2 },
         { completedAt: now - 172800000, actualHours: 3 },
       ];
@@ -189,7 +189,7 @@ describe("TaskGenerationService", () => {
     it("calculates average time per task", async () => {
       const now = Date.now();
       const goals = [createGoal()];
-      const completedTasks = [
+      const completedTasks: any[] = [
         { completedAt: now - 86400000, actualHours: 4 },
         { completedAt: now - 172800000, actualHours: 2 },
       ];
@@ -240,7 +240,7 @@ describe("TaskGenerationService", () => {
     it("filters tasks from last 7 days only", async () => {
       const now = Date.now();
       const goals = [createGoal()];
-      const completedTasks = [
+      const completedTasks: any[] = [
         // Last 7 days
         { completedAt: now - 86400000, actualHours: 2 },
         // Older than 7 days

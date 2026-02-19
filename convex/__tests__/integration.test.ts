@@ -81,7 +81,7 @@ class IntegrationMockDatabase {
     if (!epic || epic.taskIds.length === 0) return 0;
 
     const tasks = (epic.taskIds || []).map((tid: string) => this.get(tid));
-    const completed = tasks.filter((t) => t && t.status === "done").length;
+    const completed = tasks.filter((t: any) => t && t.status === "done").length;
     return Math.round((completed / tasks.length) * 100);
   }
 
@@ -90,7 +90,7 @@ class IntegrationMockDatabase {
     if (!goal || goal.relatedTaskIds.length === 0) return 0;
 
     const tasks = (goal.relatedTaskIds || []).map((tid: string) => this.get(tid));
-    const completed = tasks.filter((t) => t && t.status === "done").length;
+    const completed = tasks.filter((t: any) => t && t.status === "done").length;
     return Math.round((completed / tasks.length) * 100);
   }
 

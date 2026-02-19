@@ -380,7 +380,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
         createdAt: now,
       });
 
-      const schedules = (db.data.get("wakeSchedules") || []).filter(s => s.agentId === agent);
+      const schedules = ((db as any).data.get("wakeSchedules") || []).filter((s: any) => s.agentId === agent);
       expect(schedules).toHaveLength(3);
     });
 
@@ -423,7 +423,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
         createdAt: Date.now(),
       });
 
-      const schedules = db.getWakeSchedules().filter(s => s.enabled);
+      const schedules = db.getWakeSchedules().filter((s: any) => s.enabled);
       expect(schedules).toHaveLength(0);
     });
 
@@ -435,7 +435,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
         createdAt: Date.now(),
       });
 
-      const schedules = (db.data.get("wakeSchedules") || []).filter(s => s.agentId === "non-existent");
+      const schedules = ((db as any).data.get("wakeSchedules") || []).filter((s: any) => s.agentId === "non-existent");
       expect(schedules).toHaveLength(0);
     });
   });
@@ -458,7 +458,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
         });
       });
 
-      const schedules = (db.data.get("wakeSchedules") || []).filter(s => s.agentId === agent);
+      const schedules = ((db as any).data.get("wakeSchedules") || []).filter((s: any) => s.agentId === agent);
       expect(schedules).toHaveLength(4);
     });
 
@@ -477,8 +477,8 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
         });
       });
 
-      const schedules = (db.data.get("wakeSchedules") || []).filter(s => s.agentId === agent);
-      expect(schedules.map(s => s.timezone)).toEqual(timezones);
+      const schedules = ((db as any).data.get("wakeSchedules") || []).filter((s: any) => s.agentId === agent);
+      expect(schedules.map((s: any) => s.timezone)).toEqual(timezones);
     });
 
     it("handles many schedules across agents", () => {
@@ -869,7 +869,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
 
       // Verify complete chain
       const links = db.getCommitLinks();
-      const logs = (db.data.get("executionLog") || []);
+      const logs = ((db as any).data.get("executionLog") || []);
       const reports = db.query("strategicReports").collect();
 
       expect(links).toHaveLength(1);
@@ -935,9 +935,9 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
       });
 
       // Verify chain
-      const schedules = (db.data.get("wakeSchedules") || []);
-      const metrics = (db.data.get("agentMetrics") || []);
-      const reports = (db.data.get("strategicReports") || []);
+      const schedules = ((db as any).data.get("wakeSchedules") || []);
+      const metrics = ((db as any).data.get("agentMetrics") || []);
+      const reports = ((db as any).data.get("strategicReports") || []);
 
       expect(schedules).toHaveLength(1);
       expect(metrics).toHaveLength(1);
@@ -986,7 +986,7 @@ describe("ADVANCED SYSTEMS: Comprehensive Integration Tests", () => {
 
       // Verify migration chain
       const migrations = db.getMigrations();
-      const metrics = (db.data.get("agentMetrics") || []);
+      const metrics = ((db as any).data.get("agentMetrics") || []);
 
       expect(migrations).toHaveLength(1);
       expect(metrics).toHaveLength(1);

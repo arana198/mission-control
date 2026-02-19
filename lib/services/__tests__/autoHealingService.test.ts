@@ -363,7 +363,7 @@ describe("AutoHealingService", () => {
         proposalId: "proposal-1",
         status: "executing" as const,
         approvedAt: Date.now(),
-        createdTasks: ["task-1"],
+        createdTasks: ["task-1"] as any,
       };
 
       const status = await service.monitorHealing(execution);
@@ -382,7 +382,7 @@ describe("AutoHealingService", () => {
         proposalId: "proposal-final",
         status: "executing" as const,
         approvedAt: Date.now(),
-        createdTasks: ["task-1"],
+        createdTasks: ["task-1"] as any,
       };
 
       const capture = await service.captureHealing(execution);

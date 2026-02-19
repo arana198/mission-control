@@ -24,8 +24,7 @@ describe("InternalCalendarService", () => {
     service.initializeAgents(testAgents);
 
     // Set base time to 9 AM Monday
-    baseTime = new Date();
-    baseTime = new Date(baseTime.toISOString().split('T')[0]).getTime();
+    baseTime = new Date(new Date().toISOString().split('T')[0]).getTime();
     const monday = new Date(baseTime);
     monday.setDate(monday.getDate() - monday.getDay() + 1);
     baseTime = monday.getTime() + 9 * 60 * 60 * 1000; // 9 AM

@@ -1695,7 +1695,7 @@ describe("SUPPORTING SYSTEMS: Comprehensive Integration Tests", () => {
       const allMemories = db.query("memoryIndex").collect();
       const searchResults = allMemories.filter(m =>
         m.memoryPath.toLowerCase().includes("optim") ||
-        m.keywords.some(k => k.toLowerCase().includes("optim"))
+        m.keywords.some((k: any) => k.toLowerCase().includes("optim"))
       );
 
       expect(searchResults).toHaveLength(2);
@@ -1724,7 +1724,7 @@ describe("SUPPORTING SYSTEMS: Comprehensive Integration Tests", () => {
       const allMemories = db.query("memoryIndex").collect();
       const searchResults = allMemories.filter(m =>
         m.memoryPath.toLowerCase().includes("xyz") ||
-        m.keywords.some(k => k.toLowerCase().includes("xyz"))
+        m.keywords.some((k: any) => k.toLowerCase().includes("xyz"))
       );
 
       expect(searchResults).toHaveLength(0);

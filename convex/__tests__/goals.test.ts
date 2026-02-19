@@ -62,11 +62,11 @@ class GoalMockDatabase {
   }
 
   getGoalsByStatus(status: string) {
-    return (this.data.get("goals") || []).filter((g) => g.status === status);
+    return (this.data.get("goals") || []).filter((g: any) => g.status === status);
   }
 
   getGoalsByCategory(category: string) {
-    return (this.data.get("goals") || []).filter((g) => g.category === category);
+    return (this.data.get("goals") || []).filter((g: any) => g.category === category);
   }
 
   getTasksForGoal(goalId: string) {
@@ -108,7 +108,7 @@ class GoalMockDatabase {
       }
     }
 
-    return bottlenecks.sort((a, b) => a.progress - b.progress);
+    return bottlenecks.sort((a: any, b: any) => a.progress - b.progress);
   }
 
   getGoalsByProgress() {
@@ -120,17 +120,17 @@ class GoalMockDatabase {
 
     return {
       accelerating: goalsWithProgress
-        .filter((g) => g.progress >= 75)
-        .sort((a, b) => b.progress - a.progress),
+        .filter((g: any) => g.progress >= 75)
+        .sort((a: any, b: any) => b.progress - a.progress),
       onTrack: goalsWithProgress
-        .filter((g) => g.progress >= 50 && g.progress < 75)
-        .sort((a, b) => b.progress - a.progress),
+        .filter((g: any) => g.progress >= 50 && g.progress < 75)
+        .sort((a: any, b: any) => b.progress - a.progress),
       atRisk: goalsWithProgress
-        .filter((g) => g.progress >= 25 && g.progress < 50)
-        .sort((a, b) => b.progress - a.progress),
+        .filter((g: any) => g.progress >= 25 && g.progress < 50)
+        .sort((a: any, b: any) => b.progress - a.progress),
       blocked: goalsWithProgress
-        .filter((g) => g.progress < 25)
-        .sort((a, b) => b.progress - a.progress),
+        .filter((g: any) => g.progress < 25)
+        .sort((a: any, b: any) => b.progress - a.progress),
     };
   }
 
@@ -157,7 +157,7 @@ describe("Goals (convex/goals.ts)", () => {
     it("returns empty array when no goals exist", async () => {
       const goals = await db
         .query("goals")
-        .filter((g) => g.status === "active")
+        .filter((g: any) => g.status === "active")
         .collect();
       expect(goals).toEqual([]);
     });
@@ -181,8 +181,8 @@ describe("Goals (convex/goals.ts)", () => {
 
       const activeGoals = db.getGoalsByStatus("active");
       expect(activeGoals).toHaveLength(2);
-      expect(activeGoals.map((g) => g.title)).toContain("Active Goal");
-      expect(activeGoals.map((g) => g.title)).toContain("Another Active");
+      expect(activeGoals.map((g: any) => g.title)).toContain("Active Goal");
+      expect(activeGoals.map((g: any) => g.title)).toContain("Another Active");
     });
   });
 
@@ -592,7 +592,7 @@ describe("Goals (convex/goals.ts)", () => {
       }
 
       const updated = db.get(goalId);
-      expect(updated.relatedTaskIds.filter((id) => id === taskId)).toHaveLength(1);
+      expect(updated.relatedTaskIds.filter((id: any) => id === taskId)).toHaveLength(1);
     });
   });
 
@@ -612,12 +612,12 @@ describe("Goals (convex/goals.ts)", () => {
       // Then unlink
       const goal = db.get(goalId);
       db.patch(goalId, {
-        relatedTaskIds: goal.relatedTaskIds.filter((id) => id !== taskId),
+        relatedTaskIds: goal.relatedTaskIds.filter((id: any) => id !== taskId),
       });
 
       const task = db.get(taskId);
       db.patch(taskId, {
-        goalIds: (task.goalIds || []).filter((id) => id !== goalId),
+        goalIds: (task.goalIds || []).filter((id: any) => id !== goalId),
       });
 
       const updatedGoal = db.get(goalId);
@@ -642,7 +642,7 @@ describe("Goals (convex/goals.ts)", () => {
       // Unlink one task
       const goal = db.get(goalId);
       db.patch(goalId, {
-        relatedTaskIds: goal.relatedTaskIds.filter((id) => id !== task1Id),
+        relatedTaskIds: goal.relatedTaskIds.filter((id: any) => id !== task1Id),
       });
 
       const progress = db.calculateGoalProgress(goalId);
