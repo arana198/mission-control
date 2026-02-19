@@ -398,8 +398,11 @@ describe("ExecutionScalingService", () => {
 
       service.rebalancePool();
 
-      // Verify rebalance would happen
-      expect(true).toBe(true);
+      // Verify rebalance happened - underperforming agent should have modified status
+      const status2 = service.getPoolStatus();
+      expect(status2.workers).toHaveLength(2);
+      // Expected: rebalance method executed successfully
+      expect(status2.workers[0].successRate).toBeLessThanOrEqual(60);
     });
   });
 
