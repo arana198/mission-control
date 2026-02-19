@@ -68,8 +68,8 @@ export function DocumentPanel() {
   }
 
   // Filter documents
-  const filteredDocs = documents.filter((doc) => {
-    const matchesSearch = 
+  const filteredDocs = (documents || []).filter((doc) => {
+    const matchesSearch =
       doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType ? doc.type === selectedType : true;

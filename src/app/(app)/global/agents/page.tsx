@@ -1,4 +1,8 @@
+"use client";
+
+import { Suspense } from "react";
 import { DashboardTabClientContent } from "../../../../components/DashboardTab";
+import { LoadingSkeleton } from "../../../../components/LoadingSkeletons";
 
 /**
  * Global Agents Page
@@ -6,5 +10,9 @@ import { DashboardTabClientContent } from "../../../../components/DashboardTab";
  * Shows agent squad management (globally shared agent pool)
  */
 export default function GlobalAgentsPage() {
-  return <DashboardTabClientContent tab="agents" />;
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <DashboardTabClientContent tab="agents" />
+    </Suspense>
+  );
 }
