@@ -1,0 +1,57 @@
+/**
+ * GET /api/state-engine/decisions
+ * Get decision audit trail for pattern analysis
+ *
+ * Query params:
+ * - businessId: required
+ * - since: optional (timestamp in ms)
+ * - action: optional (escalated, reassigned, unblocked, marked_executed, deprioritized)
+ * - limit: optional (default: 50)
+ */
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const businessId = searchParams.get("businessId");
+    const since = searchParams.get("since");
+    const action = searchParams.get("action");
+    const limit = searchParams.get("limit");
+
+    if (!businessId) {
+      return Response.json(
+        { error: "businessId parameter required" },
+        { status: 400 }
+      );
+    }
+
+    const decisions = await convex.query(api.decisions.getByBusiness, {
+      businessId: businessId as any,
+      since: since ? parseInt(since) : undefined,
+      action: action || undefined,
+      limit: limit ? parseInt(limit) : 50,
+    });
+
+    // Also get pattern analysis
+    const patterns = await convex.query(api.decisions.analyzePatterns, {
+      businessId: businessId as any,
+      since: since ? parseInt(since) : undefined,
+    });
+
+    return Response.json({
+      businessId,
+      decisions,
+      patterns,
+      count: decisions.length,
+    });
+  } catch (error: any) {
+    console.error("Error fetching decisions:", error);
+    return Response.json(
+      { error: "Failed to fetch decisions", details: error.message },
+      { status: 500 }
+    );
+  }
+}
