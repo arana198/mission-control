@@ -295,8 +295,32 @@ export function DashboardTabClientContent({
   // Determine if we should show the business filter
   const isGlobalTab = ["workload", "activity", "analytics"].includes(tab);
 
+  // Calculate counts for header
+  const p0Count = tasks?.filter((t: any) => t.priority === "P0").length || 0;
+  const unassignedCount = tasks?.filter((t: any) => t.assigneeIds.length === 0 && t.status !== "done").length || 0;
+
   return (
     <main className="flex-1 overflow-y-auto">
+      <DashboardHeader
+        activeTab={tab as any}
+        unreadCount={unreadCount}
+        unassignedCount={unassignedCount}
+        p0Count={p0Count}
+        isAutoAssigning={autoAssigning}
+        onCreateTask={() => setIsCreatingTask(true)}
+        onToggleNotifications={() => setShowNotifications(!showNotifications)}
+        onAutoAssign={() => {
+          if (autoAssignBacklog) {
+            setAutoAssigning(true);
+            autoAssignBacklog({ taskCount: unassignedCount }).then(() => {
+              setAutoAssigning(false);
+            }).catch(() => {
+              setAutoAssigning(false);
+            });
+          }
+        }}
+        canAutoAssign={!!autoAssignBacklog && isBusinessSpecificTab}
+      />
       <div className="p-6">
         {/* Business Filter for global tabs */}
         {isGlobalTab && (

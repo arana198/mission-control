@@ -7,11 +7,12 @@
 
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { BusinessSelector } from "@/components/BusinessSelector";
 import { useBusiness } from "@/components/BusinessProvider";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
   BarChart3, Map, LayoutGrid, Users, Briefcase, Activity, Calendar,
   Brain, AlertCircle, Zap, Moon, Sun, Sparkles, ChevronRight, BookOpen
