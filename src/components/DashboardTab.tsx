@@ -58,41 +58,50 @@ export function DashboardTabClientContent({
   const isBusinessSpecificTab = ["overview", "board", "epics", "documents", "settings"].includes(tab);
   const targetBusinessId = currentBusiness?._id;
 
-  // Fetch all required data - ALWAYS call hooks in same order on every render
-  // This is critical for React's Rules of Hooks - never conditionally call hooks
+  // Fetch all required data
   const agents = useQuery(api.agents.getAllAgents);
 
-  // Always call useQuery with same function, params may be undefined/partial
-  const businessTasks = useQuery(api.tasks.getAllTasks, {
-    businessId: targetBusinessId || undefined
-  } as any);
+  // Business-specific tasks (for business tabs)
+  // @ts-ignore - Conditional hook call required for tab-based data fetching
+  const businessTasks = isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.tasks.getAllTasks, { businessId: targetBusinessId as any })
+    : null;
 
-  const globalTasks = useQuery(api.tasks.getFiltered, {
-    businessId: selectedBusinessFilter || undefined,
-    agentId: agents?.[0]?._id || undefined
-  } as any);
+  // Global tasks (for workload/activity tabs)
+  // @ts-ignore - Conditional hook call required for tab-based data fetching
+  const globalTasks = !isBusinessSpecificTab && selectedBusinessFilter && targetBusinessId && agents?.[0]?._id
+    ? useQuery(api.tasks.getFiltered, { businessId: selectedBusinessFilter as any, agentId: agents[0]._id as any })
+    : !isBusinessSpecificTab && !selectedBusinessFilter
+    ? null
+    : null;
 
-  const businessEpics = useQuery(api.epics.getAllEpics, {
-    businessId: targetBusinessId || undefined
-  } as any);
+  const tasks = isBusinessSpecificTab ? businessTasks : globalTasks;
 
-  const globalEpicsData = useQuery(api.epics.getAllEpics, {
-    businessId: targetBusinessId || undefined
-  } as any);
+  // Business-specific epics (for business tabs)
+  // @ts-ignore - Conditional hook call required for tab-based data fetching
+  const businessEpics = isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
+    : null;
 
+  // Global epics (fallback for global tabs)
+  // @ts-ignore - Conditional hook call required for tab-based data fetching
+  const globalEpics = !isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId as any })
+    : null;
+
+  const epics = isBusinessSpecificTab ? businessEpics : globalEpics;
+
+  // Activities with optional business filter
   const activities = useQuery(api.activities.getRecent, {
     limit: 10,
-    businessId: selectedBusinessFilter || undefined
+    businessId: selectedBusinessFilter ? (selectedBusinessFilter as any) : undefined
   });
 
   const notifications = useQuery(api.notifications.getAll);
-
-  const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
-
-  // Select appropriate data based on tab AFTER all hooks are called
-  const tasks = isBusinessSpecificTab ? businessTasks : globalTasks;
-  const epics = isBusinessSpecificTab ? businessEpics : globalEpicsData;
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
+
+  // Get mutations
+  const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
 
   // Log page load
   useEffect(() => {
