@@ -266,61 +266,34 @@ async function openclawHeartbeat() {
             unblock dependencies, and mark tasks as completed.
           </p>
 
-          {/* Escalate Action */}
+          {/* Unified Task Actions */}
           <div className="bg-slate-900 rounded p-4 mb-6">
-            <p className="text-slate-200 font-mono mb-2">POST /state-engine/actions/escalate</p>
-            <p className="text-slate-400 text-sm">Escalate task to P0 (highest priority)</p>
+            <p className="text-slate-200 font-mono mb-2">PATCH /api/tasks/:taskId</p>
+            <p className="text-slate-400 text-sm">Execute task action (escalate, reassign, unblock, mark-executed, etc.)</p>
             <div className="mt-3 bg-slate-800 rounded p-3 text-sm text-slate-300 font-mono">
-              <p className="mb-2 text-slate-400">Request body:</p>
+              <p className="mb-2 text-slate-400">Escalate task to P0:</p>
               <pre>{`{
+  "action": "escalate",
   "businessId": "biz_123",
-  "taskId": "task_456",
   "reason": "blocking_other_tasks",
   "decidedBy": "openclaw"
 }`}</pre>
-            </div>
-          </div>
-
-          {/* Reassign Action */}
-          <div className="bg-slate-900 rounded p-4 mb-6">
-            <p className="text-slate-200 font-mono mb-2">POST /state-engine/actions/reassign</p>
-            <p className="text-slate-400 text-sm">Reassign task to different agent</p>
-            <div className="mt-3 bg-slate-800 rounded p-3 text-sm text-slate-300 font-mono">
-              <p className="mb-2 text-slate-400">Request body:</p>
+              <p className="mb-2 text-slate-400 mt-3">Reassign task:</p>
               <pre>{`{
-  "businessId": "biz_123",
-  "taskId": "task_789",
+  "action": "reassign",
   "toAgent": "agent_2",
   "reason": "current_agent_overloaded",
   "decidedBy": "openclaw"
 }`}</pre>
-            </div>
-          </div>
-
-          {/* Unblock Action */}
-          <div className="bg-slate-900 rounded p-4 mb-6">
-            <p className="text-slate-200 font-mono mb-2">POST /state-engine/actions/unblock</p>
-            <p className="text-slate-400 text-sm">Clear blocked status, resume task</p>
-            <div className="mt-3 bg-slate-800 rounded p-3 text-sm text-slate-300 font-mono">
-              <p className="mb-2 text-slate-400">Request body:</p>
+              <p className="mb-2 text-slate-400 mt-3">Unblock task:</p>
               <pre>{`{
-  "businessId": "biz_123",
-  "taskId": "task_456",
+  "action": "unblock",
   "reason": "dependency_resolved",
   "decidedBy": "openclaw"
 }`}</pre>
-            </div>
-          </div>
-
-          {/* Mark Executed Action */}
-          <div className="bg-slate-900 rounded p-4 mb-6">
-            <p className="text-slate-200 font-mono mb-2">POST /state-engine/actions/mark-executed</p>
-            <p className="text-slate-400 text-sm">Mark task as completed</p>
-            <div className="mt-3 bg-slate-800 rounded p-3 text-sm text-slate-300 font-mono">
-              <p className="mb-2 text-slate-400">Request body:</p>
+              <p className="mb-2 text-slate-400 mt-3">Mark executed:</p>
               <pre>{`{
-  "businessId": "biz_123",
-  "taskId": "task_456",
+  "action": "mark-executed",
   "outcome": "Successfully deployed to production",
   "decidedBy": "openclaw"
 }`}</pre>
@@ -411,22 +384,22 @@ async function openclawHeartbeat() {
             <h3 className="text-lg font-semibold text-slate-200 mb-3">🎯 Epics</h3>
             <div className="space-y-2">
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/epics/list</p>
+                <p className="text-slate-200 font-mono">GET /api/epics</p>
                 <p className="text-slate-400">List all epics</p>
               </div>
             </div>
           </div>
 
-          {/* Goals */}
+          {/* Admin */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-slate-200 mb-3">🎪 Goals</h3>
+            <h3 className="text-lg font-semibold text-slate-200 mb-3">⚡ Admin Operations</h3>
             <div className="space-y-2">
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/goals/seed-demo</p>
+                <p className="text-slate-200 font-mono">POST /api/admin/goals/seed</p>
                 <p className="text-slate-400">Seed demo goals</p>
               </div>
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/goals/cleanup-demo</p>
+                <p className="text-slate-200 font-mono">DELETE /api/admin/goals/demo</p>
                 <p className="text-slate-400">Clean up demo goals</p>
               </div>
             </div>
@@ -437,20 +410,20 @@ async function openclawHeartbeat() {
             <h3 className="text-lg font-semibold text-slate-200 mb-3">🧠 Memory (Brain)</h3>
             <div className="space-y-2">
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/memory/list</p>
-                <p className="text-slate-400">List memory entries</p>
+                <p className="text-slate-200 font-mono">GET /api/memory</p>
+                <p className="text-slate-400">List memory files</p>
               </div>
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/memory/search</p>
+                <p className="text-slate-200 font-mono">GET /api/memory/files?path=...</p>
+                <p className="text-slate-400">Get memory file content</p>
+              </div>
+              <div className="bg-slate-900 rounded p-3 text-sm">
+                <p className="text-slate-200 font-mono">POST /api/memory/search</p>
                 <p className="text-slate-400">Search memory</p>
               </div>
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/memory/context</p>
+                <p className="text-slate-200 font-mono">GET /api/memory/context?entity=...&type=...</p>
                 <p className="text-slate-400">Get context from memory</p>
-              </div>
-              <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/memory/content</p>
-                <p className="text-slate-400">Get memory content</p>
               </div>
             </div>
           </div>
@@ -460,8 +433,8 @@ async function openclawHeartbeat() {
             <h3 className="text-lg font-semibold text-slate-200 mb-3">📊 Reports</h3>
             <div className="space-y-2">
               <div className="bg-slate-900 rounded p-3 text-sm">
-                <p className="text-slate-200 font-mono">GET /api/reports/strategic-weekly</p>
-                <p className="text-slate-400">Get weekly strategic report</p>
+                <p className="text-slate-200 font-mono">GET|POST /api/reports?type=strategic-weekly</p>
+                <p className="text-slate-400">Get or generate weekly strategic report</p>
               </div>
             </div>
           </div>
@@ -613,27 +586,22 @@ async function openclawHeartbeat() {
 
           {/* Task Operations */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-white mb-3">Task Operations</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">Task Operations (RESTful)</h3>
+            <p className="text-slate-400 text-xs mb-3">All task operations use a unified PATCH endpoint with action discriminator</p>
             <div className="space-y-3">
               <div className="bg-slate-900 rounded p-4">
-                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/assign</p>
-                <p className="text-slate-400 text-xs mt-1">Assign task to agents</p>
-              </div>
-              <div className="bg-slate-900 rounded p-4">
-                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/complete</p>
-                <p className="text-slate-400 text-xs mt-1">Mark task as complete</p>
-              </div>
-              <div className="bg-slate-900 rounded p-4">
-                <p className="text-slate-200 font-mono text-sm">PATCH /api/agents/:agentId/tasks/:taskId/status</p>
-                <p className="text-slate-400 text-xs mt-1">Update task status</p>
+                <p className="text-slate-200 font-mono text-sm">PATCH /api/tasks/:taskId</p>
+                <p className="text-slate-400 text-xs mt-1">Execute task action (assign, complete, update-status, update-tags, escalate, reassign, unblock, mark-executed)</p>
+                <div className="mt-2 bg-slate-800 rounded p-2 text-xs text-slate-300 font-mono">
+                  <p className="text-slate-400 mb-1">Example - Assign task:</p>
+                  <pre>{`{ action: "assign", agentId, agentKey, assigneeIds }`}</pre>
+                  <p className="text-slate-400 mt-2 mb-1">Example - Complete task:</p>
+                  <pre>{`{ action: "complete", agentId, agentKey, completionNotes }`}</pre>
+                </div>
               </div>
               <div className="bg-slate-900 rounded p-4">
                 <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/comments</p>
                 <p className="text-slate-400 text-xs mt-1">Add comment to task</p>
-              </div>
-              <div className="bg-slate-900 rounded p-4">
-                <p className="text-slate-200 font-mono text-sm">PATCH /api/agents/:agentId/tasks/:taskId/tags</p>
-                <p className="text-slate-400 text-xs mt-1">Update task tags</p>
               </div>
             </div>
           </div>
