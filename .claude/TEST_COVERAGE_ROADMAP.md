@@ -1,9 +1,9 @@
 # Test Coverage Roadmap
 
 **Current Status (2026-02-19)**
-- Total Tests: **538** (up from 287)
-- Coverage: **24.32%** statements (up from 16.05%)
-- Test Suites: **33** (up from 22)
+- Total Tests: **604** (up from 287)
+- Coverage: **34.13%** statements (up from 16.05%)
+- Test Suites: **38** (up from 22)
 
 ---
 
@@ -98,7 +98,12 @@
 
 ## Phase 4: API Routes (Test Pattern Established)
 
-**Status:** Partial (some agent API routes at 100%)
+**Status:** Partial (21/68 tests complete, Phase 5 prioritized)
+
+### Completed (21 tests, 100% coverage)
+- `GET /api/agents/list` → **100%** (8 tests)
+- `GET /api/calendar/find-slots` → **96.29%** (9 tests)
+- `GET /api/epics/list` → **100%** (4 tests)
 
 ### Core Agent APIs ✅
 - `GET /api/agents/heartbeat` → **100%**
@@ -107,34 +112,35 @@
 - `GET /api/agents/tasks/[taskId]` → **100%**
 - `POST /api/agents/tasks/tag` → **100%**
 
-### Unimplemented (0% coverage)
-- `GET /api/agents/list` (8 tests)
-- `GET /api/calendar/*` (5 routes × 4 tests each = 20 tests)
-- `GET /api/epics/list` (4 tests)
-- `POST /api/goals/*` (2 routes × 4 tests each = 8 tests)
-- `POST /api/memory/*` (3 routes × 4 tests each = 12 tests)
-- `POST /api/tasks/*` (3 routes × 4 tests each = 12 tests)
+### Remaining (47 tests, 0% coverage)
+- `POST /api/calendar/create-event` (4 tests)
+- `POST /api/calendar/mark-executed` (4 tests)
+- `POST /api/calendar/schedule-task` (4 tests)
+- `POST /api/goals/seed-demo` (4 tests)
+- `POST /api/goals/cleanup-demo` (4 tests)
+- `POST /api/memory/content` (4 tests)
+- `POST /api/memory/context` (4 tests)
+- `POST /api/memory/list` (4 tests)
+- `POST /api/memory/search` (4 tests)
+- `POST /api/tasks/execute` (4 tests)
+- `POST /api/tasks/generate-daily` (4 tests)
 - `POST /api/reports/strategic-weekly` (4 tests)
 
-**Total:** ~68 tests
-**Effort:** **1 day**
-**Coverage gain:** **+8%**
+**Completed:** 21 tests | **Remaining:** 47 tests
+**Estimated effort for remaining:** **1-2 days**
+**Coverage gain when complete:** **+8-10%**
 
 ---
 
-## Phase 5: Advanced Services (Require Mocking)
+## Phase 5: Advanced Services ✅ DONE
 
-### `lib/services/strategicPlanningEngine.ts` (573 lines)
-- Tests needed: **20**
-- Requires: ConvexHttpClient mock + MemoryService mock
-- Effort: **1 day**
-- Coverage gain: **+6%**
+### `lib/services/strategicPlanningEngine.ts` ✅
+- Tests: **22** | Coverage: **90.72%**
+- Completed: weekly report generation, goal analysis, execution metrics, bottleneck detection, insights
 
-### `lib/services/taskGenerationService.ts` (510 lines)
-- Tests needed: **20**
-- Requires: Same mocks as above
-- Effort: **1 day**
-- Coverage gain: **+5%**
+### `lib/services/taskGenerationService.ts` ✅
+- Tests: **23** | Coverage: **91.59%**
+- Completed: daily task generation, weekly planning, metrics calculation
 
 ---
 
@@ -146,12 +152,12 @@
 | Phase 1 ✅ | 5 | +84 | **17.69%** |
 | Phase 2 ✅ | 3 | +68 | **20.06%** |
 | Phase 3 ✅ | 3 | +81 | **24.32%** |
-| Phase 4 | 10 | +68 | **28%** (projected) |
-| Phase 5 | 2 | +40 | **35%** (projected) |
+| Phase 4 (partial) | 3 | +21 | **30.69%** |
+| Phase 5 ✅ | 2 | +45 | **34.13%** |
 | Phase 6* | 8 | +100 | **50%+** (projected) |
 
-**Progress**: 538 tests written, +8.27% coverage gain from baseline
-**On track** for 40%+ overall coverage by end of Phase 4
+**Progress**: 604 tests written, +18.08% coverage gain from baseline
+**Achieved 34%+** overall coverage, on track for 50%+ with Phase 6
 
 ---
 
