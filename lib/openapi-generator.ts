@@ -1,8 +1,8 @@
 /**
- * OpenAPI Spec Generator
+ * OpenAPI Spec Generator (RESTful)
  *
  * Generates OpenAPI 3.0 specification for all API endpoints
- * Integrates with Swagger UI for interactive API documentation
+ * Follows REST architectural best practices with resource-based URLs
  */
 
 export interface OpenAPISpec {
@@ -29,16 +29,16 @@ export interface OpenAPISpec {
 
 /**
  * Generate OpenAPI specification
- * This builds the complete spec from our documented endpoints
+ * Consolidates 35 endpoints into RESTful resource structure
  */
 export function generateOpenAPISpec(): OpenAPISpec {
   return {
     openapi: "3.0.0",
     info: {
       title: "Mission Control API",
-      version: "1.0.0",
+      version: "2.0.0",
       description:
-        "Comprehensive API for autonomous agent management, state engine, and task orchestration",
+        "RESTful API for autonomous agent management, state engine, and task orchestration. Follows REST best practices with resource-based URLs and HTTP method semantics.",
     },
     servers: [
       {
@@ -51,10 +51,10 @@ export function generateOpenAPISpec(): OpenAPISpec {
       },
     ],
     paths: {
-      // AGENT MANAGEMENT
+      // ============= AGENT MANAGEMENT =============
       "/api/agents": {
         post: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "Register new agent",
           description: "Register a new AI agent or retrieve existing agent credentials",
           requestBody: {
@@ -102,7 +102,7 @@ export function generateOpenAPISpec(): OpenAPISpec {
           },
         },
         get: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "List all agents",
           description: "Get a list of all agents for @mention discovery",
           parameters: [
@@ -122,42 +122,13 @@ export function generateOpenAPISpec(): OpenAPISpec {
           responses: {
             "200": {
               description: "List of agents retrieved",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      success: { type: "boolean" },
-                      data: {
-                        type: "object",
-                        properties: {
-                          agents: {
-                            type: "array",
-                            items: {
-                              type: "object",
-                              properties: {
-                                id: { type: "string" },
-                                name: { type: "string" },
-                                role: { type: "string" },
-                                level: { type: "string" },
-                                status: { type: "string" },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
             },
           },
         },
       },
-
       "/api/agents/{agentId}": {
         get: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "Get agent details",
           parameters: [
             {
@@ -174,16 +145,12 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           ],
           responses: {
-            "200": {
-              description: "Agent details retrieved",
-            },
-            "401": {
-              description: "Unauthorized",
-            },
+            "200": { description: "Agent details retrieved" },
+            "401": { description: "Unauthorized" },
           },
         },
         patch: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "Update agent",
           parameters: [
             {
@@ -211,17 +178,15 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           },
           responses: {
-            "200": {
-              description: "Agent updated",
-            },
+            "200": { description: "Agent updated" },
           },
         },
       },
-
       "/api/agents/{agentId}/heartbeat": {
         post: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "Send heartbeat",
+          description: "Agent health check and status update",
           parameters: [
             {
               name: "agentId",
@@ -247,17 +212,15 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           },
           responses: {
-            "200": {
-              description: "Heartbeat received",
-            },
+            "200": { description: "Heartbeat received" },
           },
         },
       },
-
       "/api/agents/{agentId}/poll": {
         post: {
-          tags: ["Agent Management"],
+          tags: ["Agents"],
           summary: "Poll for work",
+          description: "Agent polls for new tasks from specified business",
           parameters: [
             {
               name: "agentId",
@@ -275,6 +238,7 @@ export function generateOpenAPISpec(): OpenAPISpec {
                   properties: {
                     agentKey: { type: "string" },
                     businessId: { type: "string" },
+                    limit: { type: "number" },
                   },
                   required: ["agentKey", "businessId"],
                 },
@@ -282,27 +246,19 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           },
           responses: {
-            "200": {
-              description: "Work queue retrieved",
-            },
+            "200": { description: "Tasks retrieved" },
           },
         },
       },
-
       "/api/agents/{agentId}/tasks": {
         get: {
-          tags: ["Agent Management"],
+          tags: ["Tasks"],
           summary: "Query assigned tasks",
+          description: "Get tasks assigned to specific agent",
           parameters: [
             {
               name: "agentId",
               in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "agentKey",
-              in: "query",
               required: true,
               schema: { type: "string" },
             },
@@ -312,38 +268,15 @@ export function generateOpenAPISpec(): OpenAPISpec {
               required: true,
               schema: { type: "string" },
             },
-            {
-              name: "status",
-              in: "query",
-              schema: { type: "string" },
-            },
-            {
-              name: "priority",
-              in: "query",
-              schema: { type: "string" },
-            },
-            {
-              name: "limit",
-              in: "query",
-              schema: { type: "integer", default: 50 },
-            },
-            {
-              name: "offset",
-              in: "query",
-              schema: { type: "integer", default: 0 },
-            },
           ],
           responses: {
-            "200": {
-              description: "Tasks retrieved",
-            },
+            "200": { description: "Tasks retrieved" },
           },
         },
       },
-
       "/api/agents/{agentId}/tasks/{taskId}": {
         get: {
-          tags: ["Agent Management"],
+          tags: ["Tasks"],
           summary: "Get task details",
           parameters: [
             {
@@ -366,106 +299,13 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           ],
           responses: {
-            "200": {
-              description: "Task details",
-            },
-            "404": {
-              description: "Task not found",
-            },
+            "200": { description: "Task details retrieved" },
           },
         },
       },
-
-      "/api/agents/{agentId}/tasks/{taskId}/assign": {
-        post: {
-          tags: ["Agent Management"],
-          summary: "Assign task",
-          parameters: [
-            {
-              name: "agentId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "taskId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    agentKey: { type: "string" },
-                    assigneeIds: {
-                      type: "array",
-                      items: { type: "string" },
-                      minItems: 1,
-                      maxItems: 10,
-                    },
-                  },
-                  required: ["agentKey", "assigneeIds"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task assigned",
-            },
-          },
-        },
-      },
-
-      "/api/agents/{agentId}/tasks/{taskId}/complete": {
-        post: {
-          tags: ["Agent Management"],
-          summary: "Complete task",
-          parameters: [
-            {
-              name: "agentId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "taskId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    agentKey: { type: "string" },
-                    completionNotes: { type: "string" },
-                    timeSpent: { type: "number" },
-                  },
-                  required: ["agentKey"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task completed",
-            },
-          },
-        },
-      },
-
       "/api/agents/{agentId}/tasks/{taskId}/comments": {
         post: {
-          tags: ["Agent Management"],
+          tags: ["Tasks"],
           summary: "Add task comment",
           parameters: [
             {
@@ -489,33 +329,27 @@ export function generateOpenAPISpec(): OpenAPISpec {
                   type: "object",
                   properties: {
                     agentKey: { type: "string" },
-                    content: { type: "string", minLength: 1, maxLength: 5000 },
-                    mentions: { type: "array", items: { type: "string" } },
+                    text: { type: "string" },
                   },
-                  required: ["agentKey", "content"],
+                  required: ["agentKey", "text"],
                 },
               },
             },
           },
           responses: {
-            "201": {
-              description: "Comment created",
-            },
+            "201": { description: "Comment added" },
           },
         },
       },
 
-      "/api/agents/{agentId}/tasks/{taskId}/status": {
+      // ============= UNIFIED TASK ACTIONS =============
+      "/api/tasks/{taskId}": {
         patch: {
-          tags: ["Agent Management"],
-          summary: "Update task status",
+          tags: ["Tasks"],
+          summary: "Execute task action",
+          description:
+            "Unified endpoint for task mutations: assign, complete, update status/tags, escalate, reassign, unblock, mark-executed",
           parameters: [
-            {
-              name: "agentId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
             {
               name: "taskId",
               in: "path",
@@ -530,481 +364,61 @@ export function generateOpenAPISpec(): OpenAPISpec {
                 schema: {
                   type: "object",
                   properties: {
-                    agentKey: { type: "string" },
-                    status: {
+                    action: {
                       type: "string",
-                      enum: ["backlog", "ready", "in_progress", "review", "blocked", "done"],
+                      enum: [
+                        "assign",
+                        "complete",
+                        "update-status",
+                        "update-tags",
+                        "escalate",
+                        "reassign",
+                        "unblock",
+                        "mark-executed",
+                      ],
+                      description: "Action discriminator",
                     },
+                    // Agent-facing actions (require agentKey)
+                    agentKey: { type: "string", description: "For agent-facing actions" },
+                    agentId: { type: "string", description: "For agent-facing actions" },
+                    assigneeIds: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "For assign action",
+                    },
+                    completionNotes: { type: "string", description: "For complete action" },
+                    timeSpent: { type: "number", description: "For complete action" },
+                    status: { type: "string", description: "For update-status or complete actions" },
+                    tags: { type: "array", items: { type: "string" }, description: "For update-tags" },
+                    tagsToAdd: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "For update-tags",
+                    },
+                    tagsToRemove: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "For update-tags",
+                    },
+                    // State engine actions (require decidedBy)
+                    businessId: { type: "string", description: "For state-engine actions" },
+                    reason: { type: "string", description: "For state-engine actions" },
+                    decidedBy: { type: "string", description: "For state-engine actions" },
+                    toAgent: { type: "string", description: "For reassign action" },
+                    outcome: { type: "string", description: "For mark-executed action" },
                   },
-                  required: ["agentKey", "status"],
+                  required: ["action"],
                 },
               },
             },
           },
           responses: {
-            "200": {
-              description: "Status updated",
-            },
+            "200": { description: "Action executed successfully" },
+            "400": { description: "Invalid action or missing parameters" },
+            "401": { description: "Unauthorized" },
           },
         },
       },
-
-      "/api/agents/{agentId}/tasks/{taskId}/tags": {
-        patch: {
-          tags: ["Agent Management"],
-          summary: "Update task tags",
-          parameters: [
-            {
-              name: "agentId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "taskId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    agentKey: { type: "string" },
-                    tags: { type: "array", items: { type: "string" } },
-                    action: { type: "string", enum: ["add", "remove"] },
-                  },
-                  required: ["agentKey", "tags", "action"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Tags updated",
-            },
-          },
-        },
-      },
-
-      // STATE ENGINE
-      "/api/state-engine/metrics": {
-        get: {
-          tags: ["State Engine"],
-          summary: "Get real-time metrics",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Metrics snapshot",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/alerts": {
-        get: {
-          tags: ["State Engine"],
-          summary: "Get alert rules",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Alert rules",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/decisions": {
-        get: {
-          tags: ["State Engine"],
-          summary: "Get audit trail",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "limit",
-              in: "query",
-              schema: { type: "integer" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Decisions",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/actions/escalate": {
-        post: {
-          tags: ["State Engine"],
-          summary: "Escalate task",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    businessId: { type: "string" },
-                    taskId: { type: "string" },
-                    reason: { type: "string" },
-                    decidedBy: { type: "string" },
-                  },
-                  required: ["businessId", "taskId", "reason", "decidedBy"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task escalated",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/actions/reassign": {
-        post: {
-          tags: ["State Engine"],
-          summary: "Reassign task",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    businessId: { type: "string" },
-                    taskId: { type: "string" },
-                    toAgent: { type: "string" },
-                    reason: { type: "string" },
-                  },
-                  required: ["businessId", "taskId", "toAgent", "reason"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task reassigned",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/actions/unblock": {
-        post: {
-          tags: ["State Engine"],
-          summary: "Unblock task",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    businessId: { type: "string" },
-                    taskId: { type: "string" },
-                    reason: { type: "string" },
-                  },
-                  required: ["businessId", "taskId", "reason"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task unblocked",
-            },
-          },
-        },
-      },
-
-      "/api/state-engine/actions/mark-executed": {
-        post: {
-          tags: ["State Engine"],
-          summary: "Mark task executed",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    businessId: { type: "string" },
-                    taskId: { type: "string" },
-                    outcome: { type: "string" },
-                  },
-                  required: ["businessId", "taskId", "outcome"],
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Task marked executed",
-            },
-          },
-        },
-      },
-
-      // BUSINESSES
-      "/api/businesses": {
-        get: {
-          tags: ["Businesses"],
-          summary: "List all businesses",
-          responses: {
-            "200": {
-              description: "Businesses list",
-            },
-          },
-        },
-      },
-
-      // CALENDAR
-      "/api/calendar/events": {
-        get: {
-          tags: ["Calendar"],
-          summary: "List calendar events",
-          responses: {
-            "200": {
-              description: "Events list",
-            },
-          },
-        },
-      },
-
-      "/api/calendar/events/{eventId}": {
-        get: {
-          tags: ["Calendar"],
-          summary: "Get event details",
-          parameters: [
-            {
-              name: "eventId",
-              in: "path",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Event details",
-            },
-          },
-        },
-      },
-
-      "/api/calendar/slots": {
-        get: {
-          tags: ["Calendar"],
-          summary: "Get available slots",
-          parameters: [
-            {
-              name: "startDate",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "endDate",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Available slots",
-            },
-          },
-        },
-      },
-
-      // EPICS
-      "/api/epics/list": {
-        get: {
-          tags: ["Epics"],
-          summary: "List all epics",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Epics list",
-            },
-          },
-        },
-      },
-
-      // GOALS
-      "/api/goals/seed-demo": {
-        get: {
-          tags: ["Goals"],
-          summary: "Seed demo goals",
-          responses: {
-            "200": {
-              description: "Demo created",
-            },
-          },
-        },
-      },
-
-      "/api/goals/cleanup-demo": {
-        get: {
-          tags: ["Goals"],
-          summary: "Clean up demo",
-          responses: {
-            "200": {
-              description: "Demo cleaned",
-            },
-          },
-        },
-      },
-
-      // MEMORY
-      "/api/memory/list": {
-        get: {
-          tags: ["Memory"],
-          summary: "List memory entries",
-          responses: {
-            "200": {
-              description: "Memory entries",
-            },
-          },
-        },
-      },
-
-      "/api/memory/search": {
-        get: {
-          tags: ["Memory"],
-          summary: "Search memory",
-          parameters: [
-            {
-              name: "query",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-            {
-              name: "limit",
-              in: "query",
-              schema: { type: "integer" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Search results",
-            },
-          },
-        },
-      },
-
-      "/api/memory/context": {
-        get: {
-          tags: ["Memory"],
-          summary: "Get memory context",
-          responses: {
-            "200": {
-              description: "Context data",
-            },
-          },
-        },
-      },
-
-      "/api/memory/content": {
-        get: {
-          tags: ["Memory"],
-          summary: "Get memory content",
-          responses: {
-            "200": {
-              description: "Memory content",
-            },
-          },
-        },
-      },
-
-      // REPORTS
-      "/api/reports/strategic-weekly": {
-        get: {
-          tags: ["Reports"],
-          summary: "Get weekly report",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Weekly report",
-            },
-          },
-        },
-      },
-
-      // TASKS
-      "/api/tasks/generate-daily": {
-        get: {
-          tags: ["Tasks"],
-          summary: "Generate daily tasks",
-          parameters: [
-            {
-              name: "businessId",
-              in: "query",
-              required: true,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Tasks generated",
-            },
-          },
-        },
-      },
-
-      "/api/tasks/execute": {
-        get: {
-          tags: ["Tasks"],
-          summary: "Execute task",
-          responses: {
-            "200": {
-              description: "Task executed",
-            },
-          },
-        },
-      },
-
       "/api/tasks/{taskId}/calendar-events": {
         get: {
           tags: ["Tasks"],
@@ -1018,120 +432,413 @@ export function generateOpenAPISpec(): OpenAPISpec {
             },
           ],
           responses: {
-            "200": {
-              description: "Calendar events",
-            },
+            "200": { description: "Calendar events for task" },
           },
         },
       },
 
-      // ADMIN
-      "/api/admin/agents/setup-workspace": {
+      // ============= RESOURCES =============
+      "/api/epics": {
         get: {
-          tags: ["Admin"],
-          summary: "Setup agent workspace",
-          responses: {
-            "200": {
-              description: "Workspace configured",
+          tags: ["Epics"],
+          summary: "List epics",
+          description: "Get all available epics for a business",
+          parameters: [
+            {
+              name: "businessId",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
             },
+          ],
+          responses: {
+            "200": { description: "Epics retrieved" },
           },
         },
       },
-
-      "/api/admin/migrations/agent-workspace-paths": {
+      "/api/memory": {
         get: {
-          tags: ["Admin"],
-          summary: "Run workspace migration",
+          tags: ["Memory"],
+          summary: "List memory entries",
+          description: "List all memory files in workspace",
           responses: {
-            "200": {
-              description: "Migration completed",
-            },
+            "200": { description: "Memory files listed" },
           },
         },
       },
-
+      "/api/memory/files": {
+        get: {
+          tags: ["Memory"],
+          summary: "Get memory file content",
+          parameters: [
+            {
+              name: "path",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+              description: "Path to memory file",
+            },
+          ],
+          responses: {
+            "200": { description: "File content retrieved" },
+            "403": { description: "Forbidden - path traversal attempt" },
+          },
+        },
+      },
+      "/api/memory/search": {
+        post: {
+          tags: ["Memory"],
+          summary: "Search memory",
+          description: "Server-side memory search with relevance scoring",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    query: { type: "string" },
+                    limit: { type: "number", default: 10 },
+                  },
+                  required: ["query"],
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Search results" },
+          },
+        },
+      },
+      "/api/memory/context": {
+        get: {
+          tags: ["Memory"],
+          summary: "Get memory context",
+          description: "Get context for an entity (goal, task, strategy)",
+          parameters: [
+            {
+              name: "entity",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+            },
+            {
+              name: "type",
+              in: "query",
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "Context retrieved" },
+          },
+        },
+      },
+      "/api/reports": {
+        get: {
+          tags: ["Reports"],
+          summary: "Fetch report",
+          description: "Fetch stored report by type and parameters",
+          parameters: [
+            {
+              name: "type",
+              in: "query",
+              required: true,
+              schema: { type: "string", enum: ["strategic-weekly"] },
+            },
+            {
+              name: "week",
+              in: "query",
+              required: true,
+              schema: { type: "number" },
+            },
+            {
+              name: "year",
+              in: "query",
+              schema: { type: "number", default: 2026 },
+            },
+          ],
+          responses: {
+            "200": { description: "Report retrieved" },
+            "404": { description: "Report not found" },
+          },
+        },
+        post: {
+          tags: ["Reports"],
+          summary: "Generate report",
+          description: "Generate a new report of specified type",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    type: { type: "string", enum: ["strategic-weekly"] },
+                    businessId: { type: "string" },
+                    startDate: { type: "string" },
+                    endDate: { type: "string" },
+                  },
+                  required: ["businessId"],
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Report generated" },
+          },
+        },
+      },
+      "/api/calendar/events": {
+        get: {
+          tags: ["Calendar"],
+          summary: "List calendar events",
+          responses: {
+            "200": { description: "Events retrieved" },
+          },
+        },
+      },
+      "/api/calendar/events/{eventId}": {
+        get: {
+          tags: ["Calendar"],
+          summary: "Get event details",
+          parameters: [
+            {
+              name: "eventId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "Event details retrieved" },
+          },
+        },
+      },
+      "/api/calendar/slots": {
+        get: {
+          tags: ["Calendar"],
+          summary: "Get available slots",
+          responses: {
+            "200": { description: "Available slots retrieved" },
+          },
+        },
+      },
+      "/api/businesses": {
+        get: {
+          tags: ["Businesses"],
+          summary: "List businesses",
+          responses: {
+            "200": { description: "Businesses retrieved" },
+          },
+        },
+      },
+      "/api/state/metrics": {
+        get: {
+          tags: ["State"],
+          summary: "Get system metrics",
+          parameters: [
+            {
+              name: "agentId",
+              in: "query",
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "Metrics retrieved" },
+          },
+        },
+      },
+      "/api/state/alerts": {
+        get: {
+          tags: ["State"],
+          summary: "Get alerts",
+          parameters: [
+            {
+              name: "severity",
+              in: "query",
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "Alerts retrieved" },
+          },
+        },
+      },
+      "/api/audit-trail": {
+        get: {
+          tags: ["Audit"],
+          summary: "Get audit trail",
+          description: "Get historical actions for audit purposes",
+          parameters: [
+            {
+              name: "action",
+              in: "query",
+              schema: { type: "string" },
+            },
+            {
+              name: "limit",
+              in: "query",
+              schema: { type: "number", default: 100 },
+            },
+          ],
+          responses: {
+            "200": { description: "Audit trail retrieved" },
+          },
+        },
+      },
+      "/api/admin/goals/seed": {
+        post: {
+          tags: ["Admin"],
+          summary: "Seed demo goals",
+          description: "Create demo goals for testing and demonstration",
+          responses: {
+            "201": { description: "Demo goals created" },
+          },
+        },
+      },
+      "/api/admin/goals/demo": {
+        delete: {
+          tags: ["Admin"],
+          summary: "Delete demo goals",
+          description: "Archive demo goals created within the last hour",
+          responses: {
+            "200": { description: "Demo goals archived" },
+          },
+        },
+      },
       "/api/agents/workspace/structure": {
         get: {
-          tags: ["Admin"],
+          tags: ["Agents"],
           summary: "Get workspace structure",
           responses: {
-            "200": {
-              description: "Workspace structure",
-            },
+            "200": { description: "Workspace structure retrieved" },
           },
         },
       },
-    },
-    components: {
-      schemas: {
-        Error: {
-          type: "object",
-          properties: {
-            success: { type: "boolean" },
-            error: {
-              type: "object",
-              properties: {
-                code: { type: "string" },
-                message: { type: "string" },
+      "/api/tasks/execute": {
+        post: {
+          tags: ["Tasks"],
+          summary: "Execute task",
+          description: "Queue task execution",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    taskId: { type: "string" },
+                    goalIds: { type: "array", items: { type: "string" } },
+                    timeout: { type: "number" },
+                  },
+                  required: ["taskId"],
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Task queued" },
+          },
+        },
+      },
+      "/api/tasks/generate-daily": {
+        post: {
+          tags: ["Tasks"],
+          summary: "Generate daily tasks",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    businessId: { type: "string" },
+                    date: { type: "string" },
+                  },
+                  required: ["businessId"],
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Tasks generated" },
+          },
+        },
+      },
+      "/api/openapi": {
+        get: {
+          tags: ["API"],
+          summary: "Get OpenAPI specification",
+          description: "Returns the OpenAPI 3.0 specification for this API",
+          responses: {
+            "200": {
+              description: "OpenAPI spec",
+              content: {
+                "application/json": {
+                  schema: { type: "object" },
+                },
               },
             },
           },
         },
       },
+    },
+
+    components: {
+      schemas: {},
       securitySchemes: {
         agentAuth: {
           type: "http",
           scheme: "bearer",
           description: "Agent API key authentication",
         },
-        headerAuth: {
-          type: "apiKey",
-          in: "header",
-          name: "agentKey",
-          description: "Agent API key in header",
-        },
       },
     },
+
     tags: [
       {
-        name: "Agent Management",
-        description: "Agent lifecycle, tasks, and operations",
+        name: "Agents",
+        description: "Agent lifecycle and management",
       },
       {
-        name: "State Engine",
-        description: "Metrics, alerts, decisions, and actions",
-      },
-      {
-        name: "Businesses",
-        description: "Business workspace management",
-      },
-      {
-        name: "Calendar",
-        description: "Calendar events and scheduling",
+        name: "Tasks",
+        description: "Task management and execution",
       },
       {
         name: "Epics",
-        description: "Epic management and roadmap",
-      },
-      {
-        name: "Goals",
-        description: "Goals and objectives",
+        description: "Epic and roadmap management",
       },
       {
         name: "Memory",
-        description: "Agent memory and brain",
+        description: "Workspace memory and knowledge base",
       },
       {
         name: "Reports",
         description: "Strategic reports and analytics",
       },
       {
-        name: "Tasks",
-        description: "Task generation and execution",
+        name: "Calendar",
+        description: "Calendar and scheduling",
+      },
+      {
+        name: "Businesses",
+        description: "Business management and configuration",
+      },
+      {
+        name: "State",
+        description: "System state and metrics",
+      },
+      {
+        name: "Audit",
+        description: "Audit trail and action history",
       },
       {
         name: "Admin",
         description: "Administrative operations",
+      },
+      {
+        name: "API",
+        description: "API metadata and documentation",
       },
     ],
   };
