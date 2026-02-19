@@ -20,7 +20,7 @@ jest.mock("@/lib/utils/logger", () => ({
   })),
 }));
 
-import { PUT } from "../[agentId]/tasks/[taskId]/status/route";
+import { PATCH as HANDLER } from "../[agentId]/tasks/[taskId]/status/route";
 import { ConvexHttpClient } from "convex/browser";
 import { verifyAgent } from "@/lib/agent-auth";
 

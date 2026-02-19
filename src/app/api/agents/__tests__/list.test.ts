@@ -35,9 +35,14 @@ beforeEach(() => {
 function makeRequest(params: Record<string, string>): Request {
   const url = new URL("http://localhost/api/agents");
   Object.entries(params).forEach(([key, value]) => {
-    url.searchParams.set(key, value);
+    if (value !== undefined) {
+      url.searchParams.set(key, value);
+    }
   });
-  return new Request(url, { method: "GET", headers: { agentId: params.agentId, agentKey: params.agentKey } });
+  const headers: Record<string, string> = {};
+  if (params.agentId) headers.agentId = params.agentId;
+  if (params.agentKey) headers.agentKey = params.agentKey;
+  return new Request(url, { method: "GET", headers });
 }
 
 describe("GET /api/agents", () => {
@@ -63,7 +68,7 @@ describe("GET /api/agents", () => {
   });
 
   it("returns 400 when missing agentId", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     const req = makeRequest({ agentKey: "key-1" });
     const res = await GET(req);
@@ -71,7 +76,7 @@ describe("GET /api/agents", () => {
   });
 
   it("returns 400 when missing agentKey", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     const req = makeRequest({ agentId: "agent-1" });
     const res = await GET(req);
@@ -79,7 +84,7 @@ describe("GET /api/agents", () => {
   });
 
   it("returns 401 for invalid agent credentials", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     (verifyAgent as jest.Mock).mockResolvedValue(null);
     const req = makeRequest({
@@ -92,7 +97,7 @@ describe("GET /api/agents", () => {
   });
 
   it("sanitizes agent data removing sensitive fields", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     mockQuery.mockResolvedValue([
       {
@@ -118,7 +123,7 @@ describe("GET /api/agents", () => {
   });
 
   it("returns empty list when no agents exist", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     mockQuery.mockResolvedValue([]);
 
@@ -133,7 +138,7 @@ describe("GET /api/agents", () => {
   });
 
   it("includes all required fields in agent objects", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     mockQuery.mockResolvedValue([
       { _id: "a1", name: "agent1", role: "role1", level: "lead", status: "active" },
@@ -155,7 +160,7 @@ describe("GET /api/agents", () => {
   });
 
   it("returns 500 when query fails", async () => {
-    const { GET } = await import("../list/route");
+    const { GET } = await import("../route");
 
     mockQuery.mockRejectedValue(new Error("DB error"));
 

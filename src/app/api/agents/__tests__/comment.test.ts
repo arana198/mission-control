@@ -62,7 +62,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -86,7 +86,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -114,7 +114,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -134,7 +134,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -154,7 +154,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -167,7 +167,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       body: "not valid json",
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -193,7 +193,7 @@ describe("POST /api/agents/{agentId}/tasks/{taskId}/comments", () => {
       }),
     });
 
-    const response = await POST(request, { params: { taskId: mockTaskId } });
+    const response = await POST(request, { params: { agentId: mockAgentId, taskId: mockTaskId } });
     const data = await response.json();
 
     expect(response.status).toBe(201);

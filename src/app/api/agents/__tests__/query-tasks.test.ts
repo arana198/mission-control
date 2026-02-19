@@ -199,10 +199,9 @@ describe("GET /api/agents/{agentId}/tasks", () => {
     expect(response.status).toBe(400);
   });
 
-  it("returns error for missing agentId", async () => {
+  it("returns error for missing businessId", async () => {
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
