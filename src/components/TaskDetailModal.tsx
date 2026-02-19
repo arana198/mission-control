@@ -13,6 +13,7 @@ import { TaskCommits } from "./TaskCommits";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
 import { HelpRequestButton } from "./HelpRequestButton";
+import { DependencyGraph } from "./DependencyGraph";
 import { AlertTriangle, Calendar, Target, X, Loader2 } from "lucide-react";
 import { getPriorityBadgeClass, getStatusLabel } from "./Badge";
 
@@ -174,93 +175,79 @@ export function TaskDetailModal({
               />
             </div>
 
-            {/* Dependencies */}
+            {/* Dependencies - Visualization */}
             <div>
-              <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-muted-foreground">
-                <AlertTriangle className="w-4 h-4" />
-                Dependencies
-              </h3>
-
-              {/* Blocked by */}
               <div className="mb-4">
-                <p className="text-xs mb-2 text-muted-foreground">This task is blocked by:</p>
-                {blockingTasks.length > 0 ? (
-                  <div className="space-y-2">
-                    {blockingTasks.map((blocker: any) => (
-                      <div
-                        key={blocker._id}
-                        className="flex items-center justify-between p-2 rounded-lg"
-                        style={{ background: blocker.status === "done" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)" }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`badge badge-status-${blocker.status} text-xs`}>
-                            {getStatusLabel(blocker.status)}
-                          </span>
-                          <span className="text-sm">{blocker.title}</span>
-                        </div>
-                        <button
-                          onClick={() => setBlockerToRemove(blocker._id)}
-                          disabled={isRemovingDependency}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
-                          aria-label={`Remove blocker: ${blocker.title}`}
-                        >
-                          {isRemovingDependency ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <X className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No blockers</p>
-                )}
-
-                {/* Add blocker */}
-                {availableBlockers.length > 0 && (
-                  <div className="flex gap-2 mt-2">
-                    <select
-                      value={newBlockerId}
-                      onChange={(e) => setNewBlockerId(e.target.value)}
-                      className="input text-sm flex-1"
-                      aria-label="Select task to block this task"
-                    >
-                      <option value="">Select task that blocks this...</option>
-                      {availableBlockers.map(t => (
-                        <option key={t._id} value={t._id}>{t.title}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={addBlocker}
-                      disabled={!newBlockerId || isAddingDependency}
-                      className="btn btn-secondary text-sm"
-                      aria-label="Add dependency"
-                    >
-                      {isAddingDependency && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-                      {isAddingDependency ? "Adding..." : "Add"}
-                    </button>
-                  </div>
-                )}
+                {/* Dependency Graph Visualization */}
+                <DependencyGraph
+                  task={currentTask}
+                  allTasks={tasks}
+                  onTaskClick={() => {
+                    // Node clicked - in future, could open task in new modal
+                    // For now, visualization is the primary feature
+                  }}
+                />
               </div>
 
-              {/* Blocking others */}
-              {blockingThis.length > 0 && (
-                <div>
-                  <p className="text-xs mb-2 text-muted-foreground">This task is blocking:</p>
-                  <div className="space-y-2">
-                    {blockingThis.map((blocked: any) => (
-                      <div
-                        key={blocked._id}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-muted"
-                      >
-                        <span className={`badge badge-status-${blocked.status} text-xs`}>
-                          {getStatusLabel(blocked.status)}
-                        </span>
-                        <span className="text-sm">{blocked.title}</span>
+              {/* Add/Remove blockers form */}
+              {(blockingTasks.length > 0 || availableBlockers.length > 0) && (
+                <div className="pt-4 border-t border-border">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-3">
+                    Manage Dependencies
+                  </h4>
+
+                  {/* Remove blockers */}
+                  {blockingTasks.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs mb-2 text-muted-foreground">Remove blocker:</p>
+                      <div className="space-y-2">
+                        {blockingTasks.map((blocker: any) => (
+                          <button
+                            key={blocker._id}
+                            onClick={() => setBlockerToRemove(blocker._id)}
+                            disabled={isRemovingDependency}
+                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            aria-label={`Remove blocker: ${blocker.title}`}
+                          >
+                            <span className="text-sm text-muted-foreground">
+                              {blocker.title}
+                            </span>
+                            {isRemovingDependency ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-600" />
+                            )}
+                          </button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* Add blocker */}
+                  {availableBlockers.length > 0 && (
+                    <div className="flex gap-2">
+                      <select
+                        value={newBlockerId}
+                        onChange={(e) => setNewBlockerId(e.target.value)}
+                        className="input text-sm flex-1"
+                        aria-label="Select task to block this task"
+                      >
+                        <option value="">Add blocker...</option>
+                        {availableBlockers.map(t => (
+                          <option key={t._id} value={t._id}>{t.title}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={addBlocker}
+                        disabled={!newBlockerId || isAddingDependency}
+                        className="btn btn-secondary text-sm"
+                        aria-label="Add dependency"
+                      >
+                        {isAddingDependency && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+                        {isAddingDependency ? "Adding..." : "Add"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
