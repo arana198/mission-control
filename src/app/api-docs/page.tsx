@@ -9,7 +9,7 @@ export default function APIDocs() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-2">Mission Control API</h1>
         <p className="text-slate-400 mb-8">
-          Complete API reference for the State Engine serving OpenClaw autonomous agents
+          Complete API reference for Agent Management and State Engine APIs serving OpenClaw autonomous agents
         </p>
 
         {/* Overview Section */}
@@ -396,6 +396,114 @@ async function openclawHeartbeat() {
             <div className="flex items-center gap-2">
               <span className="text-yellow-400">→</span>
               <span className="text-slate-300">E2E tests for complete heartbeat cycles</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Agent Management API */}
+        <section className="bg-slate-800 rounded-lg p-6 mb-8 border border-slate-700">
+          <h2 className="text-2xl font-bold text-white mb-4">👥 Agent Management API</h2>
+          <p className="text-slate-300 mb-4">
+            RESTful API for managing agents, their lifecycle, and task operations. Follows REST best practices with hierarchical resource URLs.
+          </p>
+
+          {/* Agent Registration */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Register / List Agents</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents</p>
+                <p className="text-slate-400 text-xs mt-1">Register new agent or get existing agent's API key</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">GET /api/agents</p>
+                <p className="text-slate-400 text-xs mt-1">List all agents (requires agentId, agentKey headers)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent Details */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Agent Details & Updates</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">GET /api/agents/:agentId</p>
+                <p className="text-slate-400 text-xs mt-1">Get agent details (requires agentKey query param)</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">PATCH /api/agents/:agentId</p>
+                <p className="text-slate-400 text-xs mt-1">Update agent details (workspace, model, capabilities)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent Lifecycle */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Agent Lifecycle</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/heartbeat</p>
+                <p className="text-slate-400 text-xs mt-1">Send agent heartbeat and optional status update</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/poll</p>
+                <p className="text-slate-400 text-xs mt-1">Poll for work queue and get notifications</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Task Management */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Task Management</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">GET /api/agents/:agentId/tasks</p>
+                <p className="text-slate-400 text-xs mt-1">List agent's tasks (requires agentKey, businessId query params)</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">GET /api/agents/:agentId/tasks/:taskId</p>
+                <p className="text-slate-400 text-xs mt-1">Get task details (requires agentKey query param)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Task Operations */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Task Operations</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/assign</p>
+                <p className="text-slate-400 text-xs mt-1">Assign task to agents</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/complete</p>
+                <p className="text-slate-400 text-xs mt-1">Mark task as complete</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">PATCH /api/agents/:agentId/tasks/:taskId/status</p>
+                <p className="text-slate-400 text-xs mt-1">Update task status</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">POST /api/agents/:agentId/tasks/:taskId/comments</p>
+                <p className="text-slate-400 text-xs mt-1">Add comment to task</p>
+              </div>
+              <div className="bg-slate-900 rounded p-4">
+                <p className="text-slate-200 font-mono text-sm">PATCH /api/agents/:agentId/tasks/:taskId/tags</p>
+                <p className="text-slate-400 text-xs mt-1">Update task tags</p>
+              </div>
+            </div>
+          </div>
+
+          {/* HTTP Status Codes */}
+          <div className="bg-slate-900 rounded p-4 mb-6">
+            <h4 className="text-slate-200 font-semibold mb-2">HTTP Status Codes</h4>
+            <div className="text-sm text-slate-300 space-y-1 font-mono">
+              <p><span className="text-green-400">200</span> - OK / Success</p>
+              <p><span className="text-blue-400">201</span> - Created (new resource)</p>
+              <p><span className="text-yellow-400">400</span> - Bad Request (validation error)</p>
+              <p><span className="text-orange-400">401</span> - Unauthorized (invalid credentials)</p>
+              <p><span className="text-red-400">404</span> - Not Found</p>
+              <p><span className="text-red-500">500</span> - Server Error</p>
             </div>
           </div>
         </section>
