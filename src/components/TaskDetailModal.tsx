@@ -11,6 +11,7 @@ import { useMutationWithNotification } from "@/hooks/useMutationWithNotification
 import { TaskComments } from "./TaskComments";
 import { TaskCommits } from "./TaskCommits";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
 import { AlertTriangle, Calendar, Target, X, Loader2 } from "lucide-react";
 import { getPriorityBadgeClass, getStatusLabel } from "./Badge";
 
@@ -161,6 +162,15 @@ export function TaskDetailModal({
               <div className="text-sm whitespace-pre-wrap p-4 rounded-lg min-h-[100px] bg-muted">
                 {task.description || "No description provided."}
               </div>
+            </div>
+
+            {/* Definition of Done Checklist */}
+            <div className="p-4 rounded-lg bg-muted/30 border border-border">
+              <DefinitionOfDoneChecklist
+                taskId={task._id as any}
+                doneChecklist={task.doneChecklist ?? []}
+                currentUserId="user"
+              />
             </div>
 
             {/* Dependencies */}
