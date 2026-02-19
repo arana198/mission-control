@@ -8,13 +8,16 @@
  * @module
  */
 
+import type * as actions from "../actions.js";
 import type * as activities from "../activities.js";
 import type * as agentMetrics from "../agentMetrics.js";
 import type * as agentSelfCheck from "../agentSelfCheck.js";
 import type * as agents from "../agents.js";
+import type * as alertRules from "../alertRules.js";
 import type * as businesses from "../businesses.js";
 import type * as calendarEvents from "../calendarEvents.js";
 import type * as debug from "../debug.js";
+import type * as decisions from "../decisions.js";
 import type * as documents from "../documents.js";
 import type * as epics from "../epics.js";
 import type * as executionLog from "../executionLog.js";
@@ -24,6 +27,7 @@ import type * as memoryIndex from "../memoryIndex.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as opsMetrics from "../opsMetrics.js";
 import type * as strategicReports from "../strategicReports.js";
 import type * as tasks from "../tasks.js";
 import type * as utils_activityLogger from "../utils/activityLogger.js";
@@ -39,13 +43,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  actions: typeof actions;
   activities: typeof activities;
   agentMetrics: typeof agentMetrics;
   agentSelfCheck: typeof agentSelfCheck;
   agents: typeof agents;
+  alertRules: typeof alertRules;
   businesses: typeof businesses;
   calendarEvents: typeof calendarEvents;
   debug: typeof debug;
+  decisions: typeof decisions;
   documents: typeof documents;
   epics: typeof epics;
   executionLog: typeof executionLog;
@@ -55,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   migrations: typeof migrations;
   notifications: typeof notifications;
+  opsMetrics: typeof opsMetrics;
   strategicReports: typeof strategicReports;
   tasks: typeof tasks;
   "utils/activityLogger": typeof utils_activityLogger;

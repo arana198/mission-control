@@ -631,4 +631,160 @@ export default defineSchema({
     .index("by_agent", ["agentId"])
     .index("by_started_at", ["startedAt"]),
 
+  /**
+   * ALERTS - Operational Alerts for OpenClaw
+   * Real-time notifications when issues are detected
+   */
+  alerts: defineTable({
+    businessId: convexVal.id("businesses"),
+    agentId: convexVal.optional(convexVal.string()),  // null = system notification
+    type: convexVal.union(
+      convexVal.literal("queue_overload"),
+      convexVal.literal("task_blocked"),
+      convexVal.literal("throughput_drop"),
+      convexVal.literal("agent_crash"),
+      convexVal.literal("overdue_task"),
+      convexVal.literal("high_priority_task"),
+      convexVal.literal("custom")
+    ),
+    severity: convexVal.union(
+      convexVal.literal("info"),
+      convexVal.literal("warning"),
+      convexVal.literal("critical")
+    ),
+    title: convexVal.string(),
+    message: convexVal.string(),
+    metrics: convexVal.optional(convexVal.any()),  // { queueDepth: 8, etc }
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    actionable: convexVal.boolean(),
+    read: convexVal.boolean(),
+    readAt: convexVal.optional(convexVal.number()),
+    createdAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_agent", ["agentId"])
+    .index("by_business_read", ["businessId", "read"])
+    .index("by_created_at", ["createdAt"]),
+
+  /**
+   * ALERT RULES - Define when to alert
+   * Rules that trigger notifications when thresholds crossed
+   */
+  alertRules: defineTable({
+    businessId: convexVal.id("businesses"),
+    name: convexVal.string(),  // "Queue overload", "Task blocked"
+    description: convexVal.optional(convexVal.string()),
+    enabled: convexVal.boolean(),
+
+    // Rule condition
+    condition: convexVal.union(
+      convexVal.literal("queueDepth > threshold"),
+      convexVal.literal("taskBlocked > Xmin"),
+      convexVal.literal("taskDueDate < now"),
+      convexVal.literal("throughput < threshold"),
+      convexVal.literal("agentCrash"),
+      convexVal.literal("custom")
+    ),
+    threshold: convexVal.optional(convexVal.number()),  // for numeric conditions
+
+    // Alert properties
+    severity: convexVal.union(
+      convexVal.literal("info"),
+      convexVal.literal("warning"),
+      convexVal.literal("critical")
+    ),
+    cooldownSeconds: convexVal.number(),  // min seconds between same alerts
+
+    // Delivery channels
+    channels: convexVal.array(
+      convexVal.union(
+        convexVal.literal("in-app"),
+        convexVal.literal("slack"),
+        convexVal.literal("email")
+      )
+    ),
+
+    // Config for channels
+    slackChannel: convexVal.optional(convexVal.string()),  // #ops-alerts
+    slackMention: convexVal.optional(convexVal.string()),  // @openclaw
+    emailAddresses: convexVal.optional(convexVal.array(convexVal.string())),
+
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_enabled", ["enabled"]),
+
+  /**
+   * DECISIONS - Audit log of management actions
+   * What OpenClaw decided to do and why
+   */
+  decisions: defineTable({
+    businessId: convexVal.id("businesses"),
+
+    // What action
+    action: convexVal.union(
+      convexVal.literal("escalated"),
+      convexVal.literal("reassigned"),
+      convexVal.literal("unblocked"),
+      convexVal.literal("marked_executed"),
+      convexVal.literal("deprioritized"),
+      convexVal.literal("custom")
+    ),
+
+    // What was affected
+    taskId: convexVal.id("tasks"),
+    fromAgent: convexVal.optional(convexVal.string()),
+    toAgent: convexVal.optional(convexVal.string()),
+
+    // Why (decision rationale)
+    reason: convexVal.string(),  // "blocked_too_long", "agent_overloaded", etc
+    ruleId: convexVal.optional(convexVal.id("alertRules")),  // which rule triggered this
+
+    // Result
+    result: convexVal.union(
+      convexVal.literal("success"),
+      convexVal.literal("failed"),
+      convexVal.literal("no_action_needed")
+    ),
+    resultMessage: convexVal.optional(convexVal.string()),
+
+    // Who/what decided
+    decidedBy: convexVal.string(),  // "openclaw" or agent name
+    decidedAt: convexVal.number(),
+
+    // Outcome tracking
+    outcome: convexVal.optional(convexVal.string()),  // "task_completed", "issue_resolved", etc
+    outcomeAt: convexVal.optional(convexVal.number()),
+
+    createdAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_task", ["taskId"])
+    .index("by_action", ["action"])
+    .index("by_decided_by", ["decidedBy"])
+    .index("by_created_at", ["createdAt"]),
+
+  /**
+   * ALERT EVENTS - Historical alert records
+   * When alerts fired and their context
+   */
+  alertEvents: defineTable({
+    businessId: convexVal.id("businesses"),
+    ruleId: convexVal.id("alertRules"),
+    ruleName: convexVal.string(),
+
+    triggered: convexVal.boolean(),
+    metrics: convexVal.optional(convexVal.any()),  // snapshot of metrics when triggered
+
+    notificationIds: convexVal.optional(convexVal.array(convexVal.id("notifications"))),
+
+    resolvedAt: convexVal.optional(convexVal.number()),  // when alert cleared
+
+    createdAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_rule", ["ruleId"])
+    .index("by_created_at", ["createdAt"]),
+
 });
