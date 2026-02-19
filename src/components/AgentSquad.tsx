@@ -9,7 +9,7 @@ import {
   Shield, Search, Flame, Eye, Feather, PenTool,
   Sparkles, Mail, Cpu, FileText, Zap,
   CheckCircle, Activity, Users,
-  MapPin, Briefcase, MessageSquare, ExternalLink, Folder
+  MapPin, Briefcase, MessageSquare, ExternalLink, Folder, AlertCircle
 } from "lucide-react";
 import { AgentDetailModal } from "./AgentDetailModal";
 import { AgentWorkspaceModal } from "./AgentWorkspaceModal";
@@ -105,6 +105,33 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
     setSelectedAgent(null);
     router.push('/dashboard/agents');
   };
+
+  // Show empty state if no agents
+  if (!agents || agents.length === 0) {
+    return (
+      <div className="max-w-6xl">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold">Your Squad</h2>
+          <p className="text-muted-foreground">
+            Manage and monitor your AI agent team
+          </p>
+        </div>
+
+        <div className="card p-16 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-muted">
+            <Users className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold mb-3">No Agents Yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+            Your agent squad appears to be empty. Register or invite agents to start building your autonomous team.
+          </p>
+          <button className="btn btn-primary">
+            Register Agent
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl">

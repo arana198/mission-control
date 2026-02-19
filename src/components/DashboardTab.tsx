@@ -8,6 +8,7 @@ import { CreateTaskModal } from "./CreateTaskModal";
 import { NotificationPanel } from "./NotificationPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { CommandPalette } from "./CommandPalette";
+import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SettingsPanel } from "./SettingsPanel";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { log } from "../lib/logger";
@@ -140,6 +141,7 @@ export function DashboardTabClientContent({
       )}
 
       <CommandPalette />
+      <KeyboardShortcuts />
     </main>
   );
 }

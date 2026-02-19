@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Bell, Zap } from "lucide-react";
+import { Plus, Bell, Zap, HelpCircle } from "lucide-react";
 
 type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings";
 
@@ -96,6 +96,24 @@ export function DashboardHeader({
         >
           <Plus className="w-4 h-4 mr-2" />
           New Task
+        </button>
+
+        {/* Help button - keyboard shortcuts */}
+        <button
+          className="btn btn-ghost relative p-2 hidden sm:inline-flex"
+          aria-label="Keyboard shortcuts (press ?)"
+          title="Press ? for keyboard shortcuts"
+          onClick={() => {
+            // Dispatch keyboard event to trigger shortcuts modal
+            const event = new KeyboardEvent("keydown", {
+              key: "?",
+              code: "Slash",
+              bubbles: true,
+            });
+            window.dispatchEvent(event);
+          }}
+        >
+          <HelpCircle className="w-5 h-5" />
         </button>
       </div>
     </header>
