@@ -12,6 +12,7 @@ import { TaskComments } from "./TaskComments";
 import { TaskCommits } from "./TaskCommits";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
+import { HelpRequestButton } from "./HelpRequestButton";
 import { AlertTriangle, Calendar, Target, X, Loader2 } from "lucide-react";
 import { getPriorityBadgeClass, getStatusLabel } from "./Badge";
 
@@ -382,6 +383,17 @@ export function TaskDetailModal({
                     ))}
                 </select>
               </div>
+            </div>
+
+            {/* Help Request Button - for in_progress or blocked tasks */}
+            <div className="p-3 rounded-lg bg-muted">
+              <HelpRequestButton
+                taskId={task._id as any}
+                taskStatus={task.status}
+                currentAgentId="user"
+                currentAgentName="You"
+                agents={agents}
+              />
             </div>
 
             {/* Due Date - Jira Style */}
