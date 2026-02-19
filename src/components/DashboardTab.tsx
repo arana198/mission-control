@@ -3,6 +3,9 @@
 import { ReactNode, lazy, Suspense, useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { useBusiness } from "./BusinessProvider";
+import { BusinessFilter } from "./BusinessFilter";
+import { BusinessBadge } from "./BusinessBadge";
 import { TaskBoard } from "./TaskBoard";
 import { AgentSquad } from "./AgentSquad";
 import { AgentWorkload } from "./AgentWorkload";
@@ -32,20 +35,63 @@ type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activit
  * Dashboard Tab Content Component (Client)
  *
  * Renders the appropriate component based on the active tab.
- * Handles data fetching and component composition.
+ * Handles data fetching with business scoping for business-specific tabs.
+ * Global tabs show all businesses with optional filtering.
  */
-export function DashboardTabClientContent({ tab }: { tab: TabType }) {
+export function DashboardTabClientContent({
+  tab,
+  businessSlug
+}: {
+  tab: TabType;
+  businessSlug?: string;
+}) {
+  const { currentBusiness } = useBusiness();
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
+  const [selectedBusinessFilter, setSelectedBusinessFilter] = useState<string | null>(null);
+
+  // Determine if this is a business-specific tab
+  const isBusinessSpecificTab = ["overview", "board", "epics", "documents", "settings"].includes(tab);
+  const targetBusinessId = currentBusiness?._id;
 
   // Fetch all required data
   const agents = useQuery(api.agents.getAllAgents);
-  const tasks = useQuery(api.tasks.getAllTasks);
-  const epics = useQuery(api.epics.getAllEpics);
-  const activities = useQuery(api.activities.getRecent, { limit: 10 });
+
+  // Business-specific tasks (for business tabs)
+  const businessTasks = isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.tasks.getAllTasks, { businessId: targetBusinessId })
+    : null;
+
+  // Global tasks (for workload/activity tabs)
+  const globalTasks = !isBusinessSpecificTab && selectedBusinessFilter && targetBusinessId
+    ? useQuery(api.tasks.getFiltered, { businessId: selectedBusinessFilter, agentId: agents?.[0]?._id || "" })
+    : !isBusinessSpecificTab && !selectedBusinessFilter
+    ? null // Don't fetch if no filter selected on global view
+    : null;
+
+  const tasks = isBusinessSpecificTab ? businessTasks : globalTasks;
+
+  // Business-specific epics (for business tabs)
+  const businessEpics = isBusinessSpecificTab && targetBusinessId
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId })
+    : null;
+
+  // Global epics (fallback for global tabs)
+  const globalEpics = !isBusinessSpecificTab
+    ? useQuery(api.epics.getAllEpics, { businessId: targetBusinessId || "" })
+    : null;
+
+  const epics = isBusinessSpecificTab ? businessEpics : globalEpics;
+
+  // Activities with optional business filter
+  const activities = useQuery(api.activities.getRecent, {
+    limit: 10,
+    businessId: selectedBusinessFilter || undefined
+  });
+
   const notifications = useQuery(api.notifications.getAll);
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
@@ -59,11 +105,13 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
 
   // Log page load
   useEffect(() => {
-    console.log(`[Dashboard] Tab: ${tab}, Loading state:`, {
+    console.log(`[Dashboard] Tab: ${tab}, Business: ${currentBusiness?.name || "global"}, Loading state:`, {
       agentsLoading: agents === undefined,
       tasksLoading: tasks === undefined,
       epicsLoading: epics === undefined,
       activitiesLoading: activities === undefined,
+      businessSpecificTab: isBusinessSpecificTab,
+      selectedBusinessFilter: selectedBusinessFilter,
       agentsCount: agents?.length || 0,
       tasksCount: tasks?.length || 0,
       epicsCount: epics?.length || 0
@@ -71,13 +119,15 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
 
     if (agents && tasks) {
       log.info(`Dashboard tab loaded: ${tab}`, {
+        business: currentBusiness?.name || "global",
+        businessId: currentBusiness?._id,
         agents: agents.length,
         tasks: tasks.length,
         epics: epics?.length || 0
       });
       metrics.recordPageLoad(performance.now());
     }
-  }, [tab, agents, tasks, epics, activities]);
+  }, [tab, agents, tasks, epics, activities, currentBusiness, selectedBusinessFilter, isBusinessSpecificTab]);
 
 
   // Render content based on tab
@@ -242,9 +292,19 @@ export function DashboardTabClientContent({ tab }: { tab: TabType }) {
     }
   };
 
+  // Determine if we should show the business filter
+  const isGlobalTab = ["workload", "activity", "analytics"].includes(tab);
+
   return (
     <main className="flex-1 overflow-y-auto">
       <div className="p-6">
+        {/* Business Filter for global tabs */}
+        {isGlobalTab && (
+          <div className="mb-6 pb-4 border-b">
+            <BusinessFilter onFilterChange={setSelectedBusinessFilter} />
+          </div>
+        )}
+
         {renderContent()}
       </div>
 
