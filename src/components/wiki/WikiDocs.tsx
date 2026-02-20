@@ -360,6 +360,13 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     [movePageMutation, tree]
   );
 
+  // Auto-open drafts in edit mode
+  useEffect(() => {
+    if (selectedPageId && selectedPage && selectedPage.status === "draft" && viewMode === "view") {
+      setViewMode("edit");
+    }
+  }, [selectedPageId, selectedPage, viewMode]);
+
   // Call incrementViewCount when page is selected and shown in view mode
   // Only increment for published pages (not drafts/archived)
   useEffect(() => {

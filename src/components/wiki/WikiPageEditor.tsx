@@ -139,7 +139,7 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
             </div>
           </div>
 
-          {/* Save status */}
+          {/* Save status and action buttons */}
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 w-full md:w-auto">
             <div className="text-xs font-medium flex-1 md:flex-none">
               {saveState === "saving" && (
@@ -163,10 +163,16 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
             </div>
 
             <button
+              onClick={() => handleSave(false)}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+            >
+              Update
+            </button>
+            <button
               onClick={onCancel}
               className="px-3 py-2 rounded-lg border border-input hover:bg-muted transition-colors text-sm font-medium"
             >
-              Done
+              Close
             </button>
           </div>
         </div>
