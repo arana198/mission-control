@@ -72,11 +72,11 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="border-b sticky top-0 z-10 bg-white">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="border-b sticky top-0 z-10 bg-background">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-3 md:px-4 py-3 gap-3">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full">
             {onBack && (
               <button
                 onClick={onBack}
@@ -86,20 +86,20 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
               </button>
             )}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 md:gap-2 w-full">
                 <input
                   type="text"
                   value={emoji}
                   onChange={(e) => setEmoji(e.target.value.substring(0, 2))}
                   placeholder="🎯"
                   maxLength={2}
-                  className="w-12 text-2xl text-center bg-transparent border-0 focus:outline-none"
+                  className="w-10 md:w-12 text-xl md:text-2xl text-center bg-transparent border-0 focus:outline-none flex-shrink-0"
                 />
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="flex-1 text-2xl font-bold bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-primary rounded px-2"
+                  className="flex-1 text-lg md:text-2xl font-bold bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-primary rounded px-2"
                   placeholder="Page title"
                 />
               </div>
@@ -107,8 +107,8 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
           </div>
 
           {/* Save status */}
-          <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-            <div className="text-xs font-medium">
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 w-full md:w-auto">
+            <div className="text-xs font-medium flex-1 md:flex-none">
               {saveState === "saving" && (
                 <span className="text-yellow-600 flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full border-2 border-yellow-600 border-t-transparent animate-spin" />
@@ -141,7 +141,7 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto p-6">
+        <div className="max-w-3xl mx-auto p-3 md:p-6">
           <WikiEditor
             content={content}
             editable={true}

@@ -78,6 +78,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
         createdByName: "User",
       });
       setSelectedPageId(pageId);
+      setViewMode("edit");
     } catch (error) {
       console.error("Failed to create department:", error);
     }
@@ -234,9 +235,9 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
 
   // Main layout: Tree | Content | Side panel
   return (
-    <div className="flex h-full bg-white">
-      {/* Left: Tree navigation (250px) */}
-      <div className="w-64 border-r overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full bg-background">
+      {/* Left: Tree navigation (250px) - hidden on mobile unless showing sidebar */}
+      <div className="hidden md:flex w-full md:w-64 border-r border-b md:border-b-0 overflow-hidden flex-col">
         {tree && (
           <WikiTree
             tree={tree}
@@ -254,7 +255,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
       </div>
 
       {/* Center/Right: Content area */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col w-full">
         {selectedPage && (
           <>
             {viewMode === "view" && (

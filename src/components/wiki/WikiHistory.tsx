@@ -21,11 +21,11 @@ export function WikiHistory({ history, currentTitle, onBack, onRestore }: WikiHi
   const [selectedVersion, setSelectedVersion] = useState<WikiPageHistory | null>(null);
 
   return (
-    <div className="flex h-full bg-white">
+    <div className="flex h-full bg-background">
       {/* History list (left side) */}
       <div className="w-64 border-r flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-2 p-4 border-b sticky top-0 bg-white z-10">
+        <div className="flex items-center gap-2 p-4 border-b sticky top-0 bg-background z-10">
           <button
             onClick={onBack}
             className="p-1 hover:bg-muted rounded transition-colors"

@@ -109,10 +109,10 @@ export function WikiEditor({
   }
 
   return (
-    <div className="wiki-editor border rounded-lg overflow-hidden bg-white">
+    <div className="wiki-editor border rounded-lg overflow-hidden bg-background">
       {/* Toolbar - Only show in edit mode */}
       {editable && (
-        <div className="flex flex-wrap gap-1 border-b bg-muted p-2">
+        <div className="flex flex-wrap gap-1 border-b bg-muted/50 p-2 overflow-x-auto">
           <ToolbarButton
             icon={Bold}
             isActive={editor.isActive("bold")}
@@ -196,8 +196,8 @@ export function WikiEditor({
       {/* Content Area */}
       <EditorContent
         editor={editor}
-        className={`prose prose-sm max-w-none focus:outline-none min-h-[300px] p-4 ${
-          editable ? "bg-white" : "bg-muted/30"
+        className={`prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-4 ${
+          editable ? "bg-background" : "bg-muted/20"
         }`}
       />
     </div>
@@ -216,11 +216,11 @@ function ToolbarButton({ icon: Icon, isActive, onClick, title }: ToolbarButtonPr
     <button
       onClick={onClick}
       title={title}
-      className={`p-1.5 rounded transition-colors ${
+      className={`p-1.5 md:p-1 rounded transition-colors flex-shrink-0 ${
         isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
       }`}
     >
-      <Icon className="w-4 h-4" />
+      <Icon className="w-5 md:w-4 h-5 md:h-4" />
     </button>
   );
 }

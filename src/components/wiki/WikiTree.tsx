@@ -49,7 +49,7 @@ export function WikiTree({
 
   if (tree.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 border-r bg-muted/30">
+      <div className="h-full flex flex-col items-center justify-center p-4 bg-muted/30">
         <p className="text-sm text-muted-foreground text-center mb-4">
           Create your first department to organize your team's knowledge
         </p>
@@ -144,7 +144,7 @@ function TreeNodeWithExpanded({
       {/* Node itself */}
       <div
         style={{ paddingLeft: `${level * 16}px` }}
-        className={`flex items-center gap-1 px-2 py-1.5 rounded-md group transition-colors ${
+        className={`flex items-center gap-1 px-2 py-2 md:py-1.5 rounded-md group transition-colors ${
           isSelected ? "bg-primary/10 border-l-2 border-l-primary" : "hover:bg-muted"
         }`}
       >

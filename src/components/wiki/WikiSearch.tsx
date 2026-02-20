@@ -97,7 +97,7 @@ export function WikiSearch({
 
       {/* Search dialog */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-full max-w-2xl z-50">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-background rounded-lg shadow-lg overflow-hidden border">
           {/* Search input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b">
             <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
