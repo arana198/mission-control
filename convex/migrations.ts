@@ -1017,3 +1017,86 @@ export const migrationWikiDriFields = mutation({
     };
   },
 });
+
+/**
+ * MIG-11: Simplify Wiki to Markdown-Only (2026-02-20)
+ *
+ * Schema changes:
+ * - REMOVED: emoji, status, tags, favoritedBy, viewCount, driver, approver, contributors, dueDate, version, contentText
+ * - REMOVED: wikiPageHistory table entirely
+ * - KEPT: businessId, title, content (plain markdown), parentId, childIds, position, type, taskIds, epicId, authoring metadata
+ *
+ * Reason: Simplify wiki from Confluence-style to simple markdown document store with pages/subpages.
+ * Remove all metadata, collaboration features, version history, and status tracking.
+ * Just markdown + hierarchy.
+ *
+ * Migration action: Remove old fields from existing wiki pages by patching them without the removed fields.
+ * This preserves the essential data while dropping the Confluence complexity.
+ *
+ * Idempotent: Safe to run multiple times - checks if fields exist before attempting removal.
+ */
+export const migrationWikiSimplify = mutation({
+  args: { batchSize: convexVal.optional(convexVal.number()) },
+  handler: async (ctx, { batchSize = 100 }) => {
+    // Get all wiki pages
+    const allPages = await ctx.db.query("wikiPages").collect();
+
+    if (allPages.length === 0) {
+      return {
+        success: true,
+        cleaned: 0,
+        message: "MIG-11: No wiki pages found to clean",
+      };
+    }
+
+    let cleaned = 0;
+    const pagesToClean = allPages.slice(0, batchSize);
+
+    for (const page of pagesToClean) {
+      // Check if page has any old fields (as optional properties)
+      const pageData = page as any;
+      const hasOldFields =
+        pageData.contentText !== undefined ||
+        pageData.status !== undefined ||
+        pageData.tags !== undefined ||
+        pageData.favoritedBy !== undefined ||
+        pageData.viewCount !== undefined ||
+        pageData.driver !== undefined ||
+        pageData.approver !== undefined ||
+        pageData.contributors !== undefined ||
+        pageData.dueDate !== undefined ||
+        pageData.version !== undefined ||
+        pageData.emoji !== undefined;
+
+      if (hasOldFields) {
+        // Patch page to remove old fields (only update core fields to ensure schema compliance)
+        await ctx.db.patch(page._id, {
+          // Keep only fields in new schema
+          businessId: page.businessId,
+          title: page.title,
+          content: page.content,
+          parentId: page.parentId,
+          childIds: page.childIds,
+          position: page.position,
+          type: page.type,
+          taskIds: page.taskIds,
+          epicId: page.epicId,
+          createdBy: page.createdBy,
+          createdByName: page.createdByName,
+          updatedBy: page.updatedBy,
+          updatedByName: page.updatedByName,
+          createdAt: page.createdAt,
+          updatedAt: page.updatedAt,
+        } as any);
+        cleaned++;
+      }
+    }
+
+    return {
+      success: true,
+      cleaned,
+      remaining: allPages.length - pagesToClean.length,
+      message: `MIG-11: Removed old Confluence fields from ${cleaned} wiki pages (${allPages.length - pagesToClean.length} remaining in next batch)`,
+    };
+  },
+});
