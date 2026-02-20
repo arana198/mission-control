@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotification } from "@/hooks/useNotification";
 import { useSetState } from "@/hooks/useSetState";
@@ -32,10 +32,12 @@ interface DraggableTaskBoardProps {
   tasks: Task[];
   agents: Agent[];
   epics?: Epic[];
+  businessId?: string;
 }
 
-export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskBoardProps) {
+export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: DraggableTaskBoardProps) {
   const notif = useNotification();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Persist filter state to localStorage
@@ -64,16 +66,29 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
   const [draggedTask, setDraggedTask] = useState<any>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-  // Load task from URL parameter if present
+  // Load task from URL parameter if present (using ticketNumber)
   useEffect(() => {
-    const taskIdFromUrl = searchParams?.get('task');
-    if (taskIdFromUrl) {
-      const task = tasks.find(t => t._id === taskIdFromUrl);
+    const ticketNumberFromUrl = searchParams?.get('task');
+    if (ticketNumberFromUrl) {
+      const task = tasks.find(t => t.ticketNumber === ticketNumberFromUrl);
       if (task) {
         setSelectedTask(task);
       }
     }
   }, [searchParams, tasks]);
+
+  // Handle task selection with URL update (using ticketNumber)
+  const handleSelectTask = (task: Task) => {
+    setSelectedTask(task);
+    const urlParam = task.ticketNumber || task._id;
+    router.push(`?task=${urlParam}`);
+  };
+
+  // Handle closing task modal and clearing URL
+  const handleCloseTask = () => {
+    setSelectedTask(null);
+    router.push('?');
+  };
 
   const updateTask = useMutation(api.tasks.update);
   const addDependency = useMutation(api.tasks.addDependency);
@@ -254,7 +269,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
                 bulkMode={bulkMode}
                 selectedTasks={selectedTasks}
                 isDragOver={dragOverColumn === col.id}
-                onTaskClick={(task) => setSelectedTask(task)}
+                onTaskClick={handleSelectTask}
                 onTaskSelect={toggleTaskSelection}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => handleDragOver(e, col.id)}
@@ -277,7 +292,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [] }: DraggableTaskB
           agents={agents}
           epics={epics}
           tasks={tasks}
-          onClose={() => setSelectedTask(null)}
+          onClose={handleCloseTask}
           addDependency={addDependency}
           removeDependency={removeDependency}
         />

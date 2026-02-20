@@ -20,6 +20,7 @@ export interface Task {
   timeEstimate?: "XS" | "S" | "M" | "L" | "XL";
   dueDate?: number;
   epicId?: string;
+  ticketNumber?: string;
   assigneeIds: string[];
   subtaskIds?: string[];
   blockedBy?: string[];

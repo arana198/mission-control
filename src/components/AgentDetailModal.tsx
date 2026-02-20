@@ -75,9 +75,11 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
 
   // Handle task click - navigate to board and highlight task
   const handleTaskClick = (taskId: string) => {
-    const currentUrl = `/dashboard/agents?agent=${agent._id}`;
+    const currentUrl = `/global/agents?agent=${agent._id}`;
     const returnUrl = encodeURIComponent(currentUrl);
-    router.push(`/dashboard/board?task=${taskId}&returnTo=${returnUrl}`);
+    // Navigate to the first available business board with the task ID
+    // Note: This opens the first business's board; ideally we'd know the task's business
+    router.push(`?task=${taskId}`);
   };
 
   return (

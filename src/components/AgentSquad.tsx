@@ -3,13 +3,14 @@ import { useNotification } from "@/hooks/useNotification";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "convex/react";
 import { Task } from "@/types/task";
 import { api } from "../../convex/_generated/api";
 import {
   Shield, Search, Flame, Eye, Feather, PenTool,
-  Sparkles, Mail, Cpu, FileText, Zap,
+  Sparkles, Mail, Cpu, FileText, Zap, Cog,
   CheckCircle, Activity, Users,
-  MapPin, Briefcase, MessageSquare, ExternalLink, Folder, AlertCircle
+  MapPin, Briefcase, MessageSquare, ExternalLink, Folder, AlertCircle, Trash2
 } from "lucide-react";
 import { AgentDetailModal } from "./AgentDetailModal";
 import { AgentWorkspaceModal } from "./AgentWorkspaceModal";
@@ -38,6 +39,7 @@ const agentIcons: Record<string, any> = {
   Pepper: Mail,
   Friday: Cpu,
   Wong: FileText,
+  Gus: Cog,
 };
 
 const levelBadges = {
@@ -57,6 +59,7 @@ const agentDescriptions: Record<string, string> = {
   Pepper: "Lifecycle email specialist, drip sequences where every word converts or gets cut.",
   Friday: "Clean code poet — tested, documented, and elegantly architected solutions.",
   Wong: "Documentation keeper who ensures nothing gets lost. Organized and methodical.",
+  Gus: "Calm operations architect. Strategic planner obsessed with precision. Builds resilient systems that never panic under load—meticulous discipline in every execution.",
 };
 
 export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Task[] }) {
@@ -65,6 +68,8 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
   const searchParams = useSearchParams();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [workspaceAgent, setWorkspaceAgent] = useState<Agent | null>(null);
+  const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
+  const deleteAgentMutation = useMutation(api.agents.deleteAgent);
 
   // Load selected agent from URL on mount or when agents change
   useEffect(() => {
@@ -97,13 +102,26 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
   // Handle agent selection with URL update
   const handleSelectAgent = (agent: Agent) => {
     setSelectedAgent(agent);
-    router.push(`/dashboard/agents?agent=${agent._id}`);
+    router.push(`/global/agents?agent=${agent._id}`);
   };
 
   // Handle closing agent detail and clearing URL
   const handleCloseAgent = () => {
     setSelectedAgent(null);
-    router.push('/dashboard/agents');
+    router.push('/global/agents');
+  };
+
+  // Handle agent deletion
+  const handleDeleteAgent = async () => {
+    if (!deletingAgent) return;
+    try {
+      await deleteAgentMutation({ agentId: deletingAgent._id as any, deletedBy: "user" });
+      notif.success(`Agent "${deletingAgent.name}" removed from squad`);
+    } catch (error) {
+      notif.error("Failed to delete agent");
+    } finally {
+      setDeletingAgent(null);
+    }
   };
 
   // Show empty state if no agents
@@ -226,6 +244,14 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
                   <Folder className="w-4 h-4 mr-2" />
                   Workspace
                 </button>
+                <button
+                  onClick={() => setDeletingAgent(agent)}
+                  className="btn bg-red-600 hover:bg-red-700 text-white text-sm"
+                  title="Remove agent from squad"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </button>
               </div>
             </div>
           </div>
@@ -244,6 +270,7 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
               key={agent._id}
               agent={agent}
               onClick={() => handleSelectAgent(agent)}
+              onDelete={() => setDeletingAgent(agent)}
             />
           ))}
         </div>
@@ -262,6 +289,7 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
                 key={agent._id}
                 agent={agent}
                 onClick={() => handleSelectAgent(agent)}
+                onDelete={() => setDeletingAgent(agent)}
                 compact
               />
             ))}
@@ -287,19 +315,38 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
           onClose={() => setWorkspaceAgent(null)}
         />
       )}
+
+      {/* Delete Agent Modal */}
+      {deletingAgent && (
+        <DeleteAgentModal
+          agent={deletingAgent}
+          onConfirm={handleDeleteAgent}
+          onClose={() => setDeletingAgent(null)}
+        />
+      )}
     </div>
   );
 }
 
 // Compact Agent Card
-function AgentCard({ agent, onClick, compact = false }: { agent: Agent; onClick: () => void; compact?: boolean }) {
+function AgentCard({ agent, onClick, onDelete, compact = false }: { agent: Agent; onClick: () => void; onDelete?: () => void; compact?: boolean }) {
   const levelBadge = levelBadges[agent.level];
-  
+
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`card cursor-pointer hover:border-[var(--accent)] transition-all group ${compact ? "p-3" : "p-4"}`}
+      className={`card cursor-pointer hover:border-[var(--accent)] transition-all group relative ${compact ? "p-3" : "p-4"}`}
     >
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 rounded transition-all"
+          title="Delete agent"
+          type="button"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       <div className="flex items-center gap-3">
         <div className={`rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white ${compact ? "w-10 h-10" : "w-12 h-12"}`}>
           {(() => {
@@ -335,6 +382,58 @@ function AgentCard({ agent, onClick, compact = false }: { agent: Agent; onClick:
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+// Delete Agent Confirmation Modal
+function DeleteAgentModal({ agent, onConfirm, onClose }: {
+  agent: Agent;
+  onConfirm: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="card rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 text-red-600 mb-4">
+            <AlertCircle className="w-6 h-6" />
+            <h2 className="text-lg font-semibold">Remove Agent</h2>
+          </div>
+          <p className="text-muted-foreground mb-2">
+            Are you sure you want to remove <strong>{agent.name}</strong> from the squad?
+          </p>
+          {agent.status === "active" && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200 mb-4">
+              ⚠️ This agent is currently <strong>active</strong>. Removing them will unassign all their tasks.
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground mb-6">
+            This will unassign them from all tasks. This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
+            <button
+              onClick={handleConfirm}
+              disabled={isDeleting}
+              className="btn bg-red-600 hover:bg-red-700 text-white flex-1 disabled:opacity-50"
+            >
+              {isDeleting ? "Removing..." : "Remove Agent"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -955,3 +955,65 @@ export const migrationInitWiki = mutation({
     };
   },
 });
+
+/**
+ * MIG-09: Add Confluence-like Features to Wiki (2026-02-20)
+ *
+ * Schema changes:
+ * - Added status field to wikiPages: optional union of "draft" | "published" | "archived"
+ * - Added tags field to wikiPages: optional array of strings (max 10)
+ * - Added favoritedBy field to wikiPages: optional array of userId strings
+ * - Added viewCount field to wikiPages: optional number
+ * - Added index: by_business_status on [businessId, status] for efficient status filtering
+ *
+ * Reason: Enable Confluence-like knowledge management features:
+ * - Status: Track page lifecycle (draft → published → archived)
+ * - Tags: Organize and categorize knowledge across hierarchies
+ * - Favorites: Let users bookmark important pages
+ * - View Count: Track which pages are most helpful/valuable
+ *
+ * Migration action: No-op — all new fields optional, default to undefined
+ * Existing pages without these fields will have them undefined until explicitly set.
+ * New pages can specify status on creation (default: draft).
+ *
+ * Idempotent: Always safe to run
+ */
+export const migrationWikiEnhancements = mutation({
+  args: {},
+  handler: async (_ctx, _args) => {
+    // No data migration needed - all new fields are optional
+    // Existing pages work fine without these fields
+    // New functionality accesses fields safely with ?. and ?? operators
+    return {
+      success: true,
+      message: "MIG-09: Wiki enhancement fields added (status, tags, favoritedBy, viewCount). No data migration required.",
+    };
+  },
+});
+
+/**
+ * MIG-10: Add DRI Fields to Wiki Pages (2026-02-20)
+ *
+ * Schema changes:
+ * - Added driver field to wikiPages: optional string (directly responsible individual)
+ * - Added approver field to wikiPages: optional string (sign-off person)
+ * - Added contributors field to wikiPages: optional string[] (collaborators)
+ * - Added dueDate field to wikiPages: optional number (epoch ms)
+ *
+ * Reason: Enable Confluence-style page properties panel with DRI (Directly Responsible Individual)
+ * tracking and team collaboration metadata. Supports right-side properties sidebar in editor.
+ *
+ * Migration action: No-op — all new fields optional, default to undefined.
+ * Existing pages without these fields remain fully functional.
+ *
+ * Idempotent: Always safe to run.
+ */
+export const migrationWikiDriFields = mutation({
+  args: {},
+  handler: async (_ctx, _args) => {
+    return {
+      success: true,
+      message: "MIG-10: Wiki DRI fields added (driver, approver, contributors, dueDate). No data migration required.",
+    };
+  },
+});

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotification } from "@/hooks/useNotification";
@@ -53,10 +54,35 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
   agents?: Agent[];
 }) {
   const notif = useNotification();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<Epic | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showMigration, setShowMigration] = useState(false);
+
+  // Load task from URL parameter if present
+  useEffect(() => {
+    const taskIdFromUrl = searchParams?.get('task');
+    if (taskIdFromUrl) {
+      const task = tasks.find(t => t._id === taskIdFromUrl);
+      if (task) {
+        setSelectedTask(task);
+      }
+    }
+  }, [searchParams, tasks]);
+
+  // Handle task selection with URL update
+  const handleSelectTask = (task: Task) => {
+    setSelectedTask(task);
+    router.push(`?task=${task._id}`);
+  };
+
+  // Handle closing task modal and clearing URL
+  const handleCloseTask = () => {
+    setSelectedTask(null);
+    router.push('?');
+  };
 
   // Migration mutations
   const migrateTasksMutation = useMutation(api.migrations.migrateTasksToEpic);
@@ -99,14 +125,25 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
 
   if (selectedEpic) {
     return (
-      <EpicDetailView
-        epic={selectedEpic}
-        tasks={tasks.filter(t => t.epicId === selectedEpic._id)}
-        agents={agents}
-        allEpics={epics}
-        onBack={() => setSelectedEpic(null)}
-        onSelectTask={setSelectedTask}
-      />
+      <>
+        <EpicDetailView
+          epic={selectedEpic}
+          tasks={tasks.filter(t => t.epicId === selectedEpic._id)}
+          agents={agents}
+          allEpics={epics}
+          onBack={() => setSelectedEpic(null)}
+          onSelectTask={handleSelectTask}
+        />
+        {/* Task Preview Modal */}
+        {selectedTask && (
+          <TaskPreviewModal
+            task={selectedTask}
+            agents={agents}
+            epic={epics.find(e => e._id === selectedTask.epicId)}
+            onClose={handleCloseTask}
+          />
+        )}
+      </>
     );
   }
 
@@ -176,6 +213,7 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
   const notif = useNotification();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLeftPaneCollapsed, setIsLeftPaneCollapsed] = useState(false);
   const owner = agents.find(a => a._id === epic.ownerId);
 
   // Mutations
@@ -326,8 +364,21 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className={`grid transition-all duration-300 ${isLeftPaneCollapsed ? 'grid-cols-1' : 'grid-cols-3'} gap-8`}>
+        {/* Collapse Button */}
+        <div className="col-span-full flex justify-start mb-4">
+          <button
+            onClick={() => setIsLeftPaneCollapsed(!isLeftPaneCollapsed)}
+            className="p-2 hover:bg-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+            title={isLeftPaneCollapsed ? "Show tasks" : "Hide tasks"}
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isLeftPaneCollapsed ? 'rotate-180' : 'rotate-0'}`} />
+            {isLeftPaneCollapsed ? "Show Tasks" : "Hide Tasks"}
+          </button>
+        </div>
+
         {/* Left: Task pipeline */}
+        {!isLeftPaneCollapsed && (
         <div className="col-span-2 space-y-4">
           <h3 className="font-semibold flex items-center gap-2">
             <Layers className="w-4 h-4" /> Tasks by Status
@@ -344,14 +395,21 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
                 </div>
                 <div className="space-y-2">
                   {statusTasks.map(task => (
-                    <div
+                    <button
                       key={task._id}
                       onClick={() => onSelectTask(task)}
-                      className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer group"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelectTask(task);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer group hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
                       title="Click to view task details"
+                      type="button"
                     >
-                      <span className="font-medium truncate group-hover:text-blue-600">{task.title}</span>
-                      <div className="flex items-center gap-2">
+                      <span className="font-medium truncate group-hover:text-blue-600 text-left">{task.title}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         {task.timeEstimate && (
                           <span className="badge bg-blue-100 text-blue-700 text-xs">
                             {task.timeEstimate}
@@ -360,7 +418,7 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
                         <span className={`badge badge-priority-${task.priority.toLowerCase()} text-xs`}>
                           {task.priority}
                         </span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
                         {task.assigneeIds.length > 0 ? (
                           <div className="flex -space-x-1">
                             {task.assigneeIds.slice(0, 3).map(id => {
@@ -376,16 +434,17 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
                           <span className="text-xs text-muted-foreground">Unassigned</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
             )
           ))}
         </div>
+        )}
 
         {/* Right: Agent Workload */}
-        <div>
+        <div className={isLeftPaneCollapsed ? 'col-span-full' : ''}>
           <h3 className="font-semibold flex items-center gap-2 mb-4">
             <Users className="w-4 h-4" /> Team Workload
           </h3>
@@ -434,7 +493,7 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="card rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="p-4 border-b flex items-start justify-between">

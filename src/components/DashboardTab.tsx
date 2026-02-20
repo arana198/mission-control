@@ -18,13 +18,13 @@ import { BusinessDashboard } from "./dashboard/BusinessDashboard";
 import { GlobalDashboard } from "./dashboard/GlobalDashboard";
 import { LoadingSkeleton } from "./LoadingSkeletons";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs" | "inbox";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "wiki" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs" | "inbox";
 
 /**
  * Dashboard Tab Content Component (Client)
  *
  * Router component that delegates to appropriate sub-components based on tab type.
- * - BusinessDashboard: Handles business-specific tabs (overview, board, epics, documents, settings)
+ * - BusinessDashboard: Handles business-specific tabs (overview, board, epics, wiki, settings)
  * - GlobalDashboard: Handles global tabs (agents, workload, activity, calendar, etc.)
  *
  * This architecture eliminates conditional hook violations by keeping each component's
@@ -49,7 +49,7 @@ export function DashboardTabClientContent({
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   // Determine tab type
-  const isBusinessSpecificTab = ["overview", "board", "epics", "documents", "settings"].includes(tab);
+  const isBusinessSpecificTab = ["overview", "board", "epics", "wiki", "settings"].includes(tab);
   const targetBusinessId = currentBusiness?._id;
 
   // Log page load
@@ -106,7 +106,7 @@ export function DashboardTabClientContent({
       {/* Render appropriate dashboard based on tab type */}
       {isBusinessSpecificTab && targetBusinessId ? (
         <BusinessDashboard
-          tab={tab as "overview" | "board" | "epics" | "documents" | "settings"}
+          tab={tab as "overview" | "board" | "epics" | "wiki" | "settings"}
           businessId={targetBusinessId}
           isCreatingTask={isCreatingTask}
           setIsCreatingTask={setIsCreatingTask}

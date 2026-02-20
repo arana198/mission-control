@@ -117,6 +117,13 @@ function KanbanColumnComponent({
               )}
 
               <div className="space-y-2">
+                {/* Ticket number - like Jira */}
+                {task.ticketNumber && (
+                  <div className="text-xs font-semibold text-muted-foreground">
+                    {task.ticketNumber}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 flex-wrap">
                   {task.blockedBy && task.blockedBy.length > 0 && (
                     <span className="badge bg-red-100 text-red-700">

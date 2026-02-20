@@ -23,13 +23,14 @@ interface DashboardLayoutProps {
 }
 
 type TabType = "overview" | "board" | "epics" | "agents" | "workload" |
-  "activity" | "calendar" | "brain" | "bottlenecks" | "settings" | "analytics" | "api-docs";
+  "activity" | "calendar" | "brain" | "bottlenecks" | "settings" | "analytics" | "api-docs" | "wiki";
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { currentBusiness } = useBusiness();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Extract current tab from pathname
   const currentTab = ((pathname || "").split("/").pop() || "overview") as TabType;
@@ -48,7 +49,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: "overview", label: "Overview", icon: BarChart3, isGlobal: false },
     { id: "epics", label: "Roadmap", icon: Map, isGlobal: false },
     { id: "board", label: "Task Board", icon: LayoutGrid, isGlobal: false },
-    { id: "documents", label: "Wiki", icon: BookOpen, isGlobal: false },
+    { id: "wiki", label: "Wiki", icon: BookOpen, isGlobal: false },
     { id: "settings", label: "Settings", icon: Zap, isGlobal: false },
     // Global tabs
     { id: "agents", label: "Your Squad", icon: Users, isGlobal: true },
@@ -89,29 +90,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Sidebar */}
-      <aside className="w-full md:w-64 md:sticky md:top-0 md:h-screen border-r bg-muted/30 flex-shrink-0 flex flex-col max-h-screen overflow-y-auto">
+      <aside className={`w-full transition-all duration-300 md:sticky md:top-0 md:h-screen border-r bg-muted/30 flex-shrink-0 flex flex-col max-h-screen overflow-y-auto ${
+        isSidebarCollapsed ? 'md:w-20' : 'md:w-64'
+      }`}>
         {/* Header - Always visible */}
-        <div className="p-4 border-b space-y-3">
-          <div className="hidden md:flex items-center gap-3">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-accent-foreground" />
+        <div className="p-4 border-b transition-all duration-300">
+          {!isSidebarCollapsed && (
+            <div className="hidden md:flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-accent-foreground" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-sm">Mission Control</h1>
+                <p className="text-xs text-muted-foreground">Agent Squad</p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-semibold text-sm">Mission Control</h1>
-              <p className="text-xs text-muted-foreground">Agent Squad</p>
-            </div>
-          </div>
+          )}
 
-          {/* Business Selector - Always visible */}
-          <div>
-            <BusinessSelector />
-          </div>
+          {/* Business Selector - Hidden when collapsed on desktop */}
+          {!isSidebarCollapsed && (
+            <div className="hidden md:block">
+              <BusinessSelector />
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 flex flex-col min-h-0">
           {/* Business-Scoped Tabs */}
-          <div className="flex-shrink-0 p-3 pb-2 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">BUSINESS</p>
+          <div className={`flex-shrink-0 p-3 pb-2 space-y-1 transition-all ${isSidebarCollapsed ? 'md:p-2' : ''}`}>
+            {!isSidebarCollapsed && (
+              <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">BUSINESS</p>
+            )}
             {tabs
               .filter(tab => !tab.isGlobal)
               .map((tab) => {
@@ -129,11 +138,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       !isActive ? "hover:text-foreground hover:bg-muted" : ""
-                    }`}
+                    } ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`}
+                    title={isSidebarCollapsed ? tab.label : undefined}
                   >
                     <Icon className="w-4 h-4" />
-                    {tab.label}
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    {!isSidebarCollapsed && tab.label}
+                    {!isSidebarCollapsed && isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </button>
                 );
               })}
@@ -145,8 +155,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Global Tabs */}
-          <div className="flex-1 p-3 pt-2 space-y-1 overflow-y-auto">
-            <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">WORKSPACE</p>
+          <div className={`flex-1 p-3 pt-2 space-y-1 overflow-y-auto transition-all ${isSidebarCollapsed ? 'md:p-2' : ''}`}>
+            {!isSidebarCollapsed && (
+              <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">WORKSPACE</p>
+            )}
             {tabs
               .filter(tab => tab.isGlobal)
               .map((tab) => {
@@ -164,11 +176,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       !isActive ? "hover:text-foreground hover:bg-muted" : ""
-                    }`}
+                    } ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`}
+                    title={isSidebarCollapsed ? tab.label : undefined}
                   >
                     <Icon className="w-4 h-4" />
-                    {tab.label}
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    {!isSidebarCollapsed && tab.label}
+                    {!isSidebarCollapsed && isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                   </button>
                 );
               })}
@@ -182,8 +195,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
+      {/* Floating Toggle Button (Right edge of sidebar, center vertically) */}
+      <button
+        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        className="hidden md:flex items-center justify-center w-7 h-7 rounded-full bg-background border border-border hover:bg-muted transition-colors absolute top-1/2 -translate-y-1/2 z-10 group"
+        style={{
+          left: isSidebarCollapsed ? '80px' : '256px',
+          transition: 'left 300ms ease-in-out',
+        }}
+        title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <ChevronRight className={`w-4 h-4 transition-transform group-hover:scale-110 ${isSidebarCollapsed ? 'rotate-180' : 'rotate-0'}`} />
+      </button>
+
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto w-full">
+      <main className={`flex-1 overflow-y-auto w-full transition-all duration-300 px-4 py-6 md:px-8 md:py-8 ${isSidebarCollapsed ? 'md:pl-6' : 'md:pl-12'}`}>
         {children}
       </main>
     </div>

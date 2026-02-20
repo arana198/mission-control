@@ -14,7 +14,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
 import { HelpRequestButton } from "./HelpRequestButton";
 import { DependencyGraph } from "./DependencyGraph";
-import { AlertTriangle, Calendar, Target, X, Loader2 } from "lucide-react";
+import { AlertTriangle, Calendar, Target, X, Loader2, ChevronDown } from "lucide-react";
 import { getPriorityBadgeClass, getStatusLabel } from "./Badge";
 
 /**
@@ -40,8 +40,18 @@ export function TaskDetailModal({
   const notif = useNotification();
   const [newBlockerId, setNewBlockerId] = useState("");
   const [blockerToRemove, setBlockerToRemove] = useState<string | null>(null);
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState(task.description || "");
+  const [isUpdatingDescription, setIsUpdatingDescription] = useState(false);
 
   const updateTask = useMutation(api.tasks.update);
+
+  const priorities = ["P0", "P1", "P2", "P3"] as const;
+  const statuses = ["backlog", "ready", "in_progress", "review", "blocked", "done"] as const;
 
   // Subscribe to live task data
   const liveTask = useQuery(api.tasks.getTaskById, { taskId: task._id as any });
@@ -97,6 +107,58 @@ export function TaskDetailModal({
     });
   };
 
+  const handlePriorityChange = async (newPriority: typeof priorities[number]) => {
+    if (!updateTask || newPriority === task.priority) {
+      setShowPriorityDropdown(false);
+      return;
+    }
+    setIsUpdatingPriority(true);
+    try {
+      await updateTask({ id: task._id as any, priority: newPriority as any });
+      notif.success(`Priority changed to ${newPriority}`);
+      setShowPriorityDropdown(false);
+    } catch (err) {
+      notif.error("Failed to update priority");
+    } finally {
+      setIsUpdatingPriority(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: typeof statuses[number]) => {
+    if (!updateTask || newStatus === task.status) {
+      setShowStatusDropdown(false);
+      return;
+    }
+    setIsUpdatingStatus(true);
+    try {
+      await updateTask({ id: task._id as any, status: newStatus as any });
+      notif.success(`Status changed to ${getStatusLabel(newStatus)}`);
+      setShowStatusDropdown(false);
+    } catch (err) {
+      notif.error("Failed to update status");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleDescriptionChange = async () => {
+    if (!updateTask || descriptionValue === task.description) {
+      setIsEditingDescription(false);
+      return;
+    }
+    setIsUpdatingDescription(true);
+    try {
+      await updateTask({ id: task._id as any, description: descriptionValue });
+      notif.success("Description updated");
+      setIsEditingDescription(false);
+    } catch (err) {
+      notif.error("Failed to update description");
+      setDescriptionValue(task.description || "");
+    } finally {
+      setIsUpdatingDescription(false);
+    }
+  };
+
   const isBlocked = blockingTasks.some((t: any) => t.status !== "done");
 
   const currentEpic = epics.find((e) => e._id === task.epicId);
@@ -113,43 +175,27 @@ export function TaskDetailModal({
         className="modal-content w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Jira-Style Header Row */}
-        <div className="p-6 border-b">
-          <div className="flex items-start justify-between mb-4">
-            {/* Left: Key metadata */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Priority - prominent badge */}
-              <span className={`badge badge-priority-${task.priority.toLowerCase()} text-sm px-3 py-1`}>
-                {task.priority}
+        {/* Clean Header */}
+        <div className="p-6 border-b bg-gradient-to-br from-background to-muted/20">
+          <div className="flex items-start justify-between mb-3">
+            {/* Ticket number - prominent and small */}
+            {task.ticketNumber && (
+              <span className="font-mono font-bold text-xs tracking-wider text-muted-foreground uppercase">
+                {task.ticketNumber}
               </span>
-              {/* Status - prominent badge */}
-              <span className={`badge badge-status-${task.status} text-sm px-3 py-1`}>
-                {getStatusLabel(task.status)}
-              </span>
-              {isBlocked && (
-                <span className="badge bg-amber-500/10 text-amber-600 flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4" />
-                  Blocked
-                </span>
-              )}
-              {task.timeEstimate && (
-                <span className="badge bg-muted text-muted-foreground flex items-center gap-1">
-                  ⏱ {task.timeEstimate}
-                </span>
-              )}
-            </div>
+            )}
             {/* Right: Close button */}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              className="p-2 hover:bg-muted/50 rounded-lg transition-colors -mr-2"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
-          {/* Title */}
-          <h1 id="task-detail-title" className="text-xl font-semibold">
+          {/* Title - main focus */}
+          <h1 id="task-detail-title" className="text-2xl font-semibold tracking-tight">
             {task.title}
           </h1>
         </div>
@@ -160,10 +206,67 @@ export function TaskDetailModal({
           <div className="col-span-2 space-y-6">
             {/* Description */}
             <div>
-              <h3 className="text-sm font-medium mb-2 text-muted-foreground">Description</h3>
-              <div className="text-sm whitespace-pre-wrap p-4 rounded-lg min-h-[100px] bg-muted">
-                {task.description || "No description provided."}
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                {!isEditingDescription && (
+                  <button
+                    onClick={() => {
+                      setIsEditingDescription(true);
+                      setDescriptionValue(task.description || "");
+                    }}
+                    className="text-xs px-2 py-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title="Click to edit"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
+              {isEditingDescription ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={descriptionValue}
+                    onChange={(e) => setDescriptionValue(e.target.value)}
+                    className="w-full p-3 border border-border rounded-lg text-sm min-h-[120px] font-mono"
+                    placeholder="Enter task description..."
+                    disabled={isUpdatingDescription}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDescriptionChange}
+                      disabled={isUpdatingDescription}
+                      className="btn btn-primary text-sm"
+                    >
+                      {isUpdatingDescription ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingDescription(false);
+                        setDescriptionValue(task.description || "");
+                      }}
+                      disabled={isUpdatingDescription}
+                      className="btn btn-secondary text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm whitespace-pre-wrap p-4 rounded-lg min-h-[100px] bg-muted hover:bg-muted/80 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setIsEditingDescription(true);
+                    setDescriptionValue(task.description || "");
+                  }}
+                >
+                  {task.description || "No description provided. Click to add one."}
+                </div>
+              )}
             </div>
 
             {/* Definition of Done Checklist */}
@@ -254,53 +357,153 @@ export function TaskDetailModal({
 
             {/* Comments Section */}
             <TaskComments taskId={task._id} agents={agents} />
-
-            {/* Commits Section - GitHub Integration */}
-            <TaskCommits taskId={task._id} businessId={currentTask?.businessId} />
           </div>
 
           {/* Right column (1/3): Epic, Assignees, Details */}
-          <div className="space-y-6">
-            {/* Epic - Jira Style */}
-            <div className="p-3 rounded-lg bg-muted">
-              <label className="text-xs font-medium block mb-2 text-muted-foreground">
-                Epic
-              </label>
-              <select
-                value={task.epicId || ""}
-                onChange={async (e) => {
-                  const newEpicId = e.target.value;
-                  if (!newEpicId || !updateTask) return;
-                  try {
-                    await updateTask({ id: task._id as any, epicId: newEpicId as any });
-                    notif.success("Epic updated");
-                  } catch (err) {
-                    notif.error("Failed to update epic");
-                  }
-                }}
-                className="input text-sm w-full"
-                aria-label="Select epic"
-              >
-                <option value="">None</option>
-                {epics.map((epic) => (
-                  <option key={epic._id} value={epic._id}>{epic.title}</option>
-                ))}
-              </select>
-              {currentEpic && (
-                <div className="flex items-center gap-2 mt-2 p-2 rounded text-xs bg-blue-500/10">
-                  <Target className="w-3 h-3 text-accent" />
-                  <span className="text-accent">{currentEpic.title}</span>
+          <div className="space-y-5">
+            {/* Metadata Card - organized cleanly */}
+            <div className="p-4 rounded-lg border border-border bg-card">
+              {/* Priority - Clickable */}
+              <div className="mb-4 pb-4 border-b border-border/50">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Priority</p>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                    disabled={isUpdatingPriority}
+                    className={`w-full badge badge-priority-${task.priority.toLowerCase()} text-sm px-3 py-2 flex items-center justify-between hover:shadow-md transition-all cursor-pointer disabled:opacity-50`}
+                    aria-label="Click to change priority"
+                  >
+                    {isUpdatingPriority ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <>
+                        <span>{task.priority}</span>
+                        <ChevronDown className="w-3 h-3 opacity-50" />
+                      </>
+                    )}
+                  </button>
+                  {showPriorityDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50">
+                      {priorities.map((priority) => (
+                        <button
+                          key={priority}
+                          onClick={() => handlePriorityChange(priority)}
+                          disabled={isUpdatingPriority}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                            priority === task.priority ? "font-semibold bg-muted/50" : ""
+                          }`}
+                        >
+                          {priority}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status - Clickable */}
+              <div className="mb-4 pb-4 border-b border-border/50">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    disabled={isUpdatingStatus}
+                    className={`w-full badge badge-status-${task.status} text-sm px-3 py-2 flex items-center justify-between hover:shadow-md transition-all cursor-pointer disabled:opacity-50`}
+                    aria-label="Click to change status"
+                  >
+                    {isUpdatingStatus ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <>
+                        <span>{getStatusLabel(task.status)}</span>
+                        <ChevronDown className="w-3 h-3 opacity-50" />
+                      </>
+                    )}
+                  </button>
+                  {showStatusDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50">
+                      {statuses.map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleStatusChange(status)}
+                          disabled={isUpdatingStatus}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                            status === task.status ? "font-semibold bg-muted/50" : ""
+                          }`}
+                        >
+                          {getStatusLabel(status)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Time Estimate */}
+              {task.timeEstimate && (
+                <div className="mb-4 pb-4 border-b border-border/50">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Estimate</p>
+                  <p className="text-sm font-medium">{task.timeEstimate}</p>
+                </div>
+              )}
+
+              {/* Epic Selection */}
+              <div className="mb-4 pb-4 border-b border-border/50">
+                <label className="text-xs font-medium block mb-2 text-muted-foreground">
+                  Epic
+                </label>
+                <select
+                  value={task.epicId || ""}
+                  onChange={async (e) => {
+                    const newEpicId = e.target.value;
+                    if (!newEpicId || !updateTask) return;
+                    try {
+                      await updateTask({ id: task._id as any, epicId: newEpicId as any });
+                      notif.success("Epic updated");
+                    } catch (err) {
+                      notif.error("Failed to update epic");
+                    }
+                  }}
+                  className="input text-sm w-full"
+                  aria-label="Select epic"
+                >
+                  <option value="">None</option>
+                  {epics.map((epic) => (
+                    <option key={epic._id} value={epic._id}>{epic.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Dates */}
+              <div className="space-y-3">
+                {task.dueDate && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Due Date</p>
+                    <p className="text-sm">{new Date(task.dueDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Created</p>
+                  <p className="text-sm">{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "Unknown"}</p>
+                </div>
+              </div>
+
+              {/* Blocked Status */}
+              {isBlocked && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-amber-600 text-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="font-medium">Blocked</span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Assignees - Jira Style */}
-            <div className="p-3 rounded-lg bg-muted">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Assignees
-                </label>
-              </div>
+            {/* Assignees Card */}
+            <div className="p-4 rounded-lg border border-border bg-card">
+              <label className="text-xs font-medium text-muted-foreground block mb-3">
+                Assignees
+              </label>
               <div className="space-y-2">
                 {task.assigneeIds.length > 0 ? (
                   task.assigneeIds.map((id: string) => {
@@ -308,10 +511,10 @@ export function TaskDetailModal({
                     return agent ? (
                       <div
                         key={id}
-                        className="flex items-center justify-between p-2 rounded-lg group bg-surface"
+                        className="flex items-center justify-between p-2 rounded group hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs bg-accent text-accent-foreground">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-accent/20 text-accent">
                             {agent.name[0]}
                           </div>
                           <span className="text-sm">{agent.name}</span>
@@ -327,7 +530,7 @@ export function TaskDetailModal({
                               notif.error("Failed to remove assignee");
                             }
                           }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:opacity-100 rounded transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-600 rounded transition-all"
                           title="Remove assignee"
                           aria-label={`Remove ${agent.name}`}
                         >
@@ -337,7 +540,7 @@ export function TaskDetailModal({
                     ) : null;
                   })
                 ) : (
-                  <p className="text-sm text-muted-foreground">Unassigned</p>
+                  <p className="text-sm text-muted-foreground py-2">Unassigned</p>
                 )}
 
                 {/* Add assignee */}
@@ -359,7 +562,7 @@ export function TaskDetailModal({
                     }
                     e.target.value = "";
                   }}
-                  className="input text-sm w-full"
+                  className="input text-sm w-full mt-2"
                   aria-label="Add assignee"
                 >
                   <option value="">+ Add assignee...</option>
@@ -372,8 +575,8 @@ export function TaskDetailModal({
               </div>
             </div>
 
-            {/* Help Request Button - for in_progress or blocked tasks */}
-            <div className="p-3 rounded-lg bg-muted">
+            {/* Help Request Button */}
+            <div className="p-4 rounded-lg border border-border bg-card">
               <HelpRequestButton
                 taskId={task._id as any}
                 taskStatus={task.status}
@@ -383,27 +586,9 @@ export function TaskDetailModal({
               />
             </div>
 
-            {/* Due Date - Jira Style */}
-            {task.dueDate && (
-              <div className="p-3 rounded-lg bg-muted">
-                <label className="text-xs font-medium block mb-1 text-muted-foreground">
-                  Due Date
-                </label>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-accent" />
-                  <span className="text-sm">{new Date(task.dueDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Created date */}
-            <div className="p-3 rounded-lg bg-muted">
-              <label className="text-xs font-medium block mb-1 text-muted-foreground">
-                Created
-              </label>
-              <span className="text-sm">
-                {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "Unknown"}
-              </span>
+            {/* Commits Section - GitHub Integration */}
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <TaskCommits taskId={task._id} businessId={currentTask?.businessId} />
             </div>
           </div>
         </div>

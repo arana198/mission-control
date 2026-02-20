@@ -7,20 +7,18 @@ import { api } from "@/convex/_generated/api";
 import { WikiTree } from "./WikiTree";
 import { WikiPageView } from "./WikiPageView";
 import { WikiPageEditor } from "./WikiPageEditor";
-import { WikiHistory } from "./WikiHistory";
-import { WikiSearch } from "./WikiSearch";
-import type { WikiPageWithChildren, WikiPage, WikiComment, WikiPageHistory } from "@/convex/wiki";
+import type { WikiPageWithChildren, WikiPage } from "@/convex/wiki";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface WikiDocsProps {
   businessId: string;
 }
 
-type ViewMode = "tree" | "view" | "edit" | "history";
+type ViewMode = "tree" | "view" | "edit";
 
 /**
  * WikiDocs - Main wiki container
- * 3-panel layout: Tree | Page View/Edit | History/Search
+ * 2-panel layout: Tree | Page View/Edit
  */
 export function WikiDocs({ businessId }: WikiDocsProps) {
   // Router and URL
@@ -30,8 +28,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
   // State management
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("tree");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
   const newlyCreatedPageRef = useRef<string | null>(null);
   const urlSyncRef = useRef(false); // Prevent duplicate syncs
 
@@ -41,15 +37,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     api.wiki.getPage,
     selectedPageId ? { pageId: selectedPageId as Id<"wikiPages"> } : "skip"
   );
-  const pageHistory = useQuery(
-    api.wiki.getHistory,
-    selectedPageId ? { pageId: selectedPageId as Id<"wikiPages"> } : "skip"
-  );
-  const pageComments = useQuery(
-    api.wiki.getComments,
-    selectedPageId ? { pageId: selectedPageId as Id<"wikiPages"> } : "skip"
-  );
-  const searchResults = useQuery(api.wiki.search, { businessId: businessId as Id<"businesses">, query: searchQuery });
 
   // Flatten tree for search breadcrumb resolution
   const allPages = flattenTree(tree || []);
@@ -61,13 +48,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
   const deletePageMutation = useMutation(api.wiki.deletePage);
   const movePageMutation = useMutation(api.wiki.movePage);
   const reorderPagesMutation = useMutation(api.wiki.reorderPages);
-  const addCommentMutation = useMutation(api.wiki.addComment);
-  const deleteCommentMutation = useMutation(api.wiki.deleteComment);
-  const restorePageMutation = useMutation(api.wiki.restorePage);
-  // Phase 2: Confluence-like features
-  const toggleFavoriteMutation = useMutation(api.wiki.toggleFavorite);
-  const updatePageStatusMutation = useMutation(api.wiki.updatePageStatus);
-  const incrementViewCountMutation = useMutation(api.wiki.incrementViewCount);
 
   // Initialize from URL on first client load
   useEffect(() => {
@@ -95,27 +75,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     }
   }, [selectedPageId, searchParams, router]);
 
-  // Handle Cmd+K to open search (only if not in editor)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if we're typing in an input or editor
-      const target = e.target as HTMLElement;
-      const isTyping =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.contentEditable === "true" ||
-        target?.closest("[contenteditable=true]");
-
-      if (!isTyping && (e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        e.stopPropagation();
-        setShowSearch(true);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, []);
 
   // Handlers
   const handleCreatePage = useCallback(
@@ -127,8 +86,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
               businessId: businessId as Id<"businesses">,
               parentId: parentId as Id<"wikiPages">,
               title: "New Page",
-              content: JSON.stringify({ type: "doc", content: [] }),
-              contentText: "",
+              content: "",
               createdBy: "user",
               createdByName: "User",
             })
@@ -157,10 +115,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     async (data: {
       title: string;
       content: string;
-      contentText: string;
-      emoji?: string;
-      status?: string;
-      tags?: string[];
     }, isAutoSave?: boolean) => {
       if (!selectedPageId) {
         console.error("No page selected for update");
@@ -172,10 +126,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           pageId: selectedPageId as Id<"wikiPages">,
           title: data.title || "Untitled",
           content: data.content,
-          contentText: data.contentText,
-          emoji: data.emoji,
-          status: data.status as "draft" | "published" | "archived" | undefined,
-          tags: data.tags,
           updatedBy: "user",
           updatedByName: "User",
         });
@@ -226,7 +176,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           pageId: pageId as Id<"wikiPages">,
           title: newTitle.trim(),
           content: page.content,
-          contentText: page.contentText,
           updatedBy: "user",
           updatedByName: "User",
         });
@@ -238,94 +187,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     [allPages, updatePageMutation]
   );
 
-  const handleAddComment = useCallback(
-    async (content: string, parentId?: string) => {
-      if (!selectedPageId) return;
-
-      try {
-        await addCommentMutation({
-          pageId: selectedPageId as Id<"wikiPages">,
-          businessId: businessId as Id<"businesses">,
-          fromId: "user",
-          fromName: "User",
-          content,
-          parentId: parentId ? (parentId as Id<"wikiComments">) : undefined,
-        });
-      } catch (error) {
-        console.error("Failed to add comment:", error);
-      }
-    },
-    [selectedPageId, businessId, addCommentMutation]
-  );
-
-  const handleDeleteComment = useCallback(
-    async (commentId: string) => {
-      try {
-        await deleteCommentMutation({ commentId: commentId as Id<"wikiComments"> });
-      } catch (error) {
-        console.error("Failed to delete comment:", error);
-      }
-    },
-    [deleteCommentMutation]
-  );
-
-  const handleRestorePage = useCallback(
-    async (historyId: string) => {
-      if (!selectedPageId) return;
-
-      try {
-        await restorePageMutation({
-          pageId: selectedPageId as Id<"wikiPages">,
-          historyId: historyId as Id<"wikiPageHistory">,
-          restoredBy: "user",
-          restoredByName: "User",
-        });
-        setViewMode("view");
-      } catch (error) {
-        console.error("Failed to restore page:", error);
-      }
-    },
-    [selectedPageId, restorePageMutation]
-  );
-
-  // Phase 2: Confluence-like features
-  const handleToggleFavorite = useCallback(
-    async (pageId: string, userId: string) => {
-      try {
-        await toggleFavoriteMutation({ pageId: pageId as Id<"wikiPages">, userId });
-      } catch (error) {
-        console.error("Failed to toggle favorite:", error);
-      }
-    },
-    [toggleFavoriteMutation]
-  );
-
-  const handleUpdateStatus = useCallback(
-    async (pageId: string, status: "draft" | "published" | "archived") => {
-      try {
-        await updatePageStatusMutation({
-          pageId: pageId as Id<"wikiPages">,
-          status,
-          updatedBy: "user",
-          updatedByName: "User",
-        });
-      } catch (error) {
-        console.error("Failed to update page status:", error);
-      }
-    },
-    [updatePageStatusMutation]
-  );
-
-  const handleIncrementViewCount = useCallback(
-    async (pageId: string) => {
-      try {
-        await incrementViewCountMutation({ pageId: pageId as Id<"wikiPages"> });
-      } catch (error) {
-        console.error("Failed to increment view count:", error);
-      }
-    },
-    [incrementViewCountMutation]
-  );
 
   const handleMovePage = useCallback(
     async (pageId: string, newParentId: string) => {
@@ -360,25 +221,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
     [movePageMutation, tree]
   );
 
-  // Auto-open drafts in edit mode
-  useEffect(() => {
-    if (selectedPageId && selectedPage && selectedPage.status === "draft" && viewMode === "view") {
-      setViewMode("edit");
-    }
-  }, [selectedPageId, selectedPage, viewMode]);
-
-  // Call incrementViewCount when page is selected and shown in view mode
-  // Only increment for published pages (not drafts/archived)
-  useEffect(() => {
-    if (selectedPageId && viewMode === "view" && selectedPage && selectedPage.status === "published") {
-      // Don't increment if this page was just created
-      if (newlyCreatedPageRef.current === selectedPageId) {
-        newlyCreatedPageRef.current = null;
-        return;
-      }
-      handleIncrementViewCount(selectedPageId);
-    }
-  }, [selectedPageId, viewMode, selectedPage, handleIncrementViewCount]);
 
   // Render empty state
   if (tree && tree.length === 0 && !selectedPageId) {
@@ -426,18 +268,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
               <WikiPageView
                 page={selectedPage}
                 allPages={allPages}
-                comments={pageComments || []}
                 onEdit={() => setViewMode("edit")}
-                onShowHistory={() => setViewMode("history")}
                 onBack={() => {
                   setSelectedPageId(null);
                   setViewMode("tree");
                 }}
-                onAddComment={handleAddComment}
-                onDeleteComment={handleDeleteComment}
-                onToggleFavorite={handleToggleFavorite}
-                onUpdateStatus={handleUpdateStatus}
-                currentUserId="user"
               />
             )}
 
@@ -446,18 +281,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
                 page={selectedPage}
                 onSave={handleUpdatePage}
                 onCancel={() => setViewMode("view")}
-                onBack={() => {
-                  setViewMode("view");
-                }}
-              />
-            )}
-
-            {viewMode === "history" && (
-              <WikiHistory
-                history={pageHistory || []}
-                currentTitle={selectedPage.title}
-                onBack={() => setViewMode("view")}
-                onRestore={handleRestorePage}
               />
             )}
           </>
@@ -473,20 +296,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           </div>
         )}
       </div>
-
-      {/* Search overlay */}
-      <WikiSearch
-        isOpen={showSearch}
-        results={searchResults || []}
-        onClose={() => setShowSearch(false)}
-        onSelectPage={(pageId) => {
-          setSelectedPageId(pageId);
-          setViewMode("view");
-          setShowSearch(false);
-        }}
-        onSearch={setSearchQuery}
-        allPages={allPages}
-      />
     </div>
   );
 }

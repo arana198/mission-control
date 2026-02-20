@@ -806,24 +806,22 @@ export default defineSchema({
     .index("by_created_at", ["createdAt"]),
 
   /**
-   * WIKI PAGES - Confluence-style document store
-   * Tree-structured knowledge base organized by business + departments
-   * Phase 1: Schema foundations for wiki feature
+   * WIKI PAGES - Simple markdown-based document store
+   * Tree-structured knowledge base organized by business + pages and subpages
+   * No Confluence-style features: just markdown content, hierarchy, and basic metadata
    */
   wikiPages: defineTable({
     // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this page belongs to
+    businessId: convexVal.id("businesses"),
 
-    // Content (TipTap JSON + plain text for search)
+    // === CONTENT ===
     title: convexVal.string(),
-    content: convexVal.string(),        // TipTap JSON serialized to string
-    contentText: convexVal.string(),    // Plain text extraction for full-text search
-    emoji: convexVal.optional(convexVal.string()),
+    content: convexVal.string(),  // Plain markdown string
 
     // === TREE STRUCTURE ===
-    parentId: convexVal.optional(convexVal.id("wikiPages")),  // null = department (root page)
-    childIds: convexVal.array(convexVal.id("wikiPages")),      // Denormalized children (for fast access)
-    position: convexVal.number(),                               // Sort order within siblings
+    parentId: convexVal.optional(convexVal.id("wikiPages")),
+    childIds: convexVal.array(convexVal.id("wikiPages")),
+    position: convexVal.number(),
 
     // === PAGE CLASSIFICATION ===
     type: convexVal.union(
@@ -842,35 +840,11 @@ export default defineSchema({
     updatedByName: convexVal.string(),
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
-
-    // === VERSION TRACKING ===
-    version: convexVal.number(),  // Increments on each update; snapshots stored in wikiPageHistory
   })
     .index("by_business", ["businessId"])
     .index("by_parent", ["parentId"])
     .index("by_business_parent", ["businessId", "parentId"])
-    .index("by_business_type", ["businessId", "type"])
-    .searchIndex("search_content", {
-      searchField: "contentText",
-      filterFields: ["businessId"],
-    }),
-
-  /**
-   * WIKI PAGE HISTORY - Version snapshots
-   * One record per page save, enables history and restore functionality
-   */
-  wikiPageHistory: defineTable({
-    businessId: convexVal.id("businesses"),
-    pageId: convexVal.id("wikiPages"),
-    title: convexVal.string(),
-    content: convexVal.string(),        // TipTap JSON snapshot
-    version: convexVal.number(),
-    savedBy: convexVal.string(),
-    savedByName: convexVal.string(),
-    savedAt: convexVal.number(),
-  })
-    .index("by_page", ["pageId"])
-    .index("by_business", ["businessId"]),
+    .index("by_business_type", ["businessId", "type"]),
 
   /**
    * WIKI COMMENTS - Threaded discussions on pages

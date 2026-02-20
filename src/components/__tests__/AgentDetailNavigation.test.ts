@@ -13,7 +13,7 @@ describe('Agent Detail Navigation', () => {
 
       // Act
       // When component selects agent, it should update URL with agent query param
-      const url = `/dashboard/agents?agent=${agentId}`;
+      const url = `/global/agents?agent=${agentId}`;
 
       // Assert
       expect(url).toContain('agent=agent-123');
@@ -21,7 +21,7 @@ describe('Agent Detail Navigation', () => {
 
     it('should parse agent ID from URL query params', () => {
       // Arrange
-      const url = new URL('http://localhost:3000/dashboard/agents?agent=agent-123');
+      const url = new URL('http://localhost:3000/global/agents?agent=agent-123');
 
       // Act
       const agentId = url.searchParams.get('agent');
@@ -40,7 +40,7 @@ describe('Agent Detail Navigation', () => {
 
       // Act
       // When URL contains agent param, modal should open with that agent
-      const url = new URL('http://localhost:3000/dashboard/agents?agent=agent-123');
+      const url = new URL('http://localhost:3000/global/agents?agent=agent-123');
       const shouldOpenModal = !!url.searchParams.get('agent');
 
       // Assert
@@ -49,11 +49,11 @@ describe('Agent Detail Navigation', () => {
 
     it('should close agent detail and clear URL param when modal closes', () => {
       // Arrange
-      const originalUrl = '/dashboard/agents?agent=agent-123';
+      const originalUrl = '/global/agents?agent=agent-123';
 
       // Act
       // When user closes agent detail modal, URL should be cleaned
-      const newUrl = '/dashboard/agents';
+      const newUrl = '/global/agents';
 
       // Assert
       expect(newUrl).not.toContain('agent=');
@@ -112,7 +112,7 @@ describe('Agent Detail Navigation', () => {
 
       // Act
       // URL-based state should persist
-      const url = `/dashboard/agents?agent=${agentId}`;
+      const url = `/global/agents?agent=${agentId}`;
 
       // Assert
       // On refresh, agent detail should still be open
@@ -125,7 +125,7 @@ describe('Agent Detail Navigation', () => {
       const taskId = 'task-456';
 
       // Act
-      const url = `/dashboard/agents?agent=${agentId}&returnTask=${taskId}`;
+      const url = `/global/agents?agent=${agentId}&returnTask=${taskId}`;
 
       // Assert
       expect(url).toContain('agent=agent-123');
@@ -136,8 +136,8 @@ describe('Agent Detail Navigation', () => {
   describe('Navigation flow', () => {
     it('should support back navigation from task board to agent detail', () => {
       // Arrange - user clicked task from agent detail
-      const initialUrl = '/dashboard/agents?agent=agent-123';
-      const taskBoardUrl = '/dashboard/board?task=task-456&returnTo=/dashboard/agents%3Fagent%3Dagent-123';
+      const initialUrl = '/global/agents?agent=agent-123';
+      const taskBoardUrl = '/dashboard/board?task=task-456&returnTo=/global/agents%3Fagent%3Dagent-123';
 
       // Act - browser back or explicit back button
       const decodedReturnUrl = decodeURIComponent(

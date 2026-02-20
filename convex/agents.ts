@@ -369,3 +369,33 @@ export const verifyKeyWithGrace = query({
     return null;
   },
 });
+
+/**
+ * Delete an agent and unassign from all tasks
+ * Called by admin/dashboard operator
+ */
+export const deleteAgent = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+    deletedBy: convexVal.string(),
+  },
+  handler: async (ctx, { agentId, deletedBy }) => {
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw new Error("Agent not found");
+
+    // Remove agent from all task assigneeIds
+    const tasks = await ctx.db.query("tasks").collect();
+    for (const task of tasks) {
+      if (task.assigneeIds?.includes(agentId)) {
+        await ctx.db.patch(task._id, {
+          assigneeIds: task.assigneeIds.filter((id: string) => id !== agentId),
+        });
+      }
+    }
+
+    // Delete the agent
+    await ctx.db.delete(agentId);
+
+    return { success: true, deletedAgent: agent.name };
+  },
+});

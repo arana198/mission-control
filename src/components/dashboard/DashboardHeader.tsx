@@ -2,7 +2,7 @@
 
 import { Plus, Bell, Zap, HelpCircle } from "lucide-react";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings" | "inbox" | "api-docs";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "wiki" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings" | "inbox" | "api-docs";
 
 interface DashboardHeaderProps {
   activeTab: TabType;
@@ -23,7 +23,7 @@ const TAB_TITLES: Record<TabType, string> = {
   agents: "Your Squad",
   workload: "Agent Workload",
   activity: "Activity",
-  documents: "Documents",
+  wiki: "Wiki",
   calendar: "Calendar & Events",
   brain: "2nd Brain",
   bottlenecks: "Bottleneck Analysis",
@@ -90,15 +90,17 @@ export function DashboardHeader({
           )}
         </button>
 
-        {/* Create task button */}
-        <button
-          onClick={onCreateTask}
-          className="btn btn-primary"
-          aria-label="Create new task"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Task
-        </button>
+        {/* Create task button - only show on board and overview */}
+        {(activeTab === "board" || activeTab === "overview") && (
+          <button
+            onClick={onCreateTask}
+            className="btn btn-primary"
+            aria-label="Create new task"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Task
+          </button>
+        )}
 
         {/* Help button - keyboard shortcuts */}
         <button

@@ -111,7 +111,7 @@ describe("Agent Key Rotation - Integration Tests", () => {
       const key3 = "key-3-uuid";
 
       // First rotation: null → key1
-      let agent = {
+      let agent: { _id: string; apiKey: string; previousApiKey: string | null; keyRotationCount: number } = {
         _id: testAgentId,
         apiKey: key1,
         previousApiKey: null,

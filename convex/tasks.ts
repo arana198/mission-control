@@ -253,6 +253,22 @@ export const getTaskById = query({
   },
 });
 
+// Get task by ticket number (human-readable ID like "MC-001")
+export const getTaskByTicketNumber = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+    ticketNumber: convexVal.string(),
+  },
+  handler: async (ctx, { businessId, ticketNumber }) => {
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .collect();
+
+    return tasks.find((t) => t.ticketNumber === ticketNumber) || null;
+  },
+});
+
 // Move task status (internal helper)
 export const moveStatus = mutation({
   args: {
@@ -563,6 +579,12 @@ export const update = mutation({
     id: convexVal.id("tasks"),
     title: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.union(
+      convexVal.literal("P0"),
+      convexVal.literal("P1"),
+      convexVal.literal("P2"),
+      convexVal.literal("P3")
+    )),
     status: convexVal.optional(convexVal.union(
       convexVal.literal("backlog"),
       convexVal.literal("ready"),
@@ -600,6 +622,7 @@ export const update = mutation({
 
     if (updates.title !== undefined) patch.title = updates.title;
     if (updates.description !== undefined) patch.description = updates.description;
+    if (updates.priority !== undefined) patch.priority = updates.priority;
     if (updates.status !== undefined) patch.status = updates.status;
     if (updates.assigneeIds !== undefined) patch.assigneeIds = updates.assigneeIds;
     if (updates.timeEstimate !== undefined) patch.timeEstimate = updates.timeEstimate;

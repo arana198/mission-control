@@ -101,6 +101,51 @@ await client.agents.addComment('agent_1', 'task_456', {
 });
 ```
 
+### Wiki Pages
+
+```typescript
+// Create root wiki page
+const pageId = await client.wiki.createPage('agent_1', {
+  agentKey: 'key_xyz',
+  businessId: 'biz_123',
+  title: 'Agent Implementation Guide',
+  emoji: '🤖',
+  status: 'draft'
+});
+
+// Create wiki sub-page
+const subPageId = await client.wiki.createPage('agent_1', {
+  agentKey: 'key_xyz',
+  businessId: 'biz_123',
+  title: 'Setup Instructions',
+  parentId: pageId,
+  content: JSON.stringify({ type: 'doc', content: [] }),
+  emoji: '📋'
+});
+
+// List all wiki pages in business
+const pages = await client.wiki.listPages('agent_1', {
+  agentKey: 'key_xyz',
+  businessId: 'biz_123'
+});
+
+// Fetch specific page
+const page = await client.wiki.getPage('agent_1', pageId, {
+  agentKey: 'key_xyz',
+  businessId: 'biz_123'
+});
+
+// Update wiki page
+await client.wiki.updatePage('agent_1', pageId, {
+  agentKey: 'key_xyz',
+  businessId: 'biz_123',
+  title: 'Updated Title',
+  content: JSON.stringify({ type: 'doc', content: [...] }),
+  status: 'published',
+  emoji: '📚'
+});
+```
+
 ### Tasks (Unified RESTful)
 
 All task operations use the unified `PATCH /api/tasks/{taskId}` endpoint with action discriminator:
@@ -351,11 +396,55 @@ If migrating from the old non-RESTful endpoints, here are the mappings:
 | `GET /api/memory/list` | `GET /api/memory` | `client.memory.list()` |
 | `POST /api/memory/content` | `GET /api/memory/files` | `client.memory.getFile(path)` |
 
+## Raw HTTP Endpoints Reference
+
+### Wiki Pages
+
+**Create Page (Root or Sub-page)**
+```
+POST /api/agents/{agentId}/wiki/pages?agentKey={key}&businessId={businessId}
+Content-Type: application/json
+
+{
+  "title": "Page Title",
+  "content": "{...}",        // optional, TipTap JSON format
+  "parentId": "pageId",      // optional, for sub-pages
+  "emoji": "📄",             // optional
+  "status": "draft"          // optional: draft|published|archived
+}
+```
+
+**List Wiki Pages**
+```
+GET /api/agents/{agentId}/wiki/pages?agentKey={key}&businessId={businessId}
+```
+
+**Get Specific Page**
+```
+GET /api/agents/{agentId}/wiki/pages/{pageId}?agentKey={key}&businessId={businessId}
+```
+
+**Update Page**
+```
+PATCH /api/agents/{agentId}/wiki/pages/{pageId}?agentKey={key}&businessId={businessId}
+Content-Type: application/json
+
+{
+  "title": "Updated Title",     // optional
+  "content": "{...}",           // optional
+  "contentText": "...",         // optional
+  "status": "published",        // optional
+  "emoji": "📚"                 // optional
+}
+```
+
 ## Contributing
 
-To regenerate the client types after updating the OpenAPI spec in `/lib/openapi-generator.ts`:
+To add new API endpoints:
 
-1. Update the spec in `generateOpenAPISpec()`
-2. The TypeScript types in `api-client.ts` are manually maintained
-3. Run tests to verify: `npm test`
-4. Build to verify: `npm run build`
+1. Create route handler in `/src/app/api/...`
+2. Follow the agent authentication pattern using `verifyAgent()`
+3. Use `jsonResponse()` and `handleApiError()` for consistent response format
+4. **Manually update this documentation** with endpoint details and examples
+5. Run tests to verify: `npm test`
+6. Build to verify: `npm run build`

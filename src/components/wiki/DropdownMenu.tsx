@@ -24,6 +24,7 @@ interface DropdownMenuItemProps {
 
 export function DropdownMenu({ children }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,13 +43,24 @@ export function DropdownMenu({ children }: DropdownMenuProps) {
     };
   }, [isOpen]);
 
+  const handleTriggerClick = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 150,
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div ref={ref} className="relative">
       {Array.isArray(children)
         ? children.map((child) => {
             if (child.type === DropdownMenuTrigger) {
               return (
-                <div key="trigger" onClick={() => setIsOpen(!isOpen)}>
+                <div key="trigger" onClick={handleTriggerClick}>
                   {child}
                 </div>
               );
@@ -56,7 +68,14 @@ export function DropdownMenu({ children }: DropdownMenuProps) {
             if (child.type === DropdownMenuContent) {
               return (
                 isOpen && (
-                  <div key="content" className="absolute top-full z-50 min-w-max">
+                  <div
+                    key="content"
+                    className="fixed z-50 min-w-max"
+                    style={{
+                      top: `${position.top}px`,
+                      left: `${position.left}px`,
+                    }}
+                  >
                     {child}
                   </div>
                 )
@@ -76,16 +95,10 @@ export function DropdownMenuTrigger({ asChild, children }: DropdownMenuTriggerPr
   return <button>{children}</button>;
 }
 
-export function DropdownMenuContent({ align = "start", children }: DropdownMenuContentProps) {
-  const alignClass = {
-    start: "left-0",
-    center: "left-1/2 -translate-x-1/2",
-    end: "right-0",
-  }[align];
-
+export function DropdownMenuContent({ align = "end", children }: DropdownMenuContentProps) {
   return (
     <div
-      className={`${alignClass} mt-1 py-1 bg-white border border-input rounded-lg shadow-lg`}
+      className="py-1 bg-background border border-input rounded-lg shadow-lg dark:bg-slate-800"
     >
       {children}
     </div>
@@ -96,7 +109,7 @@ export function DropdownMenuItem({ className = "", onClick, children }: Dropdown
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors text-sm ${className}`}
+      className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors text-sm text-foreground ${className}`}
     >
       {children}
     </button>

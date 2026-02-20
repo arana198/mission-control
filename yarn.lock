@@ -1448,6 +1448,21 @@
   resolved "https://registry.npmjs.org/@tiptap/extension-strike/-/extension-strike-3.20.0.tgz"
   integrity sha512-0vcTZRRAiDfon3VM1mHBr9EFmTkkUXMhm0Xtdtn0bGe+sIqufyi+hUYTEw93EQOD9XNsPkrud6jzQNYpX2H3AQ==
 
+"@tiptap/extension-table@^3.20.0":
+  version "3.20.0"
+  resolved "https://registry.npmjs.org/@tiptap/extension-table/-/extension-table-3.20.0.tgz"
+  integrity sha512-vaaMtQ2KnSSr8WVwgWf7NYNzPwrHx/6T0ekA5CxV8qNUEpXIaLXa5+tE7tJHWEdNR2KY3gUJ46D3lfOkxyFrBQ==
+
+"@tiptap/extension-task-item@^3.20.0":
+  version "3.20.0"
+  resolved "https://registry.npmjs.org/@tiptap/extension-task-item/-/extension-task-item-3.20.0.tgz"
+  integrity sha512-UArl5ffRNKyiOGJYNtjF50+A0qgYF2DXIEFGyMgJsbp1KYQpDj+UrezWvnGOHZfX64eBWDIO6Bum5jS7o32dYQ==
+
+"@tiptap/extension-task-list@^3.20.0":
+  version "3.20.0"
+  resolved "https://registry.npmjs.org/@tiptap/extension-task-list/-/extension-task-list-3.20.0.tgz"
+  integrity sha512-Ab2hfun+5xMG6kQhRjL7s16zTe3XaQRXe3/deGo9hnZrAzTQpWVwDN7H36BX8MemrWnAw3PiuwBH5iOrwNRGjA==
+
 "@tiptap/extension-text@^3.20.0":
   version "3.20.0"
   resolved "https://registry.npmjs.org/@tiptap/extension-text/-/extension-text-3.20.0.tgz"
@@ -1659,6 +1674,11 @@
   integrity sha512-PyzHvjCalm2BRYjAU6nIB3TprYwMNOUY/7P/N8bSzp9W/yM2YrtGtAnnVtaCNSeOZ8DzKyFDvaqQs7LnWwwmBA==
   dependencies:
     types-ramda "^0.30.1"
+
+"@types/react-dom@^19.2.3":
+  version "19.2.3"
+  resolved "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz"
+  integrity sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==
 
 "@types/react@*", "@types/react@^18.0.0":
   version "18.3.28"

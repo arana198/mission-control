@@ -417,6 +417,43 @@
   .theme-toggle:hover {
     background: var(--surface-elevated);
   }
+
+  /* Wiki editor - Tables */
+  .wiki-editor-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+  }
+
+  .wiki-editor-content td,
+  .wiki-editor-content th {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    min-width: 60px;
+    vertical-align: top;
+  }
+
+  .wiki-editor-content th {
+    background: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Wiki editor - Task Lists */
+  .wiki-editor-content ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .wiki-editor-content ul[data-type="taskList"] li {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .wiki-editor-content ul[data-type="taskList"] input[type="checkbox"] {
+    margin-top: 0.3rem;
+    cursor: pointer;
+  }
 }
 
 /* Smooth scrolling */

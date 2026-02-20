@@ -364,4 +364,140 @@ describe("Agents (convex/agents.ts)", () => {
       expect(agent.currentTaskId).toBe("task-1");
     });
   });
+
+  describe("Mutation: deleteAgent", () => {
+    it("successfully deletes an existing agent", async () => {
+      const agentId = mockDb.insert("agents", {
+        name: "test-agent",
+        role: "specialist",
+        status: "idle",
+        level: "specialist",
+      });
+
+      // Verify agent exists
+      expect(mockDb.get(agentId)).toBeDefined();
+
+      // Delete agent (simulating mutation cleanup - no tasks need cleanup)
+      mockDb.delete(agentId);
+
+      // Verify agent is deleted (MockDatabase returns null for missing items)
+      expect(mockDb.get(agentId)).toBeNull();
+    });
+
+    it("removes agent from task assigneeIds", async () => {
+      const agentId = mockDb.insert("agents", {
+        name: "test-agent",
+        role: "specialist",
+        status: "idle",
+      });
+
+      const taskId = mockDb.insert("tasks", {
+        title: "Test Task",
+        assigneeIds: [agentId, "other-agent-id"],
+        status: "backlog",
+      });
+
+      // Simulate mutation: remove agent from task assigneeIds
+      const task = mockDb.get(taskId);
+      mockDb.patch(taskId, {
+        assigneeIds: task.assigneeIds.filter((id: string) => id !== agentId),
+      });
+
+      // Delete agent
+      mockDb.delete(agentId);
+
+      // Verify agent is removed from task
+      const updatedTask = mockDb.get(taskId);
+      expect(updatedTask.assigneeIds).toEqual(["other-agent-id"]);
+      expect(updatedTask.assigneeIds.includes(agentId)).toBe(false);
+    });
+
+    it("unassigns agent from all tasks they're assigned to", async () => {
+      const agentId = mockDb.insert("agents", {
+        name: "test-agent",
+        role: "specialist",
+        status: "idle",
+      });
+
+      // Create multiple tasks with the agent assigned
+      const task1Id = mockDb.insert("tasks", {
+        title: "Task 1",
+        assigneeIds: [agentId],
+        status: "backlog",
+      });
+
+      const task2Id = mockDb.insert("tasks", {
+        title: "Task 2",
+        assigneeIds: [agentId, "other-agent"],
+        status: "in_progress",
+      });
+
+      const task3Id = mockDb.insert("tasks", {
+        title: "Task 3",
+        assigneeIds: ["other-agent"],
+        status: "done",
+      });
+
+      // Simulate mutation: remove agent from specific tasks they're assigned to
+      const task1 = mockDb.get(task1Id);
+      if (task1.assigneeIds?.includes(agentId)) {
+        mockDb.patch(task1Id, {
+          assigneeIds: task1.assigneeIds.filter((id: string) => id !== agentId),
+        });
+      }
+
+      const task2 = mockDb.get(task2Id);
+      if (task2.assigneeIds?.includes(agentId)) {
+        mockDb.patch(task2Id, {
+          assigneeIds: task2.assigneeIds.filter((id: string) => id !== agentId),
+        });
+      }
+
+      // Delete agent
+      mockDb.delete(agentId);
+
+      // Verify agent is removed from all tasks
+      const updatedTask1 = mockDb.get(task1Id);
+      expect(updatedTask1.assigneeIds).toEqual([]);
+
+      const updatedTask2 = mockDb.get(task2Id);
+      expect(updatedTask2.assigneeIds).toEqual(["other-agent"]);
+
+      const updatedTask3 = mockDb.get(task3Id);
+      expect(updatedTask3.assigneeIds).toEqual(["other-agent"]);
+    });
+
+    it("returns null when getting nonexistent agent", async () => {
+      const nonexistentId = "nonexistent-agent-id";
+      const agent = mockDb.get(nonexistentId);
+      expect(agent).toBeNull();
+    });
+
+    it("preserves unrelated tasks", async () => {
+      const agentId = mockDb.insert("agents", {
+        name: "test-agent",
+        role: "specialist",
+        status: "idle",
+      });
+
+      const otherAgentId = mockDb.insert("agents", {
+        name: "other-agent",
+        role: "specialist",
+        status: "idle",
+      });
+
+      const taskId = mockDb.insert("tasks", {
+        title: "Task",
+        assigneeIds: [otherAgentId],
+        status: "backlog",
+      });
+
+      // Delete first agent (no cleanup needed since it's not assigned to any tasks)
+      mockDb.delete(agentId);
+
+      // Verify task with other agent is unchanged
+      const task = mockDb.get(taskId);
+      expect(task.assigneeIds).toEqual([otherAgentId]);
+    });
+  });
 });

@@ -53,10 +53,13 @@ export function KeyboardShortcuts() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
+      // Don't trigger if user is typing in an input, textarea, or contenteditable element
+      const target = e.target as HTMLElement;
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.contentEditable === "true" ||
+        target?.closest("[contenteditable=true]")
       ) {
         return;
       }

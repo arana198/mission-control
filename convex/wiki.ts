@@ -21,42 +21,25 @@ import { Doc, Id } from "./_generated/dataModel";
 export interface WikiPage extends Doc<"wikiPages"> {
   businessId: Id<"businesses">;
   title: string;
-  content: string; // TipTap JSON
-  contentText: string; // Plain text for search
-  emoji?: string;
+  content: string; // Plain markdown
   parentId?: Id<"wikiPages">;
   childIds: Id<"wikiPages">[];
   position: number;
   type: "department" | "page";
   taskIds?: Id<"tasks">[];
   epicId?: Id<"epics">;
+  emoji?: string; // Optional emoji icon
+  status?: "draft" | "published" | "archived"; // Optional status
   createdBy: string;
   createdByName: string;
   updatedBy: string;
   updatedByName: string;
   createdAt: number;
   updatedAt: number;
-  version: number;
-  // === CONFLUENCE-LIKE FEATURES (Phase 2) ===
-  status?: "draft" | "published" | "archived"; // Page lifecycle status
-  tags?: string[]; // max 10 tags per page
-  favoritedBy?: string[]; // array of userId strings
-  viewCount?: number; // incremented on each page view
 }
 
 export interface WikiPageWithChildren extends WikiPage {
   children?: WikiPageWithChildren[];
-}
-
-export interface WikiPageHistory extends Doc<"wikiPageHistory"> {
-  businessId: Id<"businesses">;
-  pageId: Id<"wikiPages">;
-  title: string;
-  content: string;
-  version: number;
-  savedBy: string;
-  savedByName: string;
-  savedAt: number;
 }
 
 export interface WikiComment extends Doc<"wikiComments"> {
@@ -69,6 +52,17 @@ export interface WikiComment extends Doc<"wikiComments"> {
   replyIds: Id<"wikiComments">[];
   createdAt: number;
   editedAt?: number;
+}
+
+// Placeholder for WikiPageHistory (not currently implemented - for compatibility)
+export interface WikiPageHistory extends Doc<"wikiPages"> {
+  businessId: Id<"businesses">;
+  title: string;
+  content: string;
+  version: number;
+  savedByName: string;
+  savedAt: number;
+  createdAt: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -136,26 +130,6 @@ export const getPage = query({
 });
 
 /**
- * Get version history for a page
- * Returns snapshots in descending order (newest first)
- */
-export const getHistory = query({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-    limit: convexVal.optional(convexVal.number()),
-  },
-  handler: async (ctx, { pageId, limit = 20 }) => {
-    const history = await ctx.db
-      .query("wikiPageHistory")
-      .withIndex("by_page", (q) => q.eq("pageId", pageId))
-      .collect();
-
-    // Sort by version descending (newest first)
-    return history.sort((a, b) => b.version - a.version).slice(0, limit);
-  },
-});
-
-/**
  * Get comments for a page (root comments only)
  * Replies are nested within parent comment's replyIds
  */
@@ -174,30 +148,6 @@ export const getComments = query({
   },
 });
 
-/**
- * Full-text search within a business's wiki
- * Uses Convex search index for efficient queries
- */
-export const search = query({
-  args: {
-    businessId: convexVal.id("businesses"),
-    query: convexVal.string(),
-  },
-  handler: async (ctx, { businessId, query: searchQuery }) => {
-    if (!searchQuery || searchQuery.trim().length === 0) {
-      return [];
-    }
-
-    const results = await ctx.db
-      .query("wikiPages")
-      .withSearchIndex("search_content", (q) =>
-        q.search("contentText", searchQuery).eq("businessId", businessId)
-      )
-      .collect();
-
-    return results;
-  },
-});
 
 // ════════════════════════════════════════════════════════════════════════════════
 // MUTATIONS
@@ -211,19 +161,10 @@ export const createDepartment = mutation({
   args: {
     businessId: convexVal.id("businesses"),
     title: convexVal.string(),
-    emoji: convexVal.optional(convexVal.string()),
     createdBy: convexVal.string(),
     createdByName: convexVal.string(),
-    status: convexVal.optional(convexVal.union(
-      convexVal.literal("draft"),
-      convexVal.literal("published"),
-      convexVal.literal("archived")
-    )),
   },
-  handler: async (
-    ctx,
-    { businessId, title, emoji, createdBy, createdByName, status }
-  ) => {
+  handler: async (ctx, { businessId, title, createdBy, createdByName }) => {
     // Get current department count (for position)
     const departments = await ctx.db
       .query("wikiPages")
@@ -238,9 +179,7 @@ export const createDepartment = mutation({
     const pageId = await ctx.db.insert("wikiPages", {
       businessId,
       title,
-      content: JSON.stringify({ type: "doc", content: [] }),
-      contentText: "",
-      emoji,
+      content: "",
       parentId: undefined,
       childIds: [],
       position,
@@ -251,9 +190,7 @@ export const createDepartment = mutation({
       updatedByName: createdByName,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      version: 1,
-      status: status || "draft", // Default to draft if not provided
-    } as any);
+    });
 
     return pageId;
   },
@@ -268,17 +205,10 @@ export const createPage = mutation({
     parentId: convexVal.id("wikiPages"),
     title: convexVal.string(),
     content: convexVal.string(),
-    contentText: convexVal.string(),
-    emoji: convexVal.optional(convexVal.string()),
     createdBy: convexVal.string(),
     createdByName: convexVal.string(),
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
-    status: convexVal.optional(convexVal.union(
-      convexVal.literal("draft"),
-      convexVal.literal("published"),
-      convexVal.literal("archived")
-    )),
   },
   handler: async (
     ctx,
@@ -287,13 +217,10 @@ export const createPage = mutation({
       parentId,
       title,
       content,
-      contentText,
-      emoji,
       createdBy,
       createdByName,
       taskIds,
       epicId,
-      status,
     }
   ) => {
     // Get parent page
@@ -317,8 +244,6 @@ export const createPage = mutation({
       businessId,
       title,
       content,
-      contentText,
-      emoji,
       parentId,
       childIds: [],
       position,
@@ -331,8 +256,6 @@ export const createPage = mutation({
       updatedByName: createdByName,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      version: 1,
-      status: status || "draft", // Default to draft if not provided
     });
 
     // Add to parent's childIds
@@ -346,25 +269,16 @@ export const createPage = mutation({
 
 /**
  * Update page content
- * Automatically saves a history snapshot and increments version
  */
 export const updatePage = mutation({
   args: {
     pageId: convexVal.id("wikiPages"),
     title: convexVal.string(),
     content: convexVal.string(),
-    contentText: convexVal.string(),
-    emoji: convexVal.optional(convexVal.string()),
     updatedBy: convexVal.string(),
     updatedByName: convexVal.string(),
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
-    status: convexVal.optional(convexVal.union(
-      convexVal.literal("draft"),
-      convexVal.literal("published"),
-      convexVal.literal("archived")
-    )),
-    tags: convexVal.optional(convexVal.array(convexVal.string())),
   },
   handler: async (
     ctx,
@@ -372,14 +286,10 @@ export const updatePage = mutation({
       pageId,
       title,
       content,
-      contentText,
-      emoji,
       updatedBy,
       updatedByName,
       taskIds,
       epicId,
-      status,
-      tags,
     }
   ) => {
     const page = await ctx.db.get(pageId);
@@ -387,41 +297,16 @@ export const updatePage = mutation({
       throw new Error(`Page not found: ${pageId}`);
     }
 
-    // Save history snapshot of current version
-    await ctx.db.insert("wikiPageHistory", {
-      businessId: page.businessId,
-      pageId,
-      title: page.title,
-      content: page.content,
-      version: page.version,
-      savedBy: updatedBy,
-      savedByName: updatedByName,
-      savedAt: Date.now(),
-    });
-
     // Update the page with new content
-    const updates: any = {
+    await ctx.db.patch(pageId, {
       title,
       content,
-      contentText,
-      emoji,
       taskIds,
       epicId,
       updatedBy,
       updatedByName,
       updatedAt: Date.now(),
-      version: page.version + 1,
-    };
-
-    // Add optional fields if provided
-    if (status !== undefined) {
-      updates.status = status;
-    }
-    if (tags !== undefined) {
-      updates.tags = tags;
-    }
-
-    await ctx.db.patch(pageId, updates);
+    });
 
     return pageId;
   },
@@ -459,16 +344,6 @@ async function deletePageRecursive(ctx: any, pageId: Id<"wikiPages">) {
 
   for (const comment of comments) {
     await ctx.db.delete(comment._id);
-  }
-
-  // Delete all history entries
-  const history = await ctx.db
-    .query("wikiPageHistory")
-    .withIndex("by_page", (q: any) => q.eq("pageId", pageId))
-    .collect();
-
-  for (const entry of history) {
-    await ctx.db.delete(entry._id);
   }
 
   // Delete the page itself
@@ -650,198 +525,3 @@ export const deleteComment = mutation({
   },
 });
 
-/**
- * Restore a page from a previous version
- * Creates a new history entry for the restore action
- */
-export const restorePage = mutation({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-    historyId: convexVal.id("wikiPageHistory"),
-    restoredBy: convexVal.string(),
-    restoredByName: convexVal.string(),
-  },
-  handler: async (ctx, { pageId, historyId, restoredBy, restoredByName }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    const history = await ctx.db.get(historyId);
-    if (!history) {
-      throw new Error(`History entry not found: ${historyId}`);
-    }
-
-    // Save current version as a history snapshot
-    await ctx.db.insert("wikiPageHistory", {
-      businessId: page.businessId,
-      pageId,
-      title: page.title,
-      content: page.content,
-      version: page.version,
-      savedBy: restoredBy,
-      savedByName: restoredByName,
-      savedAt: Date.now(),
-    });
-
-    // Restore the historical version
-    await ctx.db.patch(pageId, {
-      title: history.title,
-      content: history.content,
-      updatedBy: restoredBy,
-      updatedByName: restoredByName,
-      updatedAt: Date.now(),
-      version: page.version + 1,
-    });
-
-    return pageId;
-  },
-});
-
-// ════════════════════════════════════════════════════════════════════════════════
-// CONFLUENCE-LIKE FEATURES (Phase 2)
-// ════════════════════════════════════════════════════════════════════════════════
-
-/**
- * Update page status (draft → published → archived)
- * Does NOT save history snapshot (metadata change, not content change)
- */
-export const updatePageStatus = mutation({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-    status: convexVal.union(
-      convexVal.literal("draft"),
-      convexVal.literal("published"),
-      convexVal.literal("archived")
-    ),
-    updatedBy: convexVal.string(),
-    updatedByName: convexVal.string(),
-  },
-  handler: async (ctx, { pageId, status, updatedBy, updatedByName }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    // Patch status + metadata
-    await ctx.db.patch(pageId, {
-      status,
-      updatedBy,
-      updatedByName,
-      updatedAt: Date.now(),
-    });
-
-    return pageId;
-  },
-});
-
-/**
- * Toggle favorite status for a page (add or remove userId from favoritedBy)
- * Returns new isFavorited state
- */
-export const toggleFavorite = mutation({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-    userId: convexVal.string(),
-  },
-  handler: async (ctx, { pageId, userId }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    const favoritedBy = page.favoritedBy || [];
-    const isFavorited = favoritedBy.includes(userId);
-
-    const newFavoritedBy = isFavorited
-      ? favoritedBy.filter((id) => id !== userId) // Remove userId
-      : [...favoritedBy, userId]; // Add userId
-
-    await ctx.db.patch(pageId, {
-      favoritedBy: newFavoritedBy,
-    });
-
-    return {
-      pageId,
-      isFavorited: !isFavorited, // Return new state
-      favoritedCount: newFavoritedBy.length,
-    };
-  },
-});
-
-/**
- * Update page tags (add or remove tags)
- * Mirrors convex/tasks.ts:addTags pattern
- * Max 10 tags per page, deduplicates automatically
- */
-export const updatePageTags = mutation({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-    tags: convexVal.array(convexVal.string()),
-    action: convexVal.union(convexVal.literal("add"), convexVal.literal("remove")),
-    updatedBy: convexVal.string(),
-    updatedByName: convexVal.string(),
-  },
-  handler: async (ctx, { pageId, tags, action, updatedBy, updatedByName }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    const currentTags = page.tags || [];
-
-    let newTags: string[];
-    if (action === "add") {
-      // Union: add new tags, avoid duplicates
-      newTags = Array.from(new Set([...currentTags, ...tags]));
-      // Enforce max 10 tags
-      if (newTags.length > 10) {
-        newTags = newTags.slice(0, 10);
-      }
-    } else {
-      // Remove tags
-      newTags = currentTags.filter((tag) => !tags.includes(tag));
-    }
-
-    await ctx.db.patch(pageId, {
-      tags: newTags.length > 0 ? newTags : undefined,
-      updatedBy,
-      updatedByName,
-      updatedAt: Date.now(),
-    });
-
-    return {
-      pageId,
-      tags: newTags,
-      tagCount: newTags.length,
-    };
-  },
-});
-
-/**
- * Increment view count for a page
- * Called on each page view; no auth required (fire-and-forget)
- * Does NOT update updatedAt or updatedBy (view tracking only)
- */
-export const incrementViewCount = mutation({
-  args: {
-    pageId: convexVal.id("wikiPages"),
-  },
-  handler: async (ctx, { pageId }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    const currentCount = page.viewCount || 0;
-
-    await ctx.db.patch(pageId, {
-      viewCount: currentCount + 1,
-    });
-
-    return {
-      pageId,
-      viewCount: currentCount + 1,
-    };
-  },
-});

@@ -14,7 +14,7 @@ import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
 
-type BusinessTabType = "overview" | "board" | "epics" | "documents" | "settings";
+type BusinessTabType = "overview" | "board" | "epics" | "wiki" | "settings";
 
 interface BusinessDashboardProps {
   tab: BusinessTabType;
@@ -27,7 +27,7 @@ interface BusinessDashboardProps {
 
 /**
  * Business-scoped Dashboard Component
- * Handles tabs that require businessId: overview, board, epics, documents, settings
+ * Handles tabs that require businessId: overview, board, epics, wiki, settings
  */
 export function BusinessDashboard({
   tab,
@@ -92,6 +92,7 @@ export function BusinessDashboard({
               tasks={tasks || []}
               agents={agents || []}
               epics={epics || []}
+              businessId={businessId}
             />
           </ErrorBoundary>
         );
@@ -109,7 +110,7 @@ export function BusinessDashboard({
           </ErrorBoundary>
         );
 
-      case "documents":
+      case "wiki":
         return (
           <ErrorBoundary>
             <Suspense fallback={<LoadingSkeleton />}>
