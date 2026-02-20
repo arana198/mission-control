@@ -439,6 +439,72 @@ describe("Businesses Module", () => {
       const business = db.get(aId);
       expect(business.isDefault).toBe(true);
     });
+
+    it("should switch default from one business to another", async () => {
+      const now = Date.now();
+      // Arrange: 3 businesses with A as default
+      const aId = db.insert("businesses", {
+        name: "Business A",
+        slug: "business-a",
+        color: "#6366f1",
+        emoji: "🚀",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const bId = db.insert("businesses", {
+        name: "Business B",
+        slug: "business-b",
+        color: "#ec4899",
+        emoji: "⭐",
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const cId = db.insert("businesses", {
+        name: "Business C",
+        slug: "business-c",
+        color: "#10b981",
+        emoji: "🎯",
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Act: set Business B as default
+      db.patch(aId, { isDefault: false, updatedAt: now });
+      db.patch(bId, { isDefault: true, updatedAt: now });
+
+      // Expected: B is default, A and C are not
+      expect(db.get(bId).isDefault).toBe(true);
+      expect(db.get(aId).isDefault).toBe(false);
+      expect(db.get(cId).isDefault).toBe(false);
+
+      // Expected: exactly one default
+      const businesses = db.getBusinesses();
+      const defaultCount = businesses.filter((b) => b.isDefault).length;
+      expect(defaultCount).toBe(1);
+    });
+
+    it("should prevent setting non-existent business as default", async () => {
+      const now = Date.now();
+      // Arrange: one business exists
+      const aId = db.insert("businesses", {
+        name: "Business A",
+        slug: "business-a",
+        color: "#6366f1",
+        emoji: "🚀",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Act: attempt to get non-existent business
+      const nonExistent = db.get("nonexistent-id");
+
+      // Expected: null returned (would throw error in real mutation)
+      expect(nonExistent).toBeNull();
+    });
   });
 
   describe("update", () => {

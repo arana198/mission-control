@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2 } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface BusinessSettingsPanelProps {
@@ -21,6 +21,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   // Fetch current business
   const business = useQuery(api.businesses.getById, { businessId: businessId as any });
   const updateBusiness = useMutation(api.businesses.update);
+  const setDefaultBusiness = useMutation(api.businesses.setDefault);
   const deleteBusiness = useMutation(api.businesses.remove);
 
   // Load current mission statement
@@ -57,6 +58,34 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   };
 
   const hasChanges = missionStatement !== (business?.missionStatement || "");
+
+  const handleSetDefault = async () => {
+    if (business?.isDefault) {
+      setSaveMessage({
+        type: "error",
+        text: "This business is already the default"
+      });
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
+    try {
+      await setDefaultBusiness({
+        businessId: businessId as any,
+      });
+      setSaveMessage({
+        type: "success",
+        text: `${business?.name} is now the default business`
+      });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error: any) {
+      setSaveMessage({
+        type: "error",
+        text: error.message || "Failed to set business as default"
+      });
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  };
 
   const handleDeleteBusiness = async () => {
     setIsDeleting(true);
@@ -151,6 +180,37 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
             No changes to save
           </span>
         )}
+      </div>
+
+      {/* Set as Default Section */}
+      <div className="card p-6 mb-6 border-l-4" style={{ borderLeftColor: '#fbbf24' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+              <Star className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Default Business</h3>
+              <p className="text-sm text-muted-foreground">
+                {business?.isDefault
+                  ? "This is your default business"
+                  : "Set this as your default workspace"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleSetDefault}
+            disabled={business?.isDefault}
+            className="btn flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: business?.isDefault ? '#d1d5db' : '#fbbf24',
+              color: business?.isDefault ? '#6b7280' : '#000',
+            }}
+          >
+            <Star className="w-4 h-4" fill="currentColor" />
+            {business?.isDefault ? "Current Default" : "Set as Default"}
+          </button>
+        </div>
       </div>
 
       {/* Danger Zone: Delete Business */}
