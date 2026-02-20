@@ -9,6 +9,7 @@ import { Suspense, lazy } from "react";
 import { CardGridSkeleton, LoadingSkeleton } from "../LoadingSkeletons";
 import { DocumentPanel } from "../DocumentPanel";
 import { SettingsPanel } from "../SettingsPanel";
+import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 
@@ -117,7 +118,7 @@ export function BusinessDashboard({
       case "settings":
         return (
           <ErrorBoundary>
-            <SettingsPanel />
+            <BusinessSettingsPanel businessId={businessId} />
           </ErrorBoundary>
         );
 
