@@ -1,6 +1,6 @@
 jest.mock("convex/browser");
 jest.mock("@/convex/_generated/api", () => ({
-  api: { agents: { verifyKey: "agents:verifyKey" } },
+  api: { agents: { verifyKey: "agents:verifyKey", verifyKeyWithGrace: "agents:verifyKeyWithGrace" } },
 }));
 
 import { verifyAgent } from "../agent-auth";
@@ -35,7 +35,7 @@ describe("verifyAgent", () => {
 
     const result = await verifyAgent("abc123", "ak_x");
     expect(result).toEqual(mockAgent);
-    expect(mockQuery).toHaveBeenCalledWith("agents:verifyKey", {
+    expect(mockQuery).toHaveBeenCalledWith("agents:verifyKeyWithGrace", {
       agentId: "abc123",
       apiKey: "ak_x",
     });

@@ -55,6 +55,11 @@ export default defineSchema({
       avgTaskDuration: convexVal.optional(convexVal.number()),
       lastActiveAt: convexVal.optional(convexVal.number()),
     })),
+    // API Key Rotation tracking
+    lastKeyRotationAt: convexVal.optional(convexVal.number()),   // Timestamp of last rotation
+    keyRotationCount: convexVal.optional(convexVal.number()),    // Total rotations (for audit)
+    previousApiKey: convexVal.optional(convexVal.string()),      // Old key during grace period
+    previousKeyExpiresAt: convexVal.optional(convexVal.number()), // When old key becomes invalid
   })
     .index("by_name", ["name"])
     .index("by_status", ["status"])

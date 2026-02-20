@@ -106,6 +106,28 @@ export const HeartbeatSchema = z.object({
 export type HeartbeatInput = z.infer<typeof HeartbeatSchema>;
 
 /**
+ * Schema for API key rotation
+ * POST /api/agents/{agentId}/rotate-key
+ */
+export const RotateKeySchema = z.object({
+  agentId: convexId(),
+  apiKey: z.string().min(1, "Current API key is required for authentication"),
+  reason: z
+    .enum(["scheduled", "compromised", "deployment", "refresh"])
+    .optional()
+    .default("refresh"),
+  gracePeriodSeconds: z
+    .number()
+    .int("Grace period must be an integer")
+    .min(0, "Grace period cannot be negative")
+    .max(300, "Grace period cannot exceed 300 seconds")
+    .optional()
+    .default(0),
+});
+
+export type RotateKeyInput = z.infer<typeof RotateKeySchema>;
+
+/**
  * Validation helper — throws z.ZodError on failure
  * ZodError is handled by handleApiError() to return HTTP 400
  */

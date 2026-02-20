@@ -273,3 +273,99 @@ export const updateDetails = mutation({
     };
   },
 });
+
+/**
+ * Rotate agent's API key securely
+ * Returns new apiKey, marks old key for expiration
+ * Supports grace period for in-flight requests
+ */
+export const rotateKey = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+    apiKey: convexVal.string(),  // Current key (for verification)
+    newApiKey: convexVal.string(),  // New key to set
+    reason: convexVal.optional(convexVal.union(
+      convexVal.literal("scheduled"),
+      convexVal.literal("compromised"),
+      convexVal.literal("deployment"),
+      convexVal.literal("refresh")
+    )),
+    gracePeriodSeconds: convexVal.optional(convexVal.number()),  // 0-300
+  },
+  handler: async (ctx, { agentId, apiKey, newApiKey, reason, gracePeriodSeconds = 0 }) => {
+    // Verify current key
+    const agent = await ctx.db.get(agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+    if (!agent.apiKey || agent.apiKey !== apiKey) {
+      throw new Error("Invalid credentials");
+    }
+
+    // Validate gracePeriodSeconds
+    if (gracePeriodSeconds < 0 || gracePeriodSeconds > 300) {
+      throw new Error("Grace period must be between 0 and 300 seconds");
+    }
+
+    // Calculate when old key expires
+    const now = Date.now();
+    const previousKeyExpiresAt = now + (gracePeriodSeconds * 1000);
+
+    // Update agent with new key
+    const updates: any = {
+      apiKey: newApiKey,
+      previousApiKey: agent.apiKey,  // Save old key for grace period
+      previousKeyExpiresAt,
+      lastKeyRotationAt: now,
+      keyRotationCount: (agent.keyRotationCount || 0) + 1,
+      updatedAt: now,
+    };
+
+    await ctx.db.patch(agentId, updates);
+
+    // Log rotation activity (if agent has businessId context, log to activities)
+    // For now, return rotation info
+    return {
+      agentId,
+      newApiKey,
+      rotatedAt: now,
+      oldKeyExpiresAt: previousKeyExpiresAt,
+      gracePeriodSeconds,
+      reason: reason || "refresh",
+    };
+  },
+});
+
+/**
+ * Verify agent key (supports both current and grace-period keys)
+ * Used during key rotation grace period
+ */
+export const verifyKeyWithGrace = query({
+  args: {
+    agentId: convexVal.id("agents"),
+    apiKey: convexVal.string(),
+  },
+  handler: async (ctx, { agentId, apiKey }) => {
+    const agent = await ctx.db.get(agentId);
+    if (!agent) return null;
+
+    const now = Date.now();
+
+    // Check current key
+    if (agent.apiKey && agent.apiKey === apiKey) {
+      return agent;
+    }
+
+    // Check previous key if within grace period
+    if (
+      agent.previousApiKey &&
+      agent.previousApiKey === apiKey &&
+      agent.previousKeyExpiresAt &&
+      now < agent.previousKeyExpiresAt
+    ) {
+      return agent; // Still valid during grace period
+    }
+
+    return null;
+  },
+});

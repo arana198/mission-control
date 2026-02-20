@@ -43,6 +43,7 @@ export interface VerifiedAgent {
 
 /**
  * Verify agentId + apiKey pair against Convex.
+ * Supports both current key and grace-period keys during rotation.
  * Returns the agent document on success, null on failure.
  * Logs auth failures for audit purposes.
  */
@@ -52,7 +53,9 @@ export async function verifyAgent(
 ): Promise<VerifiedAgent | null> {
   try {
     const convex = getConvex();
-    const agent = await convex.query(api.agents.verifyKey, {
+
+    // Use grace-period aware verification
+    const agent = await convex.query((api as any).agents.verifyKeyWithGrace, {
       agentId: agentId as Id<"agents">,
       apiKey,
     });

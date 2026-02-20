@@ -186,13 +186,15 @@ export function withErrorHandling<T>(
  */
 export function jsonResponse<T>(
   data: ApiSuccessResponse<T> | ApiErrorResponse,
-  statusCode: number = 200
+  statusCode: number = 200,
+  headers?: Record<string, string>
 ): Response {
   return new Response(JSON.stringify(data), {
     status: statusCode,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
+      ...headers,
     },
   });
 }
