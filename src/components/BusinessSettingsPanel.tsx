@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2, Star } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2, Star, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface BusinessSettingsPanelProps {
@@ -13,6 +13,8 @@ interface BusinessSettingsPanelProps {
 export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps) {
   const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
+  const [ticketPattern, setTicketPattern] = useState("");
+  const [githubRepo, setGitHubRepo] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -20,16 +22,29 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
   // Fetch current business
   const business = useQuery(api.businesses.getById, { businessId: businessId as any });
+  const ticketPatternSetting = useQuery((api as any).github.getSetting, { key: "ticketPattern" });
+  const githubRepoSetting = useQuery((api as any).github.getSetting, { key: "githubRepo" });
+
   const updateBusiness = useMutation(api.businesses.update);
   const setDefaultBusiness = useMutation(api.businesses.setDefault);
   const deleteBusiness = useMutation(api.businesses.remove);
+  const setSettingMutation = useMutation((api as any).github.setSetting);
 
-  // Load current mission statement
+  // Load current mission statement and GitHub settings
   useEffect(() => {
     if (business?.missionStatement) {
       setMissionStatement(business.missionStatement);
     }
   }, [business]);
+
+  useEffect(() => {
+    if (ticketPatternSetting !== undefined && ticketPatternSetting !== null) {
+      setTicketPattern(ticketPatternSetting);
+    }
+    if (githubRepoSetting !== undefined && githubRepoSetting !== null) {
+      setGitHubRepo(githubRepoSetting);
+    }
+  }, [ticketPatternSetting, githubRepoSetting]);
 
   const handleSave = async () => {
     if (!missionStatement.trim()) {
@@ -40,16 +55,26 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
     setIsSaving(true);
     try {
+      // Save mission statement
       await updateBusiness({
         businessId: businessId as any,
         missionStatement: missionStatement.trim(),
       });
-      setSaveMessage({ type: "success", text: "Mission statement updated!" });
+
+      // Save GitHub settings
+      if (ticketPattern) {
+        await setSettingMutation({ key: "ticketPattern", value: ticketPattern });
+      }
+      if (githubRepo) {
+        await setSettingMutation({ key: "githubRepo", value: githubRepo });
+      }
+
+      setSaveMessage({ type: "success", text: "Settings saved!" });
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error: any) {
       setSaveMessage({
         type: "error",
-        text: error.message || "Failed to save mission statement"
+        text: error.message || "Failed to save settings"
       });
       setTimeout(() => setSaveMessage(null), 3000);
     } finally {
@@ -57,7 +82,10 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
     }
   };
 
-  const hasChanges = missionStatement !== (business?.missionStatement || "");
+  const hasChanges =
+    missionStatement !== (business?.missionStatement || "") ||
+    ticketPattern !== (ticketPatternSetting || "") ||
+    githubRepo !== (githubRepoSetting || "");
 
   const handleSetDefault = async () => {
     if (business?.isDefault) {
@@ -144,6 +172,57 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
             />
             <p className="text-xs text-muted-foreground mt-2">
               This statement guides task creation, agent autonomy, and strategic decisions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* GitHub Integration Section */}
+      <div className="card p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <GitBranch className="w-5 h-5 text-[var(--accent)]" />
+          <h3 className="font-semibold">GitHub Integration</h3>
+        </div>
+
+        <div className="space-y-4">
+          {/* Ticket Pattern */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Ticket ID Pattern
+              <span className="ml-2 text-xs text-muted-foreground">(regex)</span>
+            </label>
+            <input
+              type="text"
+              value={ticketPattern}
+              onChange={(e) => setTicketPattern(e.target.value)}
+              placeholder="[A-Za-z]+-\d+"
+              className="input w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Matches ticket IDs in commit messages. Examples:
+            </p>
+            <ul className="text-xs text-muted-foreground mt-1 ml-4 list-disc">
+              <li><code>[A-Z]+-\d+</code> matches CORE-01, PERF-01, PAY-123</li>
+              <li><code>[a-z]+-\d+</code> matches spot-001, epuk-1</li>
+              <li><code>TICKET-\d+</code> matches TICKET-03, TICKET-99</li>
+            </ul>
+          </div>
+
+          {/* GitHub Repo */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              GitHub Repository
+              <span className="ml-2 text-xs text-muted-foreground">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={githubRepo}
+              onChange={(e) => setGitHubRepo(e.target.value)}
+              placeholder="owner/repo"
+              className="input w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              e.g., arana198/mission-control. Leave empty to use local git.
             </p>
           </div>
         </div>
