@@ -274,7 +274,18 @@ export const getCommitsForTask: any = action({
     }
 
     // Extract ticket IDs from task title, tags, and ticketNumber
-    const pattern = await ctx.runQuery(api.github.getTicketPattern) || DEFAULT_TICKET_PATTERN;
+    // Get ticket prefix and custom pattern from settings
+    const ticketPrefix = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPrefix", businessId: (task as any).businessId });
+    const customPattern = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPattern", businessId: (task as any).businessId });
+
+    // Derive pattern from prefix if no custom pattern is set
+    let pattern = DEFAULT_TICKET_PATTERN;
+    if (customPattern) {
+      pattern = customPattern;
+    } else if (ticketPrefix) {
+      pattern = `${ticketPrefix}-\\d+`;
+    }
+
     const ticketIds: string[] = [];
 
     // From title

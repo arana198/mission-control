@@ -36,6 +36,7 @@ import type * as utils_graphValidation from "../utils/graphValidation.js";
 import type * as utils_roleKeywords from "../utils/roleKeywords.js";
 import type * as utils_ticketId from "../utils/ticketId.js";
 import type * as wake from "../wake.js";
+import type * as wiki from "../wiki.js";
 
 import type {
   ApiFromModules,
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "utils/roleKeywords": typeof utils_roleKeywords;
   "utils/ticketId": typeof utils_ticketId;
   wake: typeof wake;
+  wiki: typeof wiki;
 }>;
 
 /**

@@ -925,3 +925,33 @@ export const migrationAddDoneChecklist = mutation({
     };
   },
 });
+
+/**
+ * MIG-08: Initialize Wiki Tables (2026-02-20)
+ *
+ * Schema changes:
+ * - NEW TABLE: wikiPages (tree-structured knowledge base with TipTap content)
+ * - NEW TABLE: wikiPageHistory (version snapshots for rollback)
+ * - NEW TABLE: wikiComments (threaded discussions on pages)
+ *
+ * Reason: Introduce Confluence-style document store to replace flat Documents tab.
+ * Wiki enables departments to organize their knowledge with full hierarchy, version control, and comments.
+ *
+ * Migration action:
+ * - No-op migration: new tables start empty, no backfill needed
+ * - Old documents table preserved for backward compatibility
+ *
+ * Idempotent: Always safe to run - creates empty tables only once
+ */
+export const migrationInitWiki = mutation({
+  args: {},
+  handler: async (_ctx, _args) => {
+    // No backfill needed - new tables start empty
+    // Old documents table remains intact at src/components/DocumentPanel.tsx
+    // Wiki feature replaces Documents UI but keeps old data for safety
+    return {
+      success: true,
+      message: "MIG-08: Wiki tables initialized. No data migration required.",
+    };
+  },
+});

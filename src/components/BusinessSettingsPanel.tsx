@@ -14,7 +14,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
   const [ticketPrefix, setTicketPrefix] = useState("");
-  const [ticketPattern, setTicketPattern] = useState("");
+  const [customTicketPattern, setCustomTicketPattern] = useState("");
   const [githubRepo, setGitHubRepo] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -26,6 +26,9 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   const ticketPrefixSetting = useQuery((api as any).github.getSetting, { key: "ticketPrefix" });
   const ticketPatternSetting = useQuery((api as any).github.getSetting, { key: "ticketPattern" });
   const githubRepoSetting = useQuery((api as any).github.getSetting, { key: "githubRepo" });
+
+  // Auto-derive pattern from prefix
+  const derivedPattern = ticketPrefix ? `${ticketPrefix}-\\d+` : "";
 
   const updateBusiness = useMutation(api.businesses.update);
   const setDefaultBusiness = useMutation(api.businesses.setDefault);
@@ -44,7 +47,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       setTicketPrefix(ticketPrefixSetting);
     }
     if (ticketPatternSetting !== undefined && ticketPatternSetting !== null) {
-      setTicketPattern(ticketPatternSetting);
+      setCustomTicketPattern(ticketPatternSetting);
     }
     if (githubRepoSetting !== undefined && githubRepoSetting !== null) {
       setGitHubRepo(githubRepoSetting);
@@ -70,8 +73,9 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       if (ticketPrefix) {
         await setSettingMutation({ key: "ticketPrefix", value: ticketPrefix });
       }
-      if (ticketPattern) {
-        await setSettingMutation({ key: "ticketPattern", value: ticketPattern });
+      // Only save custom pattern if it differs from the auto-derived pattern
+      if (customTicketPattern && customTicketPattern !== derivedPattern) {
+        await setSettingMutation({ key: "ticketPattern", value: customTicketPattern });
       }
       if (githubRepo) {
         await setSettingMutation({ key: "githubRepo", value: githubRepo });
@@ -93,7 +97,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   const hasChanges =
     missionStatement !== (business?.missionStatement || "") ||
     ticketPrefix !== (ticketPrefixSetting || "") ||
-    ticketPattern !== (ticketPatternSetting || "") ||
+    customTicketPattern !== (ticketPatternSetting || "") ||
     githubRepo !== (githubRepoSetting || "");
 
   const handleSetDefault = async () => {
@@ -216,27 +220,53 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
             </p>
           </div>
 
-          {/* Ticket Pattern */}
+          {/* Ticket ID Pattern (Auto-derived) */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Ticket ID Pattern
-              <span className="ml-2 text-xs text-muted-foreground">(regex)</span>
+              <span className="ml-2 text-xs text-muted-foreground">(auto-derived from prefix)</span>
             </label>
-            <input
-              type="text"
-              value={ticketPattern}
-              onChange={(e) => setTicketPattern(e.target.value)}
-              placeholder="[A-Za-z]+-\d+"
-              className="input w-full"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Matches ticket IDs in commit messages. Examples:
-            </p>
-            <ul className="text-xs text-muted-foreground mt-1 ml-4 list-disc">
-              <li><code>[A-Z]+-\d+</code> matches CORE-01, PERF-01, PAY-123</li>
-              <li><code>[a-z]+-\d+</code> matches spot-001, epuk-1</li>
-              <li><code>TICKET-\d+</code> matches TICKET-03, TICKET-99</li>
-            </ul>
+            {ticketPrefix && (
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 mb-3">
+                <p className="text-sm font-mono text-blue-900 dark:text-blue-100">
+                  {derivedPattern}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Automatically matches: {ticketPrefix}-001, {ticketPrefix}-002, etc.
+                </p>
+              </div>
+            )}
+            {!ticketPrefix && (
+              <div className="p-3 rounded-lg bg-muted mb-3">
+                <p className="text-sm text-muted-foreground">
+                  Set a Ticket Prefix above to auto-generate the pattern
+                </p>
+              </div>
+            )}
+
+            <details className="cursor-pointer">
+              <summary className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Override with custom pattern (advanced)
+              </summary>
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={customTicketPattern}
+                  onChange={(e) => setCustomTicketPattern(e.target.value)}
+                  placeholder={derivedPattern || "[A-Za-z]+-\\d+"}
+                  className="input w-full"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Leave empty to use auto-derived pattern. Use this to match tickets from other systems.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">Examples:</p>
+                <ul className="text-xs text-muted-foreground mt-1 ml-4 list-disc">
+                  <li><code>[A-Z]+-\d+</code> matches CORE-01, PERF-01, PAY-123</li>
+                  <li><code>[a-z]+-\d+</code> matches spot-001, epuk-1</li>
+                  <li><code>TICKET-\d+</code> matches TICKET-03, TICKET-99</li>
+                </ul>
+              </div>
+            </details>
           </div>
 
           {/* GitHub Repo */}

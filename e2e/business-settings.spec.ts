@@ -320,18 +320,36 @@ test.describe("Business Settings Panel", () => {
       await expect(ticketPrefixInput).toHaveValue("MYPREFIX");
     });
 
-    test("should display ticket pattern field", async ({ page }) => {
+    test("should display auto-derived ticket pattern", async ({ page }) => {
       // Check for Ticket ID Pattern label
       const ticketPatternLabel = page.locator("label:has-text('Ticket ID Pattern')");
       await expect(ticketPatternLabel).toBeVisible();
 
-      // Check for input field
-      const ticketPatternInput = page.locator("input[placeholder*='[A-Za-z]']");
-      await expect(ticketPatternInput).toBeVisible();
-
-      // Check for help text
-      const helpText = page.locator("text=Matches ticket IDs in commit messages");
+      // Check for help text about auto-derivation
+      const helpText = page.locator("text=auto-derived from prefix");
       await expect(helpText).toBeVisible();
+
+      // Set a ticket prefix
+      const ticketPrefixInput = page.locator("input[placeholder='EPUK']").first();
+      await ticketPrefixInput.fill("MYAPP");
+
+      // Pattern should be shown as auto-derived
+      const derivedPatternText = page.locator("text=Automatically matches");
+      await expect(derivedPatternText).toBeVisible({ timeout: 3000 });
+    });
+
+    test("should allow custom pattern override", async ({ page }) => {
+      // Click the details/summary to expand advanced options
+      const advancedToggle = page.locator("summary:has-text('Override with custom pattern')");
+      await advancedToggle.click();
+
+      // Custom pattern input should appear
+      const customPatternInput = page.locator("input[placeholder*='[A-Za-z]']");
+      await expect(customPatternInput).toBeVisible({ timeout: 3000 });
+
+      // Should be able to type in it
+      await customPatternInput.fill("[A-Z]+-\\d+");
+      await expect(customPatternInput).toHaveValue("[A-Z]+-\\d+");
     });
 
     test("should display GitHub repository field", async ({ page }) => {

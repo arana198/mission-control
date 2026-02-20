@@ -800,4 +800,91 @@ export default defineSchema({
     .index("by_rule", ["ruleId"])
     .index("by_created_at", ["createdAt"]),
 
+  /**
+   * WIKI PAGES - Confluence-style document store
+   * Tree-structured knowledge base organized by business + departments
+   * Phase 1: Schema foundations for wiki feature
+   */
+  wikiPages: defineTable({
+    // === BUSINESS SCOPING ===
+    businessId: convexVal.id("businesses"),  // REQUIRED: which business this page belongs to
+
+    // Content (TipTap JSON + plain text for search)
+    title: convexVal.string(),
+    content: convexVal.string(),        // TipTap JSON serialized to string
+    contentText: convexVal.string(),    // Plain text extraction for full-text search
+    emoji: convexVal.optional(convexVal.string()),
+
+    // === TREE STRUCTURE ===
+    parentId: convexVal.optional(convexVal.id("wikiPages")),  // null = department (root page)
+    childIds: convexVal.array(convexVal.id("wikiPages")),      // Denormalized children (for fast access)
+    position: convexVal.number(),                               // Sort order within siblings
+
+    // === PAGE CLASSIFICATION ===
+    type: convexVal.union(
+      convexVal.literal("department"),
+      convexVal.literal("page")
+    ),
+
+    // === OPTIONAL CONNECTIONS ===
+    taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
+    epicId: convexVal.optional(convexVal.id("epics")),
+
+    // === AUTHORING METADATA ===
+    createdBy: convexVal.string(),
+    createdByName: convexVal.string(),
+    updatedBy: convexVal.string(),
+    updatedByName: convexVal.string(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+
+    // === VERSION TRACKING ===
+    version: convexVal.number(),  // Increments on each update; snapshots stored in wikiPageHistory
+  })
+    .index("by_business", ["businessId"])
+    .index("by_parent", ["parentId"])
+    .index("by_business_parent", ["businessId", "parentId"])
+    .index("by_business_type", ["businessId", "type"])
+    .searchIndex("search_content", {
+      searchField: "contentText",
+      filterFields: ["businessId"],
+    }),
+
+  /**
+   * WIKI PAGE HISTORY - Version snapshots
+   * One record per page save, enables history and restore functionality
+   */
+  wikiPageHistory: defineTable({
+    businessId: convexVal.id("businesses"),
+    pageId: convexVal.id("wikiPages"),
+    title: convexVal.string(),
+    content: convexVal.string(),        // TipTap JSON snapshot
+    version: convexVal.number(),
+    savedBy: convexVal.string(),
+    savedByName: convexVal.string(),
+    savedAt: convexVal.number(),
+  })
+    .index("by_page", ["pageId"])
+    .index("by_business", ["businessId"]),
+
+  /**
+   * WIKI COMMENTS - Threaded discussions on pages
+   * Same pattern as messages/tasks, but page-specific
+   * Supports one level of threading (parent comment + replies)
+   */
+  wikiComments: defineTable({
+    businessId: convexVal.id("businesses"),
+    pageId: convexVal.id("wikiPages"),
+    fromId: convexVal.string(),
+    fromName: convexVal.string(),
+    content: convexVal.string(),
+    parentId: convexVal.optional(convexVal.id("wikiComments")),  // null = root comment, set = reply
+    replyIds: convexVal.array(convexVal.id("wikiComments")),     // Denormalized replies (for fast access)
+    createdAt: convexVal.number(),
+    editedAt: convexVal.optional(convexVal.number()),
+  })
+    .index("by_page", ["pageId"])
+    .index("by_business", ["businessId"])
+    .index("by_parent", ["parentId"]),
+
 });
