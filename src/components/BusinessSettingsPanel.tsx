@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
 import { Settings, Save, CheckCircle, AlertCircle, Type } from "lucide-react";
 
 interface BusinessSettingsPanelProps {
@@ -17,7 +16,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
   // Fetch current business
   const business = useQuery(api.businesses.getById, { businessId: businessId as any });
-  const updateBusinessMutation = useMutation(api.businesses.update);
+  const updateBusiness = useMutation(api.businesses.update);
 
   // Load current mission statement
   useEffect(() => {
@@ -35,9 +34,9 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
     setIsSaving(true);
     try {
-      await updateBusinessMutation({
+      await updateBusiness({
         businessId: businessId as any,
-        missionStatement,
+        missionStatement: missionStatement.trim(),
       });
       setSaveMessage({ type: "success", text: "Mission statement updated!" });
       setTimeout(() => setSaveMessage(null), 3000);
