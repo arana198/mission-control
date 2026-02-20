@@ -77,20 +77,20 @@ export interface WikiPageHistory extends Doc<"wikiPages"> {
 export const getTree = query({
   args: { businessId: convexVal.id("businesses") },
   handler: async (ctx, { businessId }) => {
-    // Get all pages for this business, sorted by position
-    const pages = await ctx.db
+    // Get all root-level pages (no parent) for this business
+    const allPages = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_type", (q) =>
-        q.eq("businessId", businessId).eq("type", "department")
+      .withIndex("by_business_parent", (q) =>
+        q.eq("businessId", businessId).eq("parentId", undefined as any)
       )
       .collect();
 
-    // For each department, recursively fetch children
-    const buildTree = async (parentId: Id<"wikiPages"> | undefined): Promise<any[]> => {
+    // For each root page, recursively fetch children
+    const buildTree = async (parentId: Id<"wikiPages">): Promise<any[]> => {
       const children = await ctx.db
         .query("wikiPages")
         .withIndex("by_business_parent", (q) =>
-          q.eq("businessId", businessId).eq("parentId", parentId as any)
+          q.eq("businessId", businessId).eq("parentId", parentId)
         )
         .collect();
 
@@ -106,14 +106,14 @@ export const getTree = query({
       );
     };
 
-    // Get all root departments
-    const departments = pages.sort((a, b) => a.position - b.position);
+    // Sort root pages by position
+    const rootPages = allPages.sort((a, b) => a.position - b.position);
 
-    // Build tree for each department
+    // Build tree for each root page
     return Promise.all(
-      departments.map(async (dept) => ({
-        ...dept,
-        children: await buildTree(dept._id as Id<"wikiPages">),
+      rootPages.map(async (page) => ({
+        ...page,
+        children: await buildTree(page._id as Id<"wikiPages">),
       }))
     );
   },
