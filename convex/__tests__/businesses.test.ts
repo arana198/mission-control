@@ -17,6 +17,19 @@ class BusinessMockDatabase {
   constructor() {
     this.data.set("businesses", []);
     this.data.set("settings", []);
+    this.data.set("tasks", []);
+    this.data.set("epics", []);
+    this.data.set("messages", []);
+    this.data.set("activities", []);
+    this.data.set("documents", []);
+    this.data.set("goals", []);
+    this.data.set("threadSubscriptions", []);
+    this.data.set("executionLog", []);
+    this.data.set("alerts", []);
+    this.data.set("alertRules", []);
+    this.data.set("alertEvents", []);
+    this.data.set("decisions", []);
+    this.data.set("strategicReports", []);
   }
 
   generateId(table: string): string {
@@ -75,6 +88,12 @@ class BusinessMockDatabase {
           if (indexName === "by_default") {
             return docs.filter((d) => d.isDefault === true);
           }
+          if (indexName === "by_business") {
+            return docs.filter((d) => d.businessId);
+          }
+          if (indexName === "by_business_key") {
+            return docs.filter((d) => d.businessId);
+          }
           return docs;
         },
       }),
@@ -87,6 +106,23 @@ class BusinessMockDatabase {
 
   getSettings() {
     return this.data.get("settings") || [];
+  }
+
+  getAllData() {
+    return this.data;
+  }
+
+  getDataByBusinessId(businessId: string, table: string) {
+    const docs = this.data.get(table) || [];
+    return docs.filter((d) => d.businessId === businessId);
+  }
+
+  deleteByBusinessId(businessId: string, table: string) {
+    const docs = this.data.get(table) || [];
+    const count = docs.filter((d) => d.businessId === businessId).length;
+    const filtered = docs.filter((d) => d.businessId !== businessId);
+    this.data.set(table, filtered);
+    return count;
   }
 }
 
@@ -435,6 +471,63 @@ describe("Businesses Module", () => {
       expect(business.slug).toBe("original-slug");
     });
 
+    it("should update mission statement", async () => {
+      const now = Date.now();
+      // Arrange: business exists with mission statement
+      const businessId = db.insert("businesses", {
+        name: "Business A",
+        slug: "business-a",
+        color: "#6366f1",
+        emoji: "🚀",
+        missionStatement: "Original mission",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Act: update mission statement
+      const newMission = "Updated mission statement for better clarity";
+      db.patch(businessId, {
+        missionStatement: newMission,
+        updatedAt: Date.now(),
+      });
+
+      // Expected: mission statement updated
+      const business = db.get(businessId);
+      expect(business.missionStatement).toBe(newMission);
+      expect(business.updatedAt).toBeGreaterThanOrEqual(now);
+    });
+
+    it("should preserve other fields when updating mission statement", async () => {
+      const now = Date.now();
+      // Arrange: business exists
+      const businessId = db.insert("businesses", {
+        name: "Business A",
+        slug: "business-a",
+        color: "#6366f1",
+        emoji: "🚀",
+        missionStatement: "Original mission",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Act: update only mission statement
+      db.patch(businessId, {
+        missionStatement: "New mission",
+        updatedAt: Date.now(),
+      });
+
+      // Expected: other fields unchanged
+      const business = db.get(businessId);
+      expect(business.name).toBe("Business A");
+      expect(business.slug).toBe("business-a");
+      expect(business.color).toBe("#6366f1");
+      expect(business.emoji).toBe("🚀");
+      expect(business.isDefault).toBe(true);
+      expect(business.missionStatement).toBe("New mission");
+    });
+
     it("should NOT allow slug change", async () => {
       const now = Date.now();
       // Arrange: business with slug exists
@@ -565,6 +658,155 @@ describe("Businesses Module", () => {
       expect(db.get(aId)).toBeDefined();
       const businesses = db.getBusinesses();
       expect(businesses.length).toBe(1);
+    });
+
+    it("should cascade delete all business-scoped data", async () => {
+      const now = Date.now();
+      // Arrange: 2 businesses with related data
+      const aId = db.insert("businesses", {
+        name: "Business A",
+        slug: "business-a",
+        color: "#6366f1",
+        emoji: "🚀",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const bId = db.insert("businesses", {
+        name: "Business B",
+        slug: "business-b",
+        color: "#ec4899",
+        emoji: "⭐",
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Create business-scoped data for B
+      const taskId = db.insert("tasks", {
+        businessId: bId,
+        title: "Task",
+        status: "in_progress",
+      });
+      const epicId = db.insert("epics", {
+        businessId: bId,
+        title: "Epic",
+        status: "active",
+      });
+      const messageId = db.insert("messages", {
+        businessId: bId,
+        content: "Message",
+      });
+      const activityId = db.insert("activities", {
+        businessId: bId,
+        type: "task_created",
+        message: "Activity",
+      });
+      const docId = db.insert("documents", {
+        businessId: bId,
+        title: "Doc",
+        type: "deliverable",
+      });
+      const goalId = db.insert("goals", {
+        businessId: bId,
+        title: "Goal",
+        status: "active",
+      });
+      const subId = db.insert("threadSubscriptions", {
+        businessId: bId,
+        level: "all",
+      });
+      const settingId = db.insert("settings", {
+        businessId: bId,
+        key: "taskCounter",
+        value: "5",
+      });
+
+      // Act: simulate cascade delete of Business B
+      db.deleteByBusinessId(bId, "tasks");
+      db.deleteByBusinessId(bId, "epics");
+      db.deleteByBusinessId(bId, "messages");
+      db.deleteByBusinessId(bId, "activities");
+      db.deleteByBusinessId(bId, "documents");
+      db.deleteByBusinessId(bId, "goals");
+      db.deleteByBusinessId(bId, "threadSubscriptions");
+      db.deleteByBusinessId(bId, "settings");
+      db.deleteByBusinessId(bId, "executionLog");
+      db.deleteByBusinessId(bId, "alerts");
+      db.deleteByBusinessId(bId, "alertRules");
+      db.deleteByBusinessId(bId, "alertEvents");
+      db.deleteByBusinessId(bId, "decisions");
+      db.deleteByBusinessId(bId, "strategicReports");
+      db.delete(bId);
+
+      // Expected: Business B and all its data deleted, Business A untouched
+      expect(db.get(bId)).toBeNull();
+      expect(db.get(aId)).toBeDefined();
+      expect(db.get(taskId)).toBeNull();
+      expect(db.get(epicId)).toBeNull();
+      expect(db.get(messageId)).toBeNull();
+      expect(db.get(activityId)).toBeNull();
+      expect(db.get(docId)).toBeNull();
+      expect(db.get(goalId)).toBeNull();
+      expect(db.get(subId)).toBeNull();
+      expect(db.get(settingId)).toBeNull();
+    });
+
+    it("should cascade delete and provide count of deleted items", async () => {
+      const now = Date.now();
+      // Arrange: business with multiple related items
+      const bId = db.insert("businesses", {
+        name: "Business B",
+        slug: "business-b",
+        color: "#ec4899",
+        emoji: "⭐",
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Create multiple items
+      for (let i = 0; i < 3; i++) {
+        db.insert("tasks", {
+          businessId: bId,
+          title: `Task ${i}`,
+          status: "in_progress",
+        });
+        db.insert("messages", {
+          businessId: bId,
+          content: `Message ${i}`,
+        });
+        db.insert("activities", {
+          businessId: bId,
+          type: "task_created",
+          message: `Activity ${i}`,
+        });
+      }
+
+      // Act: count items before deletion
+      const tasksCount = db.getDataByBusinessId(bId, "tasks").length;
+      const messagesCount = db.getDataByBusinessId(bId, "messages").length;
+      const activitiesCount = db.getDataByBusinessId(bId, "activities").length;
+
+      // Expected: correct counts
+      expect(tasksCount).toBe(3);
+      expect(messagesCount).toBe(3);
+      expect(activitiesCount).toBe(3);
+
+      // Simulate cascade delete
+      const deletedTasks = db.deleteByBusinessId(bId, "tasks");
+      const deletedMessages = db.deleteByBusinessId(bId, "messages");
+      const deletedActivities = db.deleteByBusinessId(bId, "activities");
+
+      // Expected: counts returned
+      expect(deletedTasks).toBe(3);
+      expect(deletedMessages).toBe(3);
+      expect(deletedActivities).toBe(3);
+
+      // Verify all deleted
+      expect(db.getDataByBusinessId(bId, "tasks").length).toBe(0);
+      expect(db.getDataByBusinessId(bId, "messages").length).toBe(0);
+      expect(db.getDataByBusinessId(bId, "activities").length).toBe(0);
     });
   });
 });
