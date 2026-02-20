@@ -23,6 +23,13 @@ import {
   UnauthorizedError,
 } from "@/lib/utils/apiResponse";
 import { createLogger } from "@/lib/utils/logger";
+import {
+  logAgentRequestStart,
+  logAgentRequestEnd,
+  logAgentEvent,
+  logAuthFailure,
+  logRateLimitViolation,
+} from "@/lib/middleware/auditLogger";
 
 const log = createLogger("api:agents:rotate-key");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -72,9 +79,22 @@ export async function POST(
   const { agentId } = context.params;
   const requestId = crypto.randomUUID();
 
+  // Log request start
+  const { startTime } = logAgentRequestStart(requestId, request);
+
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
+      logAgentRequestEnd(
+        requestId,
+        startTime,
+        400,
+        `/api/agents/${agentId}/rotate-key`,
+        agentId,
+        undefined,
+        "VALIDATION_ERROR"
+      );
+
       return jsonResponse(
         {
           success: false,
@@ -101,10 +121,9 @@ export async function POST(
 
     // Check rate limit
     if (!checkRateLimit(input.agentId)) {
-      log.warn("Rate limit exceeded", {
-        agentId: input.agentId,
-        requestId,
-      });
+      logRateLimitViolation(input.agentId, "/api/agents/{agentId}/rotate-key", 4, requestId);
+
+      logAgentRequestEnd(requestId, startTime, 429, `/api/agents/${input.agentId}/rotate-key`, input.agentId, undefined, "RATE_LIMITED");
 
       return jsonResponse(
         {
@@ -136,12 +155,29 @@ export async function POST(
     // Record successful rotation
     recordRotationAttempt(input.agentId, true);
 
+    // Log the key rotation event
+    logAgentEvent("key_rotated", input.agentId, {
+      reason: input.reason,
+      gracePeriodSeconds: input.gracePeriodSeconds,
+      requestId,
+    });
+
     log.info("API key rotated successfully", {
       agentId: input.agentId,
       reason: input.reason,
       gracePeriodSeconds: input.gracePeriodSeconds,
       requestId,
     });
+
+    // Log request end with success
+    logAgentRequestEnd(
+      requestId,
+      startTime,
+      200,
+      `/api/agents/${input.agentId}/rotate-key`,
+      input.agentId,
+      input.reason
+    );
 
     return jsonResponse(
       successResponse({
@@ -165,6 +201,18 @@ export async function POST(
 
     // Handle specific error types
     if (error.message === "Invalid credentials") {
+      logAuthFailure(context.params.agentId, "invalid_credentials", requestId);
+
+      logAgentRequestEnd(
+        requestId,
+        startTime,
+        401,
+        `/api/agents/${context.params.agentId}/rotate-key`,
+        context.params.agentId,
+        undefined,
+        "UNAUTHORIZED"
+      );
+
       log.warn("Authentication failed for key rotation", {
         agentId: context.params.agentId,
         reason: "invalid_credentials",
@@ -187,6 +235,16 @@ export async function POST(
     }
 
     if (error.message === "Agent not found") {
+      logAgentRequestEnd(
+        requestId,
+        startTime,
+        404,
+        `/api/agents/${context.params.agentId}/rotate-key`,
+        context.params.agentId,
+        undefined,
+        "NOT_FOUND"
+      );
+
       return jsonResponse(
         {
           success: false,
@@ -204,6 +262,18 @@ export async function POST(
 
     // Use standard error handler
     const [errorData, statusCode] = handleApiError(error);
+
+    // Log request end with error
+    logAgentRequestEnd(
+      requestId,
+      startTime,
+      statusCode,
+      `/api/agents/${context.params.agentId}/rotate-key`,
+      context.params.agentId,
+      undefined,
+      errorData.error?.code
+    );
+
     return jsonResponse(
       errorData,
       statusCode,
