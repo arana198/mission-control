@@ -3,20 +3,25 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Settings, Save, CheckCircle, AlertCircle, Type } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface BusinessSettingsPanelProps {
   businessId: string;
 }
 
 export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps) {
+  const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch current business
   const business = useQuery(api.businesses.getById, { businessId: businessId as any });
   const updateBusiness = useMutation(api.businesses.update);
+  const deleteBusiness = useMutation(api.businesses.remove);
 
   // Load current mission statement
   useEffect(() => {
@@ -52,6 +57,31 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   };
 
   const hasChanges = missionStatement !== (business?.missionStatement || "");
+
+  const handleDeleteBusiness = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteBusiness({
+        businessId: businessId as any,
+      });
+      setSaveMessage({
+        type: "success",
+        text: "Business deleted successfully. Redirecting..."
+      });
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    } catch (error: any) {
+      setSaveMessage({
+        type: "error",
+        text: error.message || "Failed to delete business"
+      });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -107,7 +137,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       )}
 
       {/* Save Button */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-8">
         <button
           onClick={handleSave}
           disabled={!hasChanges || isSaving}
@@ -120,6 +150,72 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
           <span className="text-xs text-muted-foreground flex items-center">
             No changes to save
           </span>
+        )}
+      </div>
+
+      {/* Danger Zone: Delete Business */}
+      <div className="card p-6 border-l-4 border-red-500">
+        <div className="flex items-center gap-2 mb-4">
+          <Trash2 className="w-5 h-5 text-red-600" />
+          <h3 className="font-semibold text-red-600">Danger Zone</h3>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground mb-3">
+            Delete this business and all associated data permanently. This action cannot be undone.
+          </p>
+          <p className="text-xs text-red-600 font-medium">
+            This will delete: all tasks, epics, messages, documents, goals, and settings for this business.
+          </p>
+        </div>
+
+        {showDeleteConfirm ? (
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
+            <p className="text-sm font-medium mb-3">
+              Are you sure? Type <code className="bg-white dark:bg-black px-2 py-1 rounded">{business?.name}</code> to confirm:
+            </p>
+            <input
+              type="text"
+              placeholder={business?.name || "Business name"}
+              className="input w-full mb-3"
+              id="confirm-business-name"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const input = document.getElementById("confirm-business-name") as HTMLInputElement;
+                  if (input?.value === business?.name) {
+                    handleDeleteBusiness();
+                  } else {
+                    setSaveMessage({
+                      type: "error",
+                      text: "Business name does not match"
+                    });
+                    setTimeout(() => setSaveMessage(null), 3000);
+                  }
+                }}
+                disabled={isDeleting}
+                className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete Business"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Business
+          </button>
         )}
       </div>
     </div>
