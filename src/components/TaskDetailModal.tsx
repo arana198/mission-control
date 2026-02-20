@@ -256,7 +256,7 @@ export function TaskDetailModal({
             <TaskComments taskId={task._id} agents={agents} />
 
             {/* Commits Section - GitHub Integration */}
-            <TaskCommits taskId={task._id} />
+            <TaskCommits taskId={task._id} businessId={currentTask?.businessId} />
           </div>
 
           {/* Right column (1/3): Epic, Assignees, Details */}

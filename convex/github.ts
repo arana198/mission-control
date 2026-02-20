@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v as convexVal } from "convex/values";
 import { api } from "./_generated/api";
+import { extractTicketIds } from "./utils/ticketId";
 
 /**
  * GitHub Integration - Commit Linking
@@ -9,19 +10,6 @@ import { api } from "./_generated/api";
 
 // Default pattern - matches CORE-01, PERF-01, spot-001, EPUK-1, etc.
 const DEFAULT_TICKET_PATTERN = "[A-Za-z]+-\\d+";
-
-/**
- * Extract ticket IDs from text using pattern
- */
-export function extractTicketIds(message: string, pattern: string): string[] {
-  try {
-    const regex = new RegExp(pattern, "gi");
-    const matches = message.match(regex);
-    return matches ? [...new Set(matches.map((m: string) => m.toUpperCase()))] : [];
-  } catch {
-    return [];
-  }
-}
 
 /**
  * Internal: fetch commits from local git (using spawnSync to avoid shell injection)
@@ -257,7 +245,7 @@ export const fetchGitHubCommits: any = action({
 /**
  * Fetch commits from local git
  */
-export const fetchLocalCommits = action({
+export const fetchLocalCommits: any = action({
   args: {
     repoPath: convexVal.optional(convexVal.string()),
     limit: convexVal.optional(convexVal.number()),
@@ -270,47 +258,94 @@ export const fetchLocalCommits = action({
 });
 
 /**
- * Get commits for a task - fetches commits then filters by ticket ID in task
+ * Get commits for a task - fetches from GitHub API and filters by ticket ID
+ * Uses task title, tags, and ticketNumber to find matching commits
  */
-export const getCommitsForTask = action({
+export const getCommitsForTask: any = action({
   args: {
     taskId: convexVal.id("tasks"),
-    repoPath: convexVal.optional(convexVal.string()),
     limit: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { taskId, repoPath, limit = 20 }) => {
+  handler: async (ctx, { taskId, limit = 20 }) => {
     // Get task
     const task = await ctx.runQuery(api.tasks.getTaskById, { taskId });
-    if (!task) return { commits: [] };
-    
-    // Get pattern
+    if (!task) {
+      return { commits: [], receipts: [], error: "Task not found" };
+    }
+
+    // Extract ticket IDs from task title, tags, and ticketNumber
     const pattern = await ctx.runQuery(api.github.getTicketPattern) || DEFAULT_TICKET_PATTERN;
-    
-    // Extract ticket IDs from task
-    const ticketIds = extractTicketIds(task.title, pattern);
+    const ticketIds: string[] = [];
+
+    // From title
+    ticketIds.push(...extractTicketIds(task.title, pattern));
+
+    // From tags
     for (const tag of task.tags || []) {
       ticketIds.push(...extractTicketIds(tag, pattern));
     }
-    
-    if (ticketIds.length === 0) {
-      return { commits: [], message: "No ticket ID in task" };
+
+    // From ticketNumber (e.g., "MC-001") - add directly
+    if (task.ticketNumber) {
+      const normalized = task.ticketNumber.toUpperCase();
+      if (!ticketIds.includes(normalized)) {
+        ticketIds.push(normalized);
+      }
     }
-    
-    // Fetch commits
-    const path = repoPath || process.cwd();
-    if (!path) {
-      return { commits: [], message: "No repository path configured. Set via settings." };
+
+    // Remove duplicates
+    const uniqueTicketIds = [...new Set(ticketIds)];
+
+    if (uniqueTicketIds.length === 0) {
+      return {
+        commits: [],
+        receipts: task.receipts || [],
+        matchedTicketIds: [],
+        message: "No ticket ID on task",
+      };
     }
-    const commits = await fetchLocalCommitsInternal(path, 100);
-    
-    // Filter by ticket IDs
-    const matched = commits
+
+    // Get GitHub repo from settings
+    const repo = await ctx.runQuery(api.github.getSetting, { key: "githubRepo" });
+    if (!repo) {
+      return {
+        commits: [],
+        receipts: task.receipts || [],
+        matchedTicketIds: uniqueTicketIds,
+        error: "No GitHub repo configured. Configure in business settings.",
+      };
+    }
+
+    // Fetch commits from GitHub API
+    const result = await ctx.runAction((api as any).github.fetchGitHubCommits, {
+      repo,
+      limit: 100,
+    });
+
+    if (result.error) {
+      return {
+        commits: [],
+        receipts: task.receipts || [],
+        matchedTicketIds: uniqueTicketIds,
+        error: result.error,
+      };
+    }
+
+    // Filter commits that mention any ticket ID
+    const matched = (result.commits || [])
       .filter((c: any) => {
-        const txt = c.message.toLowerCase();
-        return ticketIds.some((id: string) => txt.includes(id.toLowerCase()));
+        const txt = (c.message || "").toLowerCase();
+        return uniqueTicketIds.some((id) => txt.includes(id.toLowerCase()));
       })
       .slice(0, limit);
-    
-    return { commits: matched, source: "local", matchedTicketIds: ticketIds };
+
+    return {
+      commits: matched,
+      receipts: task.receipts || [],
+      source: result.source || "github",
+      matchedTicketIds: uniqueTicketIds,
+      repo,
+      fromCache: result.fromCache,
+    };
   },
 });
