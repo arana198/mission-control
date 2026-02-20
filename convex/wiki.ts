@@ -37,6 +37,11 @@ export interface WikiPage extends Doc<"wikiPages"> {
   createdAt: number;
   updatedAt: number;
   version: number;
+  // === CONFLUENCE-LIKE FEATURES (Phase 2) ===
+  status?: "draft" | "published" | "archived"; // Page lifecycle status
+  tags?: string[]; // max 10 tags per page
+  favoritedBy?: string[]; // array of userId strings
+  viewCount?: number; // incremented on each page view
 }
 
 export interface WikiPageWithChildren extends WikiPage {
@@ -209,10 +214,15 @@ export const createDepartment = mutation({
     emoji: convexVal.optional(convexVal.string()),
     createdBy: convexVal.string(),
     createdByName: convexVal.string(),
+    status: convexVal.optional(convexVal.union(
+      convexVal.literal("draft"),
+      convexVal.literal("published"),
+      convexVal.literal("archived")
+    )),
   },
   handler: async (
     ctx,
-    { businessId, title, emoji, createdBy, createdByName }
+    { businessId, title, emoji, createdBy, createdByName, status }
   ) => {
     // Get current department count (for position)
     const departments = await ctx.db
@@ -228,7 +238,7 @@ export const createDepartment = mutation({
     const pageId = await ctx.db.insert("wikiPages", {
       businessId,
       title,
-      content: "",
+      content: JSON.stringify({ type: "doc", content: [] }),
       contentText: "",
       emoji,
       parentId: undefined,
@@ -242,6 +252,7 @@ export const createDepartment = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       version: 1,
+      status: status || "draft", // Default to draft if not provided
     } as any);
 
     return pageId;
@@ -263,6 +274,11 @@ export const createPage = mutation({
     createdByName: convexVal.string(),
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
+    status: convexVal.optional(convexVal.union(
+      convexVal.literal("draft"),
+      convexVal.literal("published"),
+      convexVal.literal("archived")
+    )),
   },
   handler: async (
     ctx,
@@ -277,6 +293,7 @@ export const createPage = mutation({
       createdByName,
       taskIds,
       epicId,
+      status,
     }
   ) => {
     // Get parent page
@@ -315,6 +332,7 @@ export const createPage = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       version: 1,
+      status: status || "draft", // Default to draft if not provided
     });
 
     // Add to parent's childIds
@@ -341,6 +359,12 @@ export const updatePage = mutation({
     updatedByName: convexVal.string(),
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
+    status: convexVal.optional(convexVal.union(
+      convexVal.literal("draft"),
+      convexVal.literal("published"),
+      convexVal.literal("archived")
+    )),
+    tags: convexVal.optional(convexVal.array(convexVal.string())),
   },
   handler: async (
     ctx,
@@ -354,6 +378,8 @@ export const updatePage = mutation({
       updatedByName,
       taskIds,
       epicId,
+      status,
+      tags,
     }
   ) => {
     const page = await ctx.db.get(pageId);
@@ -374,7 +400,7 @@ export const updatePage = mutation({
     });
 
     // Update the page with new content
-    await ctx.db.patch(pageId, {
+    const updates: any = {
       title,
       content,
       contentText,
@@ -385,7 +411,17 @@ export const updatePage = mutation({
       updatedByName,
       updatedAt: Date.now(),
       version: page.version + 1,
-    });
+    };
+
+    // Add optional fields if provided
+    if (status !== undefined) {
+      updates.status = status;
+    }
+    if (tags !== undefined) {
+      updates.tags = tags;
+    }
+
+    await ctx.db.patch(pageId, updates);
 
     return pageId;
   },
@@ -482,8 +518,8 @@ export const movePage = mutation({
       }
     }
 
-    // Add to new parent at specified position
-    const newChildIds = [...newParent.childIds];
+    // Add to new parent at specified position (ensure not already present)
+    const newChildIds = newParent.childIds.filter((id) => id !== pageId);
     newChildIds.splice(position, 0, pageId);
 
     await ctx.db.patch(newParentId, {
@@ -659,5 +695,153 @@ export const restorePage = mutation({
     });
 
     return pageId;
+  },
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// CONFLUENCE-LIKE FEATURES (Phase 2)
+// ════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Update page status (draft → published → archived)
+ * Does NOT save history snapshot (metadata change, not content change)
+ */
+export const updatePageStatus = mutation({
+  args: {
+    pageId: convexVal.id("wikiPages"),
+    status: convexVal.union(
+      convexVal.literal("draft"),
+      convexVal.literal("published"),
+      convexVal.literal("archived")
+    ),
+    updatedBy: convexVal.string(),
+    updatedByName: convexVal.string(),
+  },
+  handler: async (ctx, { pageId, status, updatedBy, updatedByName }) => {
+    const page = await ctx.db.get(pageId);
+    if (!page) {
+      throw new Error(`Page not found: ${pageId}`);
+    }
+
+    // Patch status + metadata
+    await ctx.db.patch(pageId, {
+      status,
+      updatedBy,
+      updatedByName,
+      updatedAt: Date.now(),
+    });
+
+    return pageId;
+  },
+});
+
+/**
+ * Toggle favorite status for a page (add or remove userId from favoritedBy)
+ * Returns new isFavorited state
+ */
+export const toggleFavorite = mutation({
+  args: {
+    pageId: convexVal.id("wikiPages"),
+    userId: convexVal.string(),
+  },
+  handler: async (ctx, { pageId, userId }) => {
+    const page = await ctx.db.get(pageId);
+    if (!page) {
+      throw new Error(`Page not found: ${pageId}`);
+    }
+
+    const favoritedBy = page.favoritedBy || [];
+    const isFavorited = favoritedBy.includes(userId);
+
+    const newFavoritedBy = isFavorited
+      ? favoritedBy.filter((id) => id !== userId) // Remove userId
+      : [...favoritedBy, userId]; // Add userId
+
+    await ctx.db.patch(pageId, {
+      favoritedBy: newFavoritedBy,
+    });
+
+    return {
+      pageId,
+      isFavorited: !isFavorited, // Return new state
+      favoritedCount: newFavoritedBy.length,
+    };
+  },
+});
+
+/**
+ * Update page tags (add or remove tags)
+ * Mirrors convex/tasks.ts:addTags pattern
+ * Max 10 tags per page, deduplicates automatically
+ */
+export const updatePageTags = mutation({
+  args: {
+    pageId: convexVal.id("wikiPages"),
+    tags: convexVal.array(convexVal.string()),
+    action: convexVal.union(convexVal.literal("add"), convexVal.literal("remove")),
+    updatedBy: convexVal.string(),
+    updatedByName: convexVal.string(),
+  },
+  handler: async (ctx, { pageId, tags, action, updatedBy, updatedByName }) => {
+    const page = await ctx.db.get(pageId);
+    if (!page) {
+      throw new Error(`Page not found: ${pageId}`);
+    }
+
+    const currentTags = page.tags || [];
+
+    let newTags: string[];
+    if (action === "add") {
+      // Union: add new tags, avoid duplicates
+      newTags = Array.from(new Set([...currentTags, ...tags]));
+      // Enforce max 10 tags
+      if (newTags.length > 10) {
+        newTags = newTags.slice(0, 10);
+      }
+    } else {
+      // Remove tags
+      newTags = currentTags.filter((tag) => !tags.includes(tag));
+    }
+
+    await ctx.db.patch(pageId, {
+      tags: newTags.length > 0 ? newTags : undefined,
+      updatedBy,
+      updatedByName,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      pageId,
+      tags: newTags,
+      tagCount: newTags.length,
+    };
+  },
+});
+
+/**
+ * Increment view count for a page
+ * Called on each page view; no auth required (fire-and-forget)
+ * Does NOT update updatedAt or updatedBy (view tracking only)
+ */
+export const incrementViewCount = mutation({
+  args: {
+    pageId: convexVal.id("wikiPages"),
+  },
+  handler: async (ctx, { pageId }) => {
+    const page = await ctx.db.get(pageId);
+    if (!page) {
+      throw new Error(`Page not found: ${pageId}`);
+    }
+
+    const currentCount = page.viewCount || 0;
+
+    await ctx.db.patch(pageId, {
+      viewCount: currentCount + 1,
+    });
+
+    return {
+      pageId,
+      viewCount: currentCount + 1,
+    };
   },
 });

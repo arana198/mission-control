@@ -68,7 +68,7 @@ export function WikiHistory({ history, currentTitle, onBack, onRestore }: WikiHi
         {selectedVersion ? (
           <>
             {/* Preview header */}
-            <div className="border-b sticky top-0 bg-white z-10">
+            <div className="border-b sticky top-0 bg-background z-10">
               <div className="flex items-center justify-between p-4">
                 <div>
                   <h3 className="text-lg font-semibold">v{selectedVersion.version}</h3>

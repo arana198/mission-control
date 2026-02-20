@@ -7,7 +7,14 @@ import type { WikiPage } from "@/convex/wiki";
 
 interface WikiPageEditorProps {
   page: WikiPage;
-  onSave: (data: { title: string; content: string; contentText: string; emoji?: string }) => Promise<void>;
+  onSave: (data: {
+    title: string;
+    content: string;
+    contentText: string;
+    emoji?: string;
+    status?: string;
+    tags?: string[];
+  }, isAutoSave?: boolean) => Promise<void>;
   onCancel: () => void;
   onBack?: () => void;
 }
@@ -23,9 +30,17 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
   const [emoji, setEmoji] = useState(page.emoji || "");
   const [content, setContent] = useState(page.content);
   const [contentText, setContentText] = useState("");
+  const [status, setStatus] = useState<"draft" | "published" | "archived">(page.status || "draft");
+  const [tags, setTags] = useState<string[]>(page.tags || []);
+  const [tagInput, setTagInput] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
-  const hasChanges = title !== page.title || emoji !== (page.emoji || "") || content !== page.content;
+  const hasChanges =
+    title !== page.title ||
+    emoji !== (page.emoji || "") ||
+    content !== page.content ||
+    status !== (page.status || "draft") ||
+    JSON.stringify(tags) !== JSON.stringify(page.tags || []);
 
   // Auto-save on content changes (2s debounce)
   useEffect(() => {
@@ -39,7 +54,7 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
     // Set new timeout
     setSaveState("idle");
     autoSaveTimeoutRef.current = setTimeout(() => {
-      handleSave();
+      handleSave(true); // Pass true to indicate auto-save
     }, 2000);
 
     return () => {
@@ -47,23 +62,41 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [title, emoji, content]);
+  }, [title, emoji, content, status, tags]);
 
-  const handleSave = async () => {
+  const handleSave = async (isAutoSave = false) => {
     try {
-      setSaveState("saving");
+      if (!isAutoSave) {
+        setSaveState("saving");
+      }
       await onSave({
         title: title || page.title,
         content,
         contentText,
         emoji: emoji || undefined,
-      });
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 2000);
+        status,
+        tags: tags.length > 0 ? tags : undefined,
+      }, isAutoSave);
+      if (!isAutoSave) {
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 2000);
+      }
     } catch (error) {
       setSaveState("error");
       console.error("Failed to save page:", error);
     }
+  };
+
+  const handleAddTag = () => {
+    const trimmedTag = tagInput.trim().toLowerCase();
+    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
+      setTags([...tags, trimmedTag]);
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
   };
 
   const handleEditorChange = (json: string, text: string) => {
@@ -153,6 +186,78 @@ export function WikiPageEditor({ page, onSave, onCancel, onBack }: WikiPageEdito
           <div className="mt-6 p-4 rounded-lg bg-muted/30 border">
             <h3 className="text-sm font-semibold mb-4">Page Properties</h3>
             <div className="space-y-4">
+              {/* Status toggle */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-2">Status</label>
+                <div className="flex gap-2">
+                  {(["draft", "published", "archived"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setStatus(s)}
+                      className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                        status === s
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-input hover:bg-muted"
+                      }`}
+                    >
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags input */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-2">
+                  Tags ({tags.length}/10)
+                </label>
+                <div className="space-y-2">
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-muted rounded-full"
+                        >
+                          {tag}
+                          <button
+                            onClick={() => handleRemoveTag(tag)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Remove tag"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {tags.length < 10 && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === ",") {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        placeholder="Add tag..."
+                        className="text-xs px-2 py-1 border border-input rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary flex-1"
+                      />
+                      <button
+                        onClick={handleAddTag}
+                        disabled={!tagInput.trim()}
+                        className="px-2 py-1 text-xs font-medium border border-input rounded hover:bg-muted disabled:opacity-50 transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-2">
                   Version: {page.version}
