@@ -13,6 +13,7 @@ interface BusinessSettingsPanelProps {
 export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps) {
   const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
+  const [ticketPrefix, setTicketPrefix] = useState("");
   const [ticketPattern, setTicketPattern] = useState("");
   const [githubRepo, setGitHubRepo] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -22,6 +23,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
   // Fetch current business
   const business = useQuery(api.businesses.getById, { businessId: businessId as any });
+  const ticketPrefixSetting = useQuery((api as any).github.getSetting, { key: "ticketPrefix" });
   const ticketPatternSetting = useQuery((api as any).github.getSetting, { key: "ticketPattern" });
   const githubRepoSetting = useQuery((api as any).github.getSetting, { key: "githubRepo" });
 
@@ -38,13 +40,16 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   }, [business]);
 
   useEffect(() => {
+    if (ticketPrefixSetting !== undefined && ticketPrefixSetting !== null) {
+      setTicketPrefix(ticketPrefixSetting);
+    }
     if (ticketPatternSetting !== undefined && ticketPatternSetting !== null) {
       setTicketPattern(ticketPatternSetting);
     }
     if (githubRepoSetting !== undefined && githubRepoSetting !== null) {
       setGitHubRepo(githubRepoSetting);
     }
-  }, [ticketPatternSetting, githubRepoSetting]);
+  }, [ticketPrefixSetting, ticketPatternSetting, githubRepoSetting]);
 
   const handleSave = async () => {
     if (!missionStatement.trim()) {
@@ -61,7 +66,10 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         missionStatement: missionStatement.trim(),
       });
 
-      // Save GitHub settings
+      // Save GitHub and ticket settings
+      if (ticketPrefix) {
+        await setSettingMutation({ key: "ticketPrefix", value: ticketPrefix });
+      }
       if (ticketPattern) {
         await setSettingMutation({ key: "ticketPattern", value: ticketPattern });
       }
@@ -84,6 +92,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
   const hasChanges =
     missionStatement !== (business?.missionStatement || "") ||
+    ticketPrefix !== (ticketPrefixSetting || "") ||
     ticketPattern !== (ticketPatternSetting || "") ||
     githubRepo !== (githubRepoSetting || "");
 
@@ -185,6 +194,28 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         </div>
 
         <div className="space-y-4">
+          {/* Ticket Prefix */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Ticket Prefix
+              <span className="ml-2 text-xs text-muted-foreground">(for auto-numbering)</span>
+            </label>
+            <input
+              type="text"
+              value={ticketPrefix}
+              onChange={(e) => setTicketPrefix(e.target.value.toUpperCase())}
+              placeholder="EPUK"
+              maxLength={10}
+              className="input w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Prefix for auto-generated ticket numbers on new tasks.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Examples: EPUK → EPUK-001, EPUK-002, ... or CORE → CORE-001, CORE-002, ...
+            </p>
+          </div>
+
           {/* Ticket Pattern */}
           <div>
             <label className="block text-sm font-medium mb-2">

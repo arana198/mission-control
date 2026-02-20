@@ -282,6 +282,88 @@ test.describe("Business Settings Panel", () => {
     });
   });
 
+  test.describe("GitHub Integration Settings", () => {
+    test("should display ticket prefix field", async ({ page }) => {
+      // Check for Ticket Prefix label
+      const ticketPrefixLabel = page.locator("label:has-text('Ticket Prefix')");
+      await expect(ticketPrefixLabel).toBeVisible();
+
+      // Check for input field
+      const ticketPrefixInput = page.locator("input[placeholder='EPUK']");
+      await expect(ticketPrefixInput).toBeVisible();
+
+      // Check for help text
+      const helpText = page.locator("text=Prefix for auto-generated ticket numbers");
+      await expect(helpText).toBeVisible();
+    });
+
+    test("should allow editing ticket prefix", async ({ page }) => {
+      // Find the ticket prefix input
+      const ticketPrefixInput = page.locator("input[placeholder='EPUK']").first();
+
+      // Clear and type new prefix
+      await ticketPrefixInput.fill("");
+      await ticketPrefixInput.fill("TEST");
+
+      // Verify value changed
+      await expect(ticketPrefixInput).toHaveValue("TEST");
+    });
+
+    test("should auto-uppercase ticket prefix input", async ({ page }) => {
+      // Find the ticket prefix input
+      const ticketPrefixInput = page.locator("input[placeholder='EPUK']").first();
+
+      // Type lowercase
+      await ticketPrefixInput.fill("myprefix");
+
+      // Should be converted to uppercase
+      await expect(ticketPrefixInput).toHaveValue("MYPREFIX");
+    });
+
+    test("should display ticket pattern field", async ({ page }) => {
+      // Check for Ticket ID Pattern label
+      const ticketPatternLabel = page.locator("label:has-text('Ticket ID Pattern')");
+      await expect(ticketPatternLabel).toBeVisible();
+
+      // Check for input field
+      const ticketPatternInput = page.locator("input[placeholder*='[A-Za-z]']");
+      await expect(ticketPatternInput).toBeVisible();
+
+      // Check for help text
+      const helpText = page.locator("text=Matches ticket IDs in commit messages");
+      await expect(helpText).toBeVisible();
+    });
+
+    test("should display GitHub repository field", async ({ page }) => {
+      // Check for GitHub Repository label
+      const repoLabel = page.locator("label:has-text('GitHub Repository')");
+      await expect(repoLabel).toBeVisible();
+
+      // Check for input field
+      const repoInput = page.locator("input[placeholder='owner/repo']");
+      await expect(repoInput).toBeVisible();
+    });
+
+    test("should save ticket prefix setting", async ({ page }) => {
+      // Find and update ticket prefix
+      const ticketPrefixInput = page.locator("input[placeholder='EPUK']").first();
+      const currentValue = await ticketPrefixInput.inputValue();
+
+      // Change value
+      const newValue = currentValue === "EPUK" ? "CORE" : "EPUK";
+      await ticketPrefixInput.fill(newValue);
+
+      // Click save
+      const saveButton = page.locator("button:has-text('Save Changes')").first();
+      await expect(saveButton).not.toBeDisabled();
+      await saveButton.click();
+
+      // Wait for success message
+      const successMsg = page.locator("text=Settings saved");
+      await expect(successMsg).toBeVisible({ timeout: 5000 });
+    });
+  });
+
   test.describe("Settings Panel Layout", () => {
     test("should display settings header with business name", async ({ page }) => {
       // Check for header
