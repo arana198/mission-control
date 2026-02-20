@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, ChevronDown, Plus, MoreVertical, Folder, FileText } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, MoreVertical, FileText, BookOpen } from "lucide-react";
 import type { WikiPageWithChildren } from "@/convex/wiki";
 import {
   DropdownMenu,
@@ -14,10 +14,10 @@ interface WikiTreeProps {
   tree: WikiPageWithChildren[];
   selectedPageId: string | null;
   onSelectPage: (pageId: string) => void;
-  onCreateDepartment: () => void;
-  onCreatePage: (parentId: string) => void;
+  onCreatePage: (parentId?: string) => void;
   onDeletePage: (pageId: string) => void;
   onRenamePage: (pageId: string, newTitle: string) => void;
+  onMovePage: (pageId: string, newParentId: string) => void;
 }
 
 /**
@@ -28,10 +28,10 @@ export function WikiTree({
   tree,
   selectedPageId,
   onSelectPage,
-  onCreateDepartment,
   onCreatePage,
   onDeletePage,
   onRenamePage,
+  onMovePage,
 }: WikiTreeProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     new Set(tree.map((dept) => dept._id)) // Departments open by default
@@ -49,38 +49,27 @@ export function WikiTree({
 
   if (tree.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 bg-muted/30">
-        <p className="text-sm text-muted-foreground text-center mb-4">
-          Create your first department to organize your team's knowledge
+      <div className="h-full flex flex-col items-center justify-center p-4">
+        <div className="text-3xl mb-3">📝</div>
+        <p className="text-xs font-medium text-muted-foreground text-center mb-4">
+          No pages yet
         </p>
         <button
-          onClick={onCreateDepartment}
+          onClick={() => onCreatePage()}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          New Department
+          Create First Page
         </button>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col border-r bg-muted/30 overflow-hidden">
-      {/* Header with New Department button */}
-      <div className="flex items-center justify-between p-3 border-b">
-        <span className="text-xs font-semibold text-muted-foreground">DEPARTMENTS</span>
-        <button
-          onClick={onCreateDepartment}
-          className="p-1 rounded hover:bg-muted transition-colors"
-          title="New Department"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Tree content */}
-      <div className="flex-1 overflow-y-auto">
-        <nav className="p-2 space-y-1">
+    <div className="h-full flex flex-col border-r bg-muted/30 overflow-hidden relative">
+      {/* Tree content with floating action button */}
+      <div className="flex-1 overflow-y-auto overflow-x-visible">
+        <nav className="p-3 space-y-1">
           {tree.map((page) => (
             <TreeNodeWithExpanded
               key={page._id}
@@ -93,8 +82,21 @@ export function WikiTree({
               onCreatePage={onCreatePage}
               onDeletePage={onDeletePage}
               onRenamePage={onRenamePage}
+              onMovePage={onMovePage}
             />
           ))}
+
+          {/* Floating New Page button */}
+          <div className="sticky bottom-0 p-3 border-t bg-background/50 flex gap-2">
+            <button
+              onClick={() => onCreatePage()}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              title="New page"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Page</span>
+            </button>
+          </div>
         </nav>
       </div>
     </div>
@@ -108,9 +110,10 @@ interface TreeNodeWithExpandedProps {
   selectedPageId: string | null;
   onSelect: (pageId: string) => void;
   onToggleExpanded: (pageId: string) => void;
-  onCreatePage: (parentId: string) => void;
+  onCreatePage: (parentId?: string) => void;
   onDeletePage: (pageId: string) => void;
   onRenamePage: (pageId: string, newTitle: string) => void;
+  onMovePage: (pageId: string, newParentId: string) => void;
 }
 
 function TreeNodeWithExpanded({
@@ -123,9 +126,11 @@ function TreeNodeWithExpanded({
   onCreatePage,
   onDeletePage,
   onRenamePage,
+  onMovePage,
 }: TreeNodeWithExpandedProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newTitle, setNewTitle] = useState(page.title);
+  const [isDragOverThis, setIsDragOverThis] = useState(false);
   const hasChildren = page.children && page.children.length > 0;
   const isExpanded = expandedIds.has(page._id);
   const isSelected = selectedPageId === page._id;
@@ -139,20 +144,59 @@ function TreeNodeWithExpanded({
     setIsRenaming(false);
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("pageId", page._id);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsDragOverThis(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOverThis(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOverThis(false);
+    const draggedPageId = e.dataTransfer.getData("pageId");
+    if (draggedPageId && draggedPageId !== page._id && page._id) {
+      onMovePage(draggedPageId, page._id);
+    }
+  };
+
   return (
-    <div>
+    <div className="relative">
+      {/* Connector line for nested items */}
+      {level > 0 && (
+        <div
+          className="absolute top-0 bottom-0 w-px bg-border/50"
+          style={{ left: `${level * 20 - 10}px` }}
+        />
+      )}
+
       {/* Node itself */}
       <div
-        style={{ paddingLeft: `${level * 16}px` }}
-        className={`flex items-center gap-1 px-2 py-2 md:py-1.5 rounded-md group transition-colors ${
-          isSelected ? "bg-primary/10 border-l-2 border-l-primary" : "hover:bg-muted"
-        }`}
+        style={{ paddingLeft: `${level * 20}px` }}
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg group transition-colors relative ${
+          isSelected
+            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+            : "hover:bg-muted/60 text-foreground/70 hover:text-foreground"
+        } ${isDragOverThis ? "bg-primary/20" : ""}`}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {/* Expand/Collapse button */}
         {hasChildren && (
           <button
             onClick={() => onToggleExpanded(page._id)}
-            className="p-0.5 hover:bg-muted rounded transition-colors"
+            className="p-0.5 hover:bg-muted rounded transition-colors flex-shrink-0"
           >
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -161,13 +205,33 @@ function TreeNodeWithExpanded({
             )}
           </button>
         )}
-        {!hasChildren && <div className="w-5" />}
+        {!hasChildren && <div className="w-4 flex-shrink-0" />}
 
-        {/* Icon */}
-        {page.type === "department" ? (
-          <Folder className="w-4 h-4 text-blue-500 flex-shrink-0" />
+        {/* Connector dot for leaf pages */}
+        {level > 0 && !hasChildren && (
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+        )}
+
+        {/* Icon - BookOpen for pages with children, FileText for leaf pages */}
+        {hasChildren ? (
+          <BookOpen
+            className={`w-4 h-4 flex-shrink-0 ${
+              isSelected ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
+            }`}
+          />
         ) : (
-          <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <FileText
+            className={`w-4 h-4 flex-shrink-0 ${
+              isSelected ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
+            }`}
+          />
+        )}
+
+        {/* [DRAFT] status badge - only for drafts */}
+        {page.status === "draft" && (
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400 flex-shrink-0 ml-auto mr-auto">
+            DRAFT
+          </span>
         )}
 
         {/* Title or rename input */}
@@ -191,17 +255,31 @@ function TreeNodeWithExpanded({
         ) : (
           <button
             onClick={() => onSelect(page._id)}
-            className="flex-1 text-left text-sm font-medium truncate hover:text-foreground transition-colors"
+            className="flex-1 text-left text-sm font-medium truncate transition-colors"
           >
-            {page.emoji && <span className="mr-1">{page.emoji}</span>}
+            {page.emoji && <span className="mr-2">{page.emoji}</span>}
             {page.title}
+          </button>
+        )}
+
+        {/* Inline add child button (Confluence pattern) */}
+        {hasChildren && !isRenaming && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreatePage(page._id);
+            }}
+            className="p-1 opacity-0 group-hover:opacity-100 rounded hover:bg-muted/60 transition-all flex-shrink-0"
+            title="Add child page"
+          >
+            <Plus className="w-3.5 h-3.5" />
           </button>
         )}
 
         {/* Menu button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-0.5 opacity-0 group-hover:opacity-100 rounded hover:bg-muted transition-all">
+            <button className="p-1 opacity-0 group-hover:opacity-100 rounded hover:bg-muted/60 transition-all flex-shrink-0">
               <MoreVertical className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
@@ -235,6 +313,7 @@ function TreeNodeWithExpanded({
               onCreatePage={onCreatePage}
               onDeletePage={onDeletePage}
               onRenamePage={onRenamePage}
+              onMovePage={onMovePage}
             />
           ))}
         </div>
