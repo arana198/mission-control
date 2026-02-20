@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { id: "overview", label: "Overview", icon: BarChart3, isGlobal: false },
     { id: "epics", label: "Roadmap", icon: Map, isGlobal: false },
     { id: "board", label: "Task Board", icon: LayoutGrid, isGlobal: false },
-    { id: "documents", label: "Documents", icon: BookOpen, isGlobal: false },
+    { id: "documents", label: "Wiki", icon: BookOpen, isGlobal: false },
     { id: "settings", label: "Settings", icon: Zap, isGlobal: false },
     // Global tabs
     { id: "agents", label: "Your Squad", icon: Users, isGlobal: true },

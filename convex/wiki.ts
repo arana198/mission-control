@@ -15,6 +15,58 @@ import { Doc, Id } from "./_generated/dataModel";
  */
 
 // ════════════════════════════════════════════════════════════════════════════════
+// TYPE DEFINITIONS
+// ════════════════════════════════════════════════════════════════════════════════
+
+export interface WikiPage extends Doc<"wikiPages"> {
+  businessId: Id<"businesses">;
+  title: string;
+  content: string; // TipTap JSON
+  contentText: string; // Plain text for search
+  emoji?: string;
+  parentId?: Id<"wikiPages">;
+  childIds: Id<"wikiPages">[];
+  position: number;
+  type: "department" | "page";
+  taskIds?: Id<"tasks">[];
+  epicId?: Id<"epics">;
+  createdBy: string;
+  createdByName: string;
+  updatedBy: string;
+  updatedByName: string;
+  createdAt: number;
+  updatedAt: number;
+  version: number;
+}
+
+export interface WikiPageWithChildren extends WikiPage {
+  children?: WikiPageWithChildren[];
+}
+
+export interface WikiPageHistory extends Doc<"wikiPageHistory"> {
+  businessId: Id<"businesses">;
+  pageId: Id<"wikiPages">;
+  title: string;
+  content: string;
+  version: number;
+  savedBy: string;
+  savedByName: string;
+  savedAt: number;
+}
+
+export interface WikiComment extends Doc<"wikiComments"> {
+  businessId: Id<"businesses">;
+  pageId: Id<"wikiPages">;
+  fromId: string;
+  fromName: string;
+  content: string;
+  parentId?: Id<"wikiComments">;
+  replyIds: Id<"wikiComments">[];
+  createdAt: number;
+  editedAt?: number;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
 // QUERIES
 // ════════════════════════════════════════════════════════════════════════════════
 
@@ -35,11 +87,11 @@ export const getTree = query({
       .collect();
 
     // For each department, recursively fetch children
-    const buildTree = async (parentId: Id<"wikiPages"> | null): Promise<any[]> => {
+    const buildTree = async (parentId: Id<"wikiPages"> | undefined): Promise<any[]> => {
       const children = await ctx.db
         .query("wikiPages")
         .withIndex("by_business_parent", (q) =>
-          q.eq("businessId", businessId).eq("parentId", parentId)
+          q.eq("businessId", businessId).eq("parentId", parentId as any)
         )
         .collect();
 
@@ -62,7 +114,7 @@ export const getTree = query({
     return Promise.all(
       departments.map(async (dept) => ({
         ...dept,
-        children: await buildTree(dept._id),
+        children: await buildTree(dept._id as Id<"wikiPages">),
       }))
     );
   },
@@ -179,7 +231,7 @@ export const createDepartment = mutation({
       content: "",
       contentText: "",
       emoji,
-      parentId: null,
+      parentId: undefined,
       childIds: [],
       position,
       type: "department",
@@ -190,7 +242,7 @@ export const createDepartment = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       version: 1,
-    });
+    } as any);
 
     return pageId;
   },
@@ -340,55 +392,61 @@ export const updatePage = mutation({
 });
 
 /**
+ * Helper function to recursively delete a page and all descendants
+ */
+async function deletePageRecursive(ctx: any, pageId: Id<"wikiPages">) {
+  const page = await ctx.db.get(pageId);
+  if (!page) {
+    throw new Error(`Page not found: ${pageId}`);
+  }
+
+  // Recursively delete all children
+  for (const childId of page.childIds) {
+    await deletePageRecursive(ctx, childId as Id<"wikiPages">);
+  }
+
+  // Remove from parent's childIds
+  if (page.parentId) {
+    const parent = await ctx.db.get(page.parentId);
+    if (parent) {
+      await ctx.db.patch(page.parentId, {
+        childIds: parent.childIds.filter((id: Id<"wikiPages">) => id !== pageId),
+      } as any);
+    }
+  }
+
+  // Delete all comments for this page
+  const comments = await ctx.db
+    .query("wikiComments")
+    .withIndex("by_page", (q: any) => q.eq("pageId", pageId))
+    .collect();
+
+  for (const comment of comments) {
+    await ctx.db.delete(comment._id);
+  }
+
+  // Delete all history entries
+  const history = await ctx.db
+    .query("wikiPageHistory")
+    .withIndex("by_page", (q: any) => q.eq("pageId", pageId))
+    .collect();
+
+  for (const entry of history) {
+    await ctx.db.delete(entry._id);
+  }
+
+  // Delete the page itself
+  await ctx.db.delete(pageId);
+}
+
+/**
  * Delete a page and all its descendants recursively
  * Also removes from parent's childIds
  */
 export const deletePage = mutation({
   args: { pageId: convexVal.id("wikiPages") },
   handler: async (ctx, { pageId }) => {
-    const page = await ctx.db.get(pageId);
-    if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
-    }
-
-    // Recursively delete all children
-    for (const childId of page.childIds) {
-      await deletePage.handler(ctx, { pageId: childId });
-    }
-
-    // Remove from parent's childIds
-    if (page.parentId) {
-      const parent = await ctx.db.get(page.parentId);
-      if (parent) {
-        await ctx.db.patch(page.parentId, {
-          childIds: parent.childIds.filter((id) => id !== pageId),
-        });
-      }
-    }
-
-    // Delete all comments for this page
-    const comments = await ctx.db
-      .query("wikiComments")
-      .withIndex("by_page", (q) => q.eq("pageId", pageId))
-      .collect();
-
-    for (const comment of comments) {
-      await ctx.db.delete(comment._id);
-    }
-
-    // Delete all history entries
-    const history = await ctx.db
-      .query("wikiPageHistory")
-      .withIndex("by_page", (q) => q.eq("pageId", pageId))
-      .collect();
-
-    for (const entry of history) {
-      await ctx.db.delete(entry._id);
-    }
-
-    // Delete the page itself
-    await ctx.db.delete(pageId);
-
+    await deletePageRecursive(ctx, pageId);
     return pageId;
   },
 });
@@ -500,7 +558,7 @@ export const addComment = mutation({
       parentId: parentId || undefined,
       replyIds: [],
       createdAt: Date.now(),
-    });
+    } as any);
 
     // If this is a reply, add to parent's replyIds
     if (parentId) {
@@ -517,35 +575,41 @@ export const addComment = mutation({
 });
 
 /**
+ * Helper function to recursively delete a comment and all replies
+ */
+async function deleteCommentRecursive(ctx: any, commentId: Id<"wikiComments">) {
+  const comment = await ctx.db.get(commentId);
+  if (!comment) {
+    throw new Error(`Comment not found: ${commentId}`);
+  }
+
+  // Remove from parent's replyIds if this is a reply
+  if (comment.parentId) {
+    const parent = await ctx.db.get(comment.parentId);
+    if (parent) {
+      await ctx.db.patch(comment.parentId, {
+        replyIds: parent.replyIds.filter((id: Id<"wikiComments">) => id !== commentId),
+      } as any);
+    }
+  }
+
+  // Delete all replies to this comment recursively
+  for (const replyId of comment.replyIds) {
+    await deleteCommentRecursive(ctx, replyId as Id<"wikiComments">);
+  }
+
+  // Delete the comment
+  await ctx.db.delete(commentId);
+}
+
+/**
  * Delete a comment
  * Also removes from parent's replyIds if it's a reply
  */
 export const deleteComment = mutation({
   args: { commentId: convexVal.id("wikiComments") },
   handler: async (ctx, { commentId }) => {
-    const comment = await ctx.db.get(commentId);
-    if (!comment) {
-      throw new Error(`Comment not found: ${commentId}`);
-    }
-
-    // Remove from parent's replyIds if this is a reply
-    if (comment.parentId) {
-      const parent = await ctx.db.get(comment.parentId);
-      if (parent) {
-        await ctx.db.patch(comment.parentId, {
-          replyIds: parent.replyIds.filter((id) => id !== commentId),
-        });
-      }
-    }
-
-    // Delete all replies to this comment recursively
-    for (const replyId of comment.replyIds) {
-      await deleteComment.handler(ctx, { commentId: replyId });
-    }
-
-    // Delete the comment
-    await ctx.db.delete(commentId);
-
+    await deleteCommentRecursive(ctx, commentId);
     return commentId;
   },
 });

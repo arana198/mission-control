@@ -12,6 +12,7 @@ import { SettingsPanel } from "../SettingsPanel";
 import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
+const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
 
 type BusinessTabType = "overview" | "board" | "epics" | "documents" | "settings";
 
@@ -111,7 +112,9 @@ export function BusinessDashboard({
       case "documents":
         return (
           <ErrorBoundary>
-            <DocumentPanel />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <WikiDocs businessId={businessId} />
+            </Suspense>
           </ErrorBoundary>
         );
 
