@@ -27,6 +27,8 @@ import type * as memoryIndex from "../memoryIndex.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as presence from "../presence.js";
+import type * as taskComments from "../taskComments.js";
 import type * as opsMetrics from "../opsMetrics.js";
 import type * as strategicReports from "../strategicReports.js";
 import type * as tasks from "../tasks.js";
@@ -65,6 +67,8 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   notifications: typeof notifications;
   opsMetrics: typeof opsMetrics;
+  presence: typeof presence;
+  taskComments: typeof taskComments;
   strategicReports: typeof strategicReports;
   tasks: typeof tasks;
   "utils/activityLogger": typeof utils_activityLogger;
