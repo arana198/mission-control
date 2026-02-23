@@ -34,6 +34,7 @@ export function WikiPageView({
               <button
                 onClick={onBack}
                 className="p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+                aria-label="Go back to wiki pages"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>

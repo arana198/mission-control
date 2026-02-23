@@ -197,6 +197,7 @@ function TreeNodeWithExpanded({
           <button
             onClick={() => onToggleExpanded(page._id)}
             className="p-0.5 hover:bg-muted rounded transition-colors flex-shrink-0"
+            aria-label={isExpanded ? "Collapse page" : "Expand page"}
           >
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -270,7 +271,7 @@ function TreeNodeWithExpanded({
               onCreatePage(page._id);
             }}
             className="p-1 opacity-0 group-hover:opacity-100 rounded hover:bg-muted/60 transition-all flex-shrink-0"
-            title="Add child page"
+            aria-label={`Add child page to ${page.title}`}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -279,7 +280,10 @@ function TreeNodeWithExpanded({
         {/* Menu button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-1 opacity-0 group-hover:opacity-100 rounded hover:bg-muted/60 transition-all flex-shrink-0">
+            <button
+              className="p-1 opacity-0 group-hover:opacity-100 rounded hover:bg-muted/60 transition-all flex-shrink-0"
+              aria-label={`More options for ${page.title}`}
+            >
               <MoreVertical className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
