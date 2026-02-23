@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { useBusiness } from "./BusinessProvider";
 import {
   AlertTriangle, TrendingDown, Network, Clock, Users,
@@ -30,13 +31,29 @@ const CRITICAL_RISK_PROGRESS = 10;
 
 export function BottleneckVisualizer() {
   const { currentBusiness } = useBusiness();
-  const goals = currentBusiness ? useQuery(api.goals.getByProgress, { businessId: currentBusiness._id } as any) : null;
-  const tasks = currentBusiness ? useQuery(api.tasks.getAllTasks, { businessId: currentBusiness._id } as any) : null;
-  const agents = useQuery(api.agents.getAllAgents);
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [view, setView] = useState<"heatmap" | "graph" | "path" | "agents">("heatmap");
 
-  if (!currentBusiness || !goals || !tasks || !agents) {
+  // Always call hooks in the same order - React requirement
+  const goals = useQuery(api.goals.getByProgress,
+    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+  );
+  const tasks = useQuery(api.tasks.getAllTasks,
+    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+  );
+  const agents = useQuery(api.agents.getAllAgents);
+  
+  // Handle missing business context for global routes
+  if (!currentBusiness) {
+    return (
+      <div className="p-8 text-center">
+        <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Business Context Required</h3>
+        <p className="text-muted-foreground">Bottleneck analysis requires selecting a business. Use the business selector to choose a business.</p>
+      </div>
+    );
+  }
+  
+  if (!goals || !tasks || !agents) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
   }
 

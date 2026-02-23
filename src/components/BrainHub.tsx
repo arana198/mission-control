@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { useBusiness } from "./BusinessProvider";
 import {
   Brain, Search, FileText, Calendar, Target, Users,
@@ -61,13 +62,22 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Modal state - moved to parent to avoid conditional hook calls
+  const [addModalState, setAddModalState] = useState({ title: "", content: "", tags: "", importance: 3, linkToTask: "", memoryPath: "" });
+  const [archiveModalState, setArchiveModalState] = useState({ daysOld: 30, archived: 0 });
+
   // Fetch memory index from Convex
   const memoryLinks = useQuery(api.memoryIndex.getAll);
   const memoryPaths = useQuery(api.memoryIndex.getMemoryPaths);
   const searchResults = useQuery(api.memoryIndex.search, { query: searchQuery || "" });
 
-  // Fetch latest strategic report
-  const latestReport = currentBusiness ? useQuery(api.strategicReports.getLatest, { businessId: currentBusiness._id } as any) : null;
+  // Fetch latest strategic report - always call hook, conditionally return data
+  const latestReport = useQuery(api.strategicReports.getLatest,
+    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+  );
+
+  // Always call mutations at component level (never conditionally)
+  const linkMemory = useMutation(api.memoryIndex.linkMemory);
 
   // Generate knowledge items from tasks, activities, and patterns
   const knowledgeItems: KnowledgeItem[] = [
@@ -184,6 +194,34 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
     navigator.clipboard.writeText(data);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAddMemory = async () => {
+    if (!addModalState.title || !addModalState.content) return;
+
+    const keywords = addModalState.tags.split(',').map(t => t.trim()).filter(Boolean);
+
+    if (addModalState.linkToTask && addModalState.memoryPath) {
+      await linkMemory({
+        entityType: "task",
+        entityId: addModalState.linkToTask,
+        memoryPath: addModalState.memoryPath,
+        keywords: [...keywords, addModalState.title.toLowerCase()],
+      });
+    }
+
+    // Reset modal state
+    setAddModalState({ title: "", content: "", tags: "", importance: 3, linkToTask: "", memoryPath: "" });
+    setShowAddModal(false);
+  };
+
+  const handleArchive = () => {
+    const allGoals = Object.values(knowledgeItems).flat() as any[];
+    const oldItems = knowledgeItems.filter(item => {
+      const daysDiff = (Date.now() - item.date.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff > archiveModalState.daysOld;
+    });
+    setArchiveModalState(prev => ({ ...prev, archived: oldItems.length }));
   };
 
   return (
@@ -409,10 +447,13 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
 
       {/* Add Memory Modal */}
       {showAddModal && (
-        <AddMemoryModal 
+        <AddMemoryModal
           onClose={() => setShowAddModal(false)}
+          onSubmit={handleAddMemory}
           tasks={tasks}
           memoryPaths={memoryPaths || []}
+          state={addModalState}
+          setState={setAddModalState}
         />
       )}
 
@@ -429,9 +470,12 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
 
       {/* Archive Modal */}
       {showArchiveModal && (
-        <ArchiveModal 
+        <ArchiveModal
           onClose={() => setShowArchiveModal(false)}
           knowledgeItems={knowledgeItems}
+          state={archiveModalState}
+          setState={setArchiveModalState}
+          onArchive={handleArchive}
         />
       )}
     </div>
@@ -439,35 +483,23 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
 }
 
 // Add Memory Modal Component
-function AddMemoryModal({ onClose, tasks, memoryPaths }: { 
+function AddMemoryModal({
+  onClose,
+  onSubmit,
+  tasks,
+  memoryPaths,
+  state,
+  setState,
+}: {
   onClose: () => void;
+  onSubmit: () => Promise<void>;
   tasks: Task[];
   memoryPaths: string[];
+  state: { title: string; content: string; tags: string; importance: number; linkToTask: string; memoryPath: string };
+  setState: (state: any) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState("");
-  const [importance, setImportance] = useState(3);
-  const [linkToTask, setLinkToTask] = useState("");
-  const [memoryPath, setMemoryPath] = useState("");
-  
-  const linkMemory = useMutation(api.memoryIndex.linkMemory);
-
   const handleSubmit = async () => {
-    if (!title || !content) return;
-    
-    const keywords = tags.split(',').map(t => t.trim()).filter(Boolean);
-    
-    if (linkToTask && memoryPath) {
-      await linkMemory({
-        entityType: "task",
-        entityId: linkToTask,
-        memoryPath,
-        keywords: [...keywords, title.toLowerCase()],
-      });
-    }
-    
-    onClose();
+    await onSubmit();
   };
 
   return (
@@ -488,54 +520,54 @@ function AddMemoryModal({ onClose, tasks, memoryPaths }: {
             <label className="text-sm font-medium mb-1 block">Title</label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={state.title}
+              onChange={(e) => setState({ ...state, title: e.target.value })}
               placeholder="Memory title..."
               className="input w-full"
             />
           </div>
-          
+
           <div>
             <label className="text-sm font-medium mb-1 block">Content</label>
             <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              value={state.content}
+              onChange={(e) => setState({ ...state, content: e.target.value })}
               placeholder="Describe this memory..."
               className="input w-full h-24"
             />
           </div>
-          
+
           <div>
             <label className="text-sm font-medium mb-1 block">Tags (comma-separated)</label>
             <input
               type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
+              value={state.tags}
+              onChange={(e) => setState({ ...state, tags: e.target.value })}
               placeholder="architecture, decisions, ui..."
               className="input w-full"
             />
           </div>
-          
+
           <div>
             <label className="text-sm font-medium mb-1 block">Importance</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((i) => (
                 <button
                   key={i}
-                  onClick={() => setImportance(i)}
-                  className={`p-1 ${i <= importance ? "text-amber-500" : "text-muted-foreground"}`}
+                  onClick={() => setState({ ...state, importance: i })}
+                  className={`p-1 ${i <= state.importance ? "text-amber-500" : "text-muted-foreground"}`}
                 >
-                  <Star className={`w-5 h-5 ${i <= importance ? "fill-amber-500" : ""}`} />
+                  <Star className={`w-5 h-5 ${i <= state.importance ? "fill-amber-500" : ""}`} />
                 </button>
               ))}
             </div>
           </div>
-          
+
           <div className="border-t pt-4">
             <h4 className="font-medium mb-2">Link to Task (optional)</h4>
             <select
-              value={linkToTask}
-              onChange={(e) => setLinkToTask(e.target.value)}
+              value={state.linkToTask}
+              onChange={(e) => setState({ ...state, linkToTask: e.target.value })}
               className="input w-full mb-2"
             >
               <option value="">Select a task...</option>
@@ -545,11 +577,11 @@ function AddMemoryModal({ onClose, tasks, memoryPaths }: {
                 </option>
               ))}
             </select>
-            
-            {linkToTask && (
+
+            {state.linkToTask && (
               <select
-                value={memoryPath}
-                onChange={(e) => setMemoryPath(e.target.value)}
+                value={state.memoryPath}
+                onChange={(e) => setState({ ...state, memoryPath: e.target.value })}
                 className="input w-full"
               >
                 <option value="">Select memory file...</option>
@@ -568,9 +600,9 @@ function AddMemoryModal({ onClose, tasks, memoryPaths }: {
           <button onClick={onClose} className="btn btn-secondary flex-1">
             Cancel
           </button>
-          <button 
+          <button
             onClick={handleSubmit}
-            disabled={!title || !content}
+            disabled={!state.title || !state.content}
             className="btn btn-primary flex-1"
           >
             <Save className="w-4 h-4 mr-2" />
@@ -660,23 +692,23 @@ function ExportModal({
 }
 
 // Archive Modal Component
-function ArchiveModal({ onClose, knowledgeItems }: { 
+function ArchiveModal({
+  onClose,
+  knowledgeItems,
+  state,
+  setState,
+  onArchive,
+}: {
   onClose: () => void;
   knowledgeItems: KnowledgeItem[];
+  state: { daysOld: number; archived: number };
+  setState: (state: any) => void;
+  onArchive: () => void;
 }) {
-  const [daysOld, setDaysOld] = useState(30);
-  const [archived, setArchived] = useState(0);
-  
   const oldItems = knowledgeItems.filter(item => {
     const daysDiff = (Date.now() - item.date.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff > daysOld;
+    return daysDiff > state.daysOld;
   });
-
-  const handleArchive = () => {
-    // In a real implementation, this would call a mutation to archive items
-    // For now, just simulate archiving
-    setArchived(oldItems.length);
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -691,12 +723,12 @@ function ArchiveModal({ onClose, knowledgeItems }: {
           </button>
         </div>
         
-        {archived > 0 ? (
+        {state.archived > 0 ? (
           <div className="text-center py-8">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
-            <p className="font-semibold text-lg">Archived {archived} items</p>
+            <p className="font-semibold text-lg">Archived {state.archived} items</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Items older than {daysOld} days have been archived
+              Items older than {state.daysOld} days have been archived
             </p>
             <button onClick={onClose} className="btn btn-primary mt-4">
               Done
@@ -707,14 +739,14 @@ function ArchiveModal({ onClose, knowledgeItems }: {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Archive items older than {daysOld} days
+                  Archive items older than {state.daysOld} days
                 </label>
                 <input
                   type="range"
                   min="7"
                   max="90"
-                  value={daysOld}
-                  onChange={(e) => setDaysOld(Number(e.target.value))}
+                  value={state.daysOld}
+                  onChange={(e) => setState({ ...state, daysOld: Number(e.target.value) })}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -722,7 +754,7 @@ function ArchiveModal({ onClose, knowledgeItems }: {
                   <span>90 days</span>
                 </div>
               </div>
-              
+
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm">
                   This will archive <span className="font-semibold">{oldItems.length}</span> items
@@ -732,13 +764,13 @@ function ArchiveModal({ onClose, knowledgeItems }: {
                 </p>
               </div>
             </div>
-        
+
             <div className="flex gap-2 mt-6">
               <button onClick={onClose} className="btn btn-secondary flex-1">
                 Cancel
               </button>
-              <button 
-                onClick={handleArchive}
+              <button
+                onClick={onArchive}
                 disabled={oldItems.length === 0}
                 className="btn btn-primary flex-1"
               >
