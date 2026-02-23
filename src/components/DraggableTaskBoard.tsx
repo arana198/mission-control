@@ -200,8 +200,9 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     try {
       await updateTask({ id: draggedTask._id as any, status: columnId as any });
       notif.success("Task moved");
-    } catch (err) {
-      notif.error("Failed to move task");
+    } catch (err: any) {
+      const errorMsg = err?.message || "Failed to move task";
+      notif.error(errorMsg);
     } finally {
       setDraggedTask(null);
     }

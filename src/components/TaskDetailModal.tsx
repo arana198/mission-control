@@ -134,8 +134,9 @@ export function TaskDetailModal({
       await updateTask({ id: task._id as any, status: newStatus as any });
       notif.success(`Status changed to ${getStatusLabel(newStatus)}`);
       setShowStatusDropdown(false);
-    } catch (err) {
-      notif.error("Failed to update status");
+    } catch (err: any) {
+      const errorMsg = err?.message || "Failed to update status";
+      notif.error(errorMsg);
     } finally {
       setIsUpdatingStatus(false);
     }
