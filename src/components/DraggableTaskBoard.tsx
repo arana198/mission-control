@@ -48,6 +48,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
       filterPriority: "",
       filterAssignee: "",
       filterEpic: "",
+      filterStatus: "",
       showBlockedOnly: false,
     } as FilterState
   );
@@ -118,6 +119,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
           return false;
         }
       }
+      if (filters.filterStatus && task.status !== filters.filterStatus) return false;
       if (filters.showBlockedOnly && (!task.blockedBy || task.blockedBy.length === 0)) return false;
 
       // Quick filter pills (mutually exclusive)
@@ -213,6 +215,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     filters.filterPriority ||
     filters.filterAssignee ||
     filters.filterEpic ||
+    filters.filterStatus ||
     filters.showBlockedOnly
   );
 
@@ -224,6 +227,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
         filterPriority={filters.filterPriority}
         filterAssignee={filters.filterAssignee}
         filterEpic={filters.filterEpic}
+        filterStatus={filters.filterStatus}
         showBlockedOnly={filters.showBlockedOnly}
         quickFilter={quickFilter}
         onQuickFilterChange={setQuickFilter}
@@ -233,6 +237,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
         onPriorityChange={filterSetters.setFilterPriority}
         onAssigneeChange={filterSetters.setFilterAssignee}
         onEpicChange={filterSetters.setFilterEpic}
+        onStatusChange={filterSetters.setFilterStatus}
         onBlockedToggle={() => filterSetters.setShowBlockedOnly(!filters.showBlockedOnly)}
         onClearFilters={filterSetters.clearAll}
         hasFilters={hasFilters}

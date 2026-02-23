@@ -151,7 +151,10 @@ export function CalendarSyncPanel() {
                 <AlertCircle className="w-4 h-4" />
                 {conflicts} Scheduling Conflict{conflicts !== 1 ? "s" : ""}
               </div>
-              <button className="text-xs text-amber-700 dark:text-amber-400 hover:underline">
+              <button
+                className="text-xs text-amber-700 dark:text-amber-400 hover:underline"
+                aria-label="Review and resolve scheduling conflicts"
+              >
                 Review and resolve conflicts
               </button>
             </div>

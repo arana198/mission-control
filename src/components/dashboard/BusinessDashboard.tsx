@@ -6,7 +6,7 @@ import { ReactNode } from "react";
 import { TaskBoard } from "../TaskBoard";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { Suspense, lazy } from "react";
-import { CardGridSkeleton, LoadingSkeleton } from "../LoadingSkeletons";
+import { CardGridSkeleton, LoadingSkeleton, KanbanSkeleton } from "../LoadingSkeletons";
 import { DocumentPanel } from "../DocumentPanel";
 import { SettingsPanel } from "../SettingsPanel";
 import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
@@ -48,6 +48,14 @@ export function BusinessDashboard({
   const renderContent = (): ReactNode => {
     switch (tab) {
       case "overview":
+        if (!agents || !tasks || !business) {
+          return (
+            <ErrorBoundary>
+              <LoadingSkeleton />
+            </ErrorBoundary>
+          );
+        }
+
         const agentCount = agents?.filter((a: any) => a.status === "active").length || 0;
         const taskCount = tasks?.length || 0;
         const inProgressCount = tasks?.filter((t: any) => t.status === "in_progress").length || 0;
@@ -80,7 +88,6 @@ export function BusinessDashboard({
                   <p className="text-3xl font-bold">{completedCount}</p>
                 </div>
               </div>
-              {taskCount > 0 && <CardGridSkeleton />}
             </div>
           </ErrorBoundary>
         );
@@ -88,12 +95,14 @@ export function BusinessDashboard({
       case "board":
         return (
           <ErrorBoundary>
-            <TaskBoard
-              tasks={tasks || []}
-              agents={agents || []}
-              epics={epics || []}
-              businessId={businessId}
-            />
+            <Suspense fallback={<KanbanSkeleton />}>
+              <TaskBoard
+                tasks={tasks || []}
+                agents={agents || []}
+                epics={epics || []}
+                businessId={businessId}
+              />
+            </Suspense>
           </ErrorBoundary>
         );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useBusiness } from "./BusinessProvider";
@@ -20,12 +21,14 @@ import {
   ChevronRight,
   X,
   Loader2,
+  BookOpen,
+  Layers,
 } from "lucide-react";
 import clsx from "clsx";
 
 interface SearchResult {
   id: string;
-  type: "goal" | "task" | "memory" | "agent" | "document";
+  type: "goal" | "task" | "memory" | "agent" | "document" | "epic" | "wiki";
   title: string;
   description?: string;
   metadata?: Record<string, any>;
@@ -39,6 +42,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps = {}) {
   const { currentBusiness } = useBusiness();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -50,9 +54,11 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
   const memoryService = getMemoryService();
   // Always call hooks - don't conditionally call them (Rules of Hooks)
-  const goals = useQuery(api.goals.getByProgress, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
+  const goals = useQuery(api.goals.getActiveGoals, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
   const tasks = useQuery(api.tasks.getAllTasks, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
   const agents = useQuery(api.agents.getAllAgents);
+  const epics = useQuery(api.epics.getAllEpics, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
+  const wikiTree = useQuery(api.wiki.getTree, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
 
   // Keyboard shortcut: Cmd+K or Ctrl+K
   useEffect(() => {
@@ -92,6 +98,11 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
     }
   }, [open]);
 
+  // Flatten nested wiki page tree into a flat array for search
+  const flattenWikiPages = (pages: any[]): any[] => {
+    return pages.flatMap((p) => [p, ...flattenWikiPages(p.children || [])]);
+  };
+
   // Search logic
   useEffect(() => {
     const search = async () => {
@@ -106,7 +117,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
       // Search goals
       if (goals) {
-        const allGoals = Object.values(goals).flat() as Goal[];
+        const allGoals = (goals as Goal[]) ?? [];
         const matchedGoals = allGoals
           .filter(
             (g) =>
@@ -124,7 +135,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               progress: g.progress || 0,
             },
             action: () => {
-              // Navigate to goal - TODO: Implement navigation
+              router.push(`/${currentBusiness?.slug}/overview`);
             },
           }));
         results.push(...matchedGoals);
@@ -149,7 +160,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               priority: t.priority,
             },
             action: () => {
-              // Navigate to task - TODO: Implement navigation
+              router.push(`/${currentBusiness?.slug}/board?task=${t.ticketNumber || t._id}`);
             },
           }));
         results.push(...matchedTasks);
@@ -167,7 +178,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
             relevance: `${(m.relevance * 100).toFixed(0)}%`,
           },
           action: () => {
-            // View memory - TODO: Implement navigation
+            router.push(`/global/brain`);
           },
         }));
         results.push(...memoryFormatted);
@@ -189,10 +200,52 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               status: a.status,
             },
             action: () => {
-              // View agent - TODO: Implement navigation
+              router.push(`/global/agents?agent=${a._id}`);
             },
           }));
         results.push(...matchedAgents);
+      }
+
+      // Search epics
+      if (epics) {
+        const matchedEpics = (epics as any[])
+          .filter((e) =>
+            e.title.toLowerCase().includes(q) ||
+            e.description?.toLowerCase().includes(q)
+          )
+          .slice(0, 3)
+          .map((e) => ({
+            id: e._id,
+            type: "epic" as const,
+            title: e.title,
+            description: e.description,
+            metadata: { status: e.status },
+            action: () => {
+              router.push(`/${currentBusiness?.slug}/epics`);
+            },
+          }));
+        results.push(...matchedEpics);
+      }
+
+      // Search wiki pages
+      if (wikiTree) {
+        const allPages = flattenWikiPages(wikiTree as any[]);
+        const matchedPages = allPages
+          .filter((p: any) =>
+            p.title?.toLowerCase().includes(q)
+          )
+          .slice(0, 3)
+          .map((p: any) => ({
+            id: p._id,
+            type: "wiki" as const,
+            title: p.title,
+            description: p.emoji ? `${p.emoji} Wiki page` : "Wiki page",
+            metadata: { status: p.status },
+            action: () => {
+              router.push(`/${currentBusiness?.slug}/wiki?pageId=${p._id}`);
+            },
+          }));
+        results.push(...matchedPages);
       }
 
       // Quick actions
@@ -226,7 +279,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
     const timer = setTimeout(search, 300); // Debounce
     return () => clearTimeout(timer);
-  }, [query, goals, tasks, agents, memoryService]);
+  }, [query, goals, tasks, agents, epics, wikiTree, memoryService, currentBusiness, router, onCreateTask]);
 
   if (!open) {
     return (
@@ -262,7 +315,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Search goals, tasks, memory, agents... (ESC to close)"
+                placeholder="Search tasks, epics, agents, goals, wiki... (ESC to close)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
@@ -316,6 +369,12 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                         )}
                         {result.type === "agent" && (
                           <Zap className="w-4 h-4 text-purple-500" />
+                        )}
+                        {result.type === "epic" && (
+                          <Layers className="w-4 h-4 text-indigo-500" />
+                        )}
+                        {result.type === "wiki" && (
+                          <BookOpen className="w-4 h-4 text-teal-500" />
                         )}
                         {result.type === "document" && (
                           <FileText className="w-4 h-4 text-slate-500" />

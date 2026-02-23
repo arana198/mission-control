@@ -72,6 +72,7 @@ export function BusinessFilter({ onFilterChange }: BusinessFilterProps) {
                   <button
                     onClick={() => setSearchQuery("")}
                     className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
                   >
                     <X className="w-4 h-4" />
                   </button>

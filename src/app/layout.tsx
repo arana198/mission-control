@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "Mission Control — Agent Coordination",
   description: "Professional multi-AI agent task management and coordination system.",
   keywords: ["AI agents", "multi-agent system", "OpenClaw", "task management"],
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

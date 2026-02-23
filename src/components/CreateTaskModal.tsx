@@ -5,7 +5,13 @@ import { useMutationWithNotification } from "@/hooks/useMutationWithNotification
 import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { 
+import {
+  extractPriorityFromText,
+  detectEpicFromTitle,
+  findLeastLoadedAgent,
+  estimateTimeFromDescription,
+} from "@/lib/smartDefaults";
+import {
   X, AlertCircle, CheckCircle, FileText, Bug, Sparkles, Lightbulb,
   Plus, Target, Loader2
 } from "lucide-react";
@@ -13,6 +19,7 @@ import {
 interface CreateTaskModalProps {
   agents: any[];
   epics: any[];
+  tasks: any[];
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -85,7 +92,7 @@ const TIME_ESTIMATES = [
   { value: "XL", label: "XL — 1 week", hours: 40 },
 ];
 
-export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTaskModalProps) {
+export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: CreateTaskModalProps) {
   const notif = useNotification();
 
   const createTaskMutation = useMutation(api.tasks.createTask);
@@ -124,13 +131,6 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
   const [newEpicTitle, setNewEpicTitle] = useState("");
   const [newEpicDescription, setNewEpicDescription] = useState("");
 
-  // Auto-create default epic if none exist
-  useEffect(() => {
-    if (epics.length === 0 && !createdEpicId) {
-      handleAutoCreateEpic();
-    }
-  }, [epics.length, createdEpicId]);
-
   const handleAutoCreateEpic = async () => {
     if (!createEpicMutation) return;
     const lead = agents.find(a => a.level === "lead");
@@ -163,6 +163,62 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [includeSubtasks, setIncludeSubtasks] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Smart defaults tracking
+  const [autoFilledPriority, setAutoFilledPriority] = useState(false);
+  const [autoFilledEpic, setAutoFilledEpic] = useState(false);
+  const [autoFilledAssignee, setAutoFilledAssignee] = useState(false);
+  const [autoFilledTimeEstimate, setAutoFilledTimeEstimate] = useState(false);
+
+  // Auto-create default epic if none exist
+  useEffect(() => {
+    if (epics.length === 0 && !createdEpicId) {
+      handleAutoCreateEpic();
+    }
+  }, [epics.length, createdEpicId]);
+
+  // Smart defaults: Apply on title change (debounced 300ms)
+  useEffect(() => {
+    if (!title.trim()) return;
+    const timer = setTimeout(() => {
+      // Priority: suggest based on keywords
+      const suggestedPriority = extractPriorityFromText(title);
+      if (suggestedPriority !== "P2") {
+        setPriority(suggestedPriority);
+        setAutoFilledPriority(true);
+      }
+
+      // Epic: suggest based on title match
+      if (!selectedEpic && !createdEpicId) {
+        const epicId = detectEpicFromTitle(title, epics);
+        if (epicId) {
+          setSelectedEpic(epicId);
+          setAutoFilledEpic(true);
+        }
+      }
+
+      // Assignee: suggest least-loaded agent
+      if (selectedAgents.length === 0) {
+        const agentId = findLeastLoadedAgent(agents, tasks);
+        if (agentId) {
+          setSelectedAgents([agentId]);
+          setAutoFilledAssignee(true);
+        }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [title, selectedEpic, createdEpicId, selectedAgents, epics, agents, tasks]);
+
+  // Smart defaults: Estimate time from description
+  useEffect(() => {
+    if (!autoFilledTimeEstimate && !timeEstimate) {
+      const suggested = estimateTimeFromDescription(description);
+      if (suggested) {
+        setTimeEstimate(suggested);
+        setAutoFilledTimeEstimate(true);
+      }
+    }
+  }, [description, autoFilledTimeEstimate, timeEstimate]);
 
   // Use newly created epic or selected one
   const effectiveEpicId = selectedEpic || createdEpicId;
@@ -332,11 +388,15 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
             <label className="label flex items-center gap-2 text-blue-900">
               <Target className="w-4 h-4" />
               Epic *
+              {autoFilledEpic && <span className="text-xs text-blue-600 ml-1">(auto)</span>}
             </label>
             <div className="flex gap-2 mt-2">
               <select
                 value={selectedEpic || createdEpicId || ""}
-                onChange={(e) => setSelectedEpic(e.target.value)}
+                onChange={(e) => {
+                  setSelectedEpic(e.target.value);
+                  setAutoFilledEpic(false);
+                }}
                 className="input flex-1"
                 required
               >
@@ -436,13 +496,19 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
           <div className="grid grid-cols-2 gap-4">
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium mb-2">Priority</label>
+              <label className="block text-sm font-medium mb-2">
+                Priority
+                {autoFilledPriority && <span className="text-xs text-muted-foreground ml-1">(auto)</span>}
+              </label>
               <div className="flex gap-1">
                 {["P0", "P1", "P2", "P3"].map((p) => (
                   <button
                     key={p}
                     type="button"
-                    onClick={() => setPriority(p as any)}
+                    onClick={() => {
+                      setPriority(p as any);
+                      setAutoFilledPriority(false);
+                    }}
                     className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
                       priority === p
                         ? p === "P0" ? "bg-red-100 text-red-700" :
@@ -460,10 +526,16 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
 
             {/* Time Estimate */}
             <div>
-              <label className="block text-sm font-medium mb-2">Time Estimate</label>
+              <label className="block text-sm font-medium mb-2">
+                Time Estimate
+                {autoFilledTimeEstimate && <span className="text-xs text-muted-foreground ml-1">(auto)</span>}
+              </label>
               <select
                 value={timeEstimate || ""}
-                onChange={(e) => setTimeEstimate(e.target.value as any || null)}
+                onChange={(e) => {
+                  setTimeEstimate(e.target.value as any || null);
+                  setAutoFilledTimeEstimate(false);
+                }}
                 className="input"
               >
                 <option value="">Select...</option>
@@ -487,7 +559,10 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
 
           {/* Assignees */}
           <div>
-            <label className="block text-sm font-medium mb-2">Assign to</label>
+            <label className="block text-sm font-medium mb-2">
+              Assign to
+              {autoFilledAssignee && <span className="text-xs text-muted-foreground ml-1">(auto)</span>}
+            </label>
             <div className="flex flex-wrap gap-2">
               {agents.map((agent) => (
                 <button
@@ -499,6 +574,7 @@ export function CreateTaskModal({ agents, epics, onClose, onSuccess }: CreateTas
                     } else {
                       setSelectedAgents([...selectedAgents, agent._id]);
                     }
+                    setAutoFilledAssignee(false);
                   }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition-colors ${
                     selectedAgents.includes(agent._id)

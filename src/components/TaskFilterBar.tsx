@@ -9,6 +9,7 @@ interface TaskFilterBarProps {
   filterPriority: string;
   filterAssignee: string;
   filterEpic: string;
+  filterStatus: string;
   showBlockedOnly: boolean;
   quickFilter?: string | null;
   onQuickFilterChange?: (filter: string | null) => void;
@@ -18,6 +19,7 @@ interface TaskFilterBarProps {
   onPriorityChange: (value: string) => void;
   onAssigneeChange: (value: string) => void;
   onEpicChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   onBlockedToggle: () => void;
   onClearFilters: () => void;
   hasFilters: boolean;
@@ -28,6 +30,7 @@ export function TaskFilterBar({
   filterPriority,
   filterAssignee,
   filterEpic,
+  filterStatus,
   showBlockedOnly,
   quickFilter,
   onQuickFilterChange,
@@ -37,6 +40,7 @@ export function TaskFilterBar({
   onPriorityChange,
   onAssigneeChange,
   onEpicChange,
+  onStatusChange,
   onBlockedToggle,
   onClearFilters,
   hasFilters,
@@ -84,6 +88,21 @@ export function TaskFilterBar({
             aria-label="Search tasks by title or description"
           />
         </div>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => onStatusChange(e.target.value)}
+          className="input w-36"
+          aria-label="Filter tasks by status"
+        >
+          <option value="">All Statuses</option>
+          <option value="backlog">Backlog</option>
+          <option value="ready">Ready</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="blocked">Blocked</option>
+          <option value="done">Done</option>
+        </select>
 
         <select
           value={filterPriority}

@@ -125,6 +125,7 @@ export function DashboardTabClientContent({
           onClose={() => setIsCreatingTask(false)}
           agents={[]}
           epics={[]}
+          tasks={[]}
         />
       )}
 

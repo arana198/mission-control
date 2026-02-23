@@ -1,0 +1,8 @@
+# Mission Control - Allow all crawlers
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /.next/
+Disallow: /admin/
+
+Sitemap: /sitemap.xml

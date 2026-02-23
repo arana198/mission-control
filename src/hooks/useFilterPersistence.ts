@@ -15,6 +15,7 @@ export interface FilterState {
   filterPriority: string;
   filterAssignee: string;
   filterEpic: string;
+  filterStatus: string;
   showBlockedOnly: boolean;
 }
 
@@ -26,6 +27,7 @@ export function useFilterPersistence(
   setFilterPriority: (value: string) => void;
   setFilterAssignee: (value: string) => void;
   setFilterEpic: (value: string) => void;
+  setFilterStatus: (value: string) => void;
   setShowBlockedOnly: (value: boolean) => void;
   clearAll: () => void;
 }] {
@@ -48,6 +50,7 @@ export function useFilterPersistence(
           "filterPriority" in parsed &&
           "filterAssignee" in parsed &&
           "filterEpic" in parsed &&
+          "filterStatus" in parsed &&
           "showBlockedOnly" in parsed
         ) {
           setFilters(parsed as FilterState);
@@ -100,6 +103,10 @@ export function useFilterPersistence(
     setFilters(prev => ({ ...prev, filterEpic: value }));
   }, []);
 
+  const setFilterStatus = useCallback((value: string) => {
+    setFilters(prev => ({ ...prev, filterStatus: value }));
+  }, []);
+
   const setShowBlockedOnly = useCallback((value: boolean) => {
     setFilters(prev => ({ ...prev, showBlockedOnly: value }));
   }, []);
@@ -115,6 +122,7 @@ export function useFilterPersistence(
       setFilterPriority,
       setFilterAssignee,
       setFilterEpic,
+      setFilterStatus,
       setShowBlockedOnly,
       clearAll,
     },

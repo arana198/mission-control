@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { GlassCard } from "./ui/GlassCard";
+import { CardGridSkeleton } from "./LoadingSkeletons";
 import {
   Bot,
   Cpu,
@@ -60,12 +61,13 @@ export function AgentCards({ compact = false }: AgentCardsProps) {
   if (!agents) {
     return compact ? (
       <GlassCard className="p-4">
-        <p className="text-slate-500 text-sm">Loading agents...</p>
+        <div className="animate-pulse space-y-2">
+          <div className="h-4 bg-slate-700 rounded w-20" />
+          <div className="h-3 bg-slate-700 rounded" />
+        </div>
       </GlassCard>
     ) : (
-      <GlassCard className="h-64 flex items-center justify-center">
-        <p className="text-slate-500">Loading...</p>
-      </GlassCard>
+      <CardGridSkeleton />
     );
   }
 

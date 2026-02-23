@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { 
-  Clock, CheckCircle2, AlertCircle, Loader2, Users, 
-  Briefcase, BarChart3, Calendar, ArrowUpRight
+import {
+  Clock, CheckCircle2, AlertCircle, Loader2, Users,
+  Briefcase, BarChart3, Calendar, ArrowUpRight, X
 } from "lucide-react";
 
 interface Agent {
@@ -257,14 +257,25 @@ function AgentDetailView({ workload, epics, onBack }: {
   onBack: () => void;
 }) {
   const { agent, tasks } = workload;
+  const [search, setSearch] = useState("");
+  const [filterPriority, setFilterPriority] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  // Group tasks by status
+  // Apply filters to tasks
+  const filteredTasks = tasks.filter((t: any) => {
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterPriority && t.priority !== filterPriority) return false;
+    if (filterStatus && t.status !== filterStatus) return false;
+    return true;
+  });
+
+  // Group filtered tasks by status
   const tasksByStatus = {
-    in_progress: tasks.filter((t: any) => t.status === "in_progress"),
-    backlog: tasks.filter((t: any) => t.status === "backlog" || t.status === "ready"),
-    review: tasks.filter((t: any) => t.status === "review"),
-    blocked: tasks.filter((t: any) => t.status === "blocked"),
-    done: tasks.filter((t: any) => t.status === "done"),
+    in_progress: filteredTasks.filter((t: any) => t.status === "in_progress"),
+    backlog: filteredTasks.filter((t: any) => t.status === "backlog" || t.status === "ready"),
+    review: filteredTasks.filter((t: any) => t.status === "review"),
+    blocked: filteredTasks.filter((t: any) => t.status === "blocked"),
+    done: filteredTasks.filter((t: any) => t.status === "done"),
   };
 
   return (
@@ -272,6 +283,57 @@ function AgentDetailView({ workload, epics, onBack }: {
       <button onClick={onBack} className="btn btn-ghost mb-4">
         ← Back to Workload Overview
       </button>
+
+      {/* Filter Row */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input flex-1 min-w-[180px]"
+          aria-label="Search agent tasks"
+        />
+        <select
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value)}
+          className="input w-32"
+          aria-label="Filter by priority"
+        >
+          <option value="">All Priorities</option>
+          <option value="P0">P0</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="input w-36"
+          aria-label="Filter by status"
+        >
+          <option value="">All Statuses</option>
+          <option value="backlog">Backlog</option>
+          <option value="ready">Ready</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="blocked">Blocked</option>
+          <option value="done">Done</option>
+        </select>
+        {(search || filterPriority || filterStatus) && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setFilterPriority("");
+              setFilterStatus("");
+            }}
+            className="btn btn-ghost"
+            aria-label="Clear all filters"
+          >
+            <X className="w-4 h-4" /> Clear
+          </button>
+        )}
+      </div>
 
       {/* Profile Header */}
       <div className="card p-6 mb-6">
