@@ -265,7 +265,9 @@ export default defineSchema({
       convexVal.literal("dependency_added"),
       convexVal.literal("dependency_removed"),
       convexVal.literal("tags_updated"),
-      convexVal.literal("tasks_queried")
+      convexVal.literal("tasks_queried"),
+      convexVal.literal("anomaly_detected"),
+      convexVal.literal("anomaly_resolved")
     ),
 
     // Actor (denormalized for speed)
@@ -981,5 +983,70 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_agent", ["agentId"])
     .index("by_status", ["status"]),
+
+  /**
+   * AGENT SKILLS - Inferred and manual skill tracking (Phase 5B)
+   * Tracks agent expertise with confidence scores
+   */
+  agentSkills: defineTable({
+    agentId: convexVal.id("agents"),
+    skill: convexVal.string(), // "design", "backend", "frontend", "testing", "docs", etc
+    confidence: convexVal.number(), // 0-100
+    inferredFromTaskCount: convexVal.number(),
+    manuallyOverridden: convexVal.boolean(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_agent_skill", ["agentId", "skill"]),
+
+  /**
+   * TASK PATTERNS - Learned task sequences (Phase 5B)
+   * Identifies and tracks successful task workflows
+   */
+  taskPatterns: defineTable({
+    businessId: convexVal.id("businesses"),
+    pattern: convexVal.string(), // e.g., "design→backend→frontend"
+    taskTypeSequence: convexVal.array(convexVal.string()), // ["design_task", "backend_task", "frontend_task"]
+    occurrences: convexVal.number(),
+    successCount: convexVal.number(),
+    successRate: convexVal.number(), // 0-100%
+    avgDurationDays: convexVal.number(),
+    lastSeen: convexVal.number(),
+    createdAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_success_rate", ["successRate"]),
+
+  /**
+   * ANOMALIES - Unusual behavior detection (Phase 5B)
+   * Flags deviations from expected patterns and performance
+   */
+  anomalies: defineTable({
+    businessId: convexVal.id("businesses"),
+    agentId: convexVal.id("agents"),
+    type: convexVal.union(
+      convexVal.literal("duration_deviation"),
+      convexVal.literal("error_rate"),
+      convexVal.literal("skill_mismatch"),
+      convexVal.literal("status_spike")
+    ),
+    severity: convexVal.union(
+      convexVal.literal("low"),
+      convexVal.literal("medium"),
+      convexVal.literal("high")
+    ),
+    message: convexVal.string(),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    detectedValue: convexVal.number(),
+    expectedValue: convexVal.number(),
+    flagged: convexVal.boolean(),
+    resolvedAt: convexVal.optional(convexVal.number()),
+    createdAt: convexVal.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_business", ["businessId"])
+    .index("by_severity", ["severity"])
+    .index("by_flagged", ["flagged"]),
 
 });

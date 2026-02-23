@@ -1164,3 +1164,27 @@ export const migrationWikiSimplify = mutation({
  *
  * Used by: convex/taskComments.ts, convex/presence.ts (Phase 5A)
  */
+
+/**
+ * MIG-16: Agent Intelligence & Learning - Phase 5B (2026-02-23)
+ *
+ * New tables:
+ * - agentSkills: Inferred and manual skill tracking with confidence scores
+ * - taskPatterns: Learned task sequences with success rate tracking
+ * - anomalies: Unusual behavior detection and flagging
+ *
+ * Reason: Phase 5B adds intelligent agent routing, skill inference,
+ * pattern learning, and anomaly detection. Skills enable NLP-based task
+ * routing. Patterns enable learning from successful task sequences. Anomalies
+ * enable proactive monitoring and early intervention.
+ *
+ * Migration action:
+ * - No data migration needed: new tables are initialized empty
+ * - Skill inference runs asynchronously on new tasks (triggered by cron)
+ * - Pattern detection runs asynchronously on task completion
+ * - Anomaly detection runs asynchronously on status changes and completed tasks
+ *
+ * Idempotent: Schema-only change, no data operation required.
+ *
+ * Used by: convex/skillInference.ts, convex/patternLearning.ts, convex/anomalyDetection.ts (Phase 5B)
+ */
