@@ -404,3 +404,108 @@ export const archiveDemoGoals = mutation(async (ctx) => {
 
   return { archived: demoGoals.length };
 });
+
+/**
+ * GET pattern insights from activity data (Phase 4D)
+ * Analyzes activity logs to derive velocity trends, top agents, and blocking patterns
+ */
+export const getPatternInsights = query(async (ctx, args: {
+  businessId: Id<'businesses'>;
+}) => {
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+
+  // Get activities from last 7 days
+  const thisWeekStart = now - sevenDaysMs;
+  const lastWeekStart = now - fourteenDaysMs;
+
+  const activitiesThisWeek = await ctx.db
+    .query('activities')
+    .withIndex('by_business_created_at', (q) =>
+      q.eq('businessId', args.businessId).gte('createdAt', thisWeekStart)
+    )
+    .collect();
+
+  const activitiesLastWeek = await ctx.db
+    .query('activities')
+    .withIndex('by_business_created_at', (q) =>
+      q.eq('businessId', args.businessId)
+        .gte('createdAt', lastWeekStart)
+        .lt('createdAt', thisWeekStart)
+    )
+    .collect();
+
+  // Count task completions
+  const completedThisWeek = activitiesThisWeek.filter(
+    (a: any) => a.type === 'task_completed'
+  ).length;
+
+  const completedLastWeek = activitiesLastWeek.filter(
+    (a: any) => a.type === 'task_completed'
+  ).length;
+
+  // Determine velocity trend
+  let velocityTrend = 'flat';
+  const threshold = completedLastWeek * 0.1; // 10% change threshold
+
+  if (completedThisWeek > completedLastWeek + threshold) {
+    velocityTrend = 'up';
+  } else if (completedThisWeek < completedLastWeek - threshold) {
+    velocityTrend = 'down';
+  }
+
+  // Find top agents by activity count
+  const agentActivityCounts: Record<string, number> = {};
+  activitiesThisWeek.forEach((activity: any) => {
+    if (activity.agentName && activity.agentName !== 'system') {
+      agentActivityCounts[activity.agentName] =
+        (agentActivityCounts[activity.agentName] || 0) + 1;
+    }
+  });
+
+  const topAgents = Object.entries(agentActivityCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .slice(0, 3)
+    .map(([name, count]) => ({ name, count }));
+
+  // Count blocked events this week
+  const blockedEventsCount = activitiesThisWeek.filter(
+    (a: any) => a.type === 'task_blocked'
+  ).length;
+
+  // Generate human-readable patterns
+  const patterns: string[] = [];
+
+  if (velocityTrend === 'up') {
+    patterns.push(`Velocity is trending up: ${completedThisWeek} tasks completed this week (vs ${completedLastWeek} last week)`);
+  } else if (velocityTrend === 'down') {
+    patterns.push(`Velocity is trending down: ${completedThisWeek} tasks completed this week (vs ${completedLastWeek} last week)`);
+  } else {
+    patterns.push(`Velocity is stable: ${completedThisWeek} tasks completed this week`);
+  }
+
+  if (topAgents.length > 0) {
+    const topAgentNames = topAgents.map(a => a.name).join(', ');
+    patterns.push(`Top contributors this week: ${topAgentNames}`);
+  }
+
+  if (blockedEventsCount > 0) {
+    patterns.push(`${blockedEventsCount} tasks became blocked this week - watch for dependencies`);
+  } else {
+    patterns.push(`No blocked tasks this week - flow is smooth`);
+  }
+
+  return {
+    patterns,
+    velocityTrend,
+    completedThisWeek,
+    completedLastWeek,
+    topAgents,
+    activityCounts: {
+      thisWeek: activitiesThisWeek.length,
+      lastWeek: activitiesLastWeek.length,
+      blocked: blockedEventsCount,
+    },
+  };
+});

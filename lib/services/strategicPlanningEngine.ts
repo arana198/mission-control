@@ -170,16 +170,27 @@ export class StrategicPlanningEngine {
 
   /**
    * Analyze goal progress and categorize
+   * Uses pre-computed progress from getByProgress query
    */
-  private analyzeGoalProgress(goals: any): WeeklyReport['goalAnalysis'] {
+  private analyzeGoalProgress(goalsData: any): WeeklyReport['goalAnalysis'] {
     const accelerating: GoalProgress[] = [];
     const onTrack: GoalProgress[] = [];
     const atRisk: GoalProgress[] = [];
     const blocked: GoalProgress[] = [];
 
-    for (const goal of Object.values(goals).flat()) {
+    // goalsData comes from api.goals.getByProgress and has structure:
+    // { accelerating: [], onTrack: [], atRisk: [], blocked: [] }
+    const allGoals = [
+      ...(goalsData.accelerating || []),
+      ...(goalsData.onTrack || []),
+      ...(goalsData.atRisk || []),
+      ...(goalsData.blocked || []),
+    ];
+
+    for (const goal of allGoals) {
       const goalData = goal as any;
-      const progress = this.calculateGoalProgress(goalData);
+      // Progress is already calculated by the Convex query
+      const progress = goalData.progress || 0;
       const status = this.categorizeGoalStatus(progress);
 
       const progressData: GoalProgress = {
@@ -187,7 +198,7 @@ export class StrategicPlanningEngine {
         title: goalData.title,
         progress,
         relatedTasksCount: goalData.relatedTaskIds?.length || 0,
-        completedTasksCount: goalData.relatedTaskIds?.length * (progress / 100) || 0,
+        completedTasksCount: Math.round(goalData.relatedTaskIds?.length * (progress / 100)) || 0,
         blockedTasksCount: 0, // Will be calculated from execution logs
         status,
         lastUpdated: goalData.updatedAt,
@@ -215,19 +226,6 @@ export class StrategicPlanningEngine {
       atRisk: atRisk.sort((a, b) => b.progress - a.progress),
       blocked: blocked.sort((a, b) => b.progress - a.progress),
     };
-  }
-
-  /**
-   * Calculate goal progress from linked tasks
-   */
-  private calculateGoalProgress(goal: any): number {
-    const relatedTasks = goal.relatedTaskIds || [];
-    if (relatedTasks.length === 0) return 0;
-
-    // Mock calculation (in real code, fetch task statuses)
-    // For now: completed / total * 100
-    const completed = relatedTasks.filter((t: any) => t.status === 'done').length;
-    return Math.round((completed / relatedTasks.length) * 100);
   }
 
   /**

@@ -76,6 +76,11 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
     currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
   );
 
+  // Fetch pattern insights from activity analysis (Phase 4D)
+  const patternInsights = useQuery(api.goals.getPatternInsights,
+    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+  );
+
   // Always call mutations at component level (never conditionally)
   const linkMemory = useMutation(api.memoryIndex.linkMemory);
 
@@ -430,18 +435,20 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
               Recent Patterns
             </h3>
             <div className="space-y-2">
-              <div className="p-2 bg-muted/50 rounded text-sm">
-                <p className="font-medium">UI/UX Focus</p>
-                <p className="text-xs text-muted-foreground">Recent emphasis on professional styling</p>
-              </div>
-              <div className="p-2 bg-muted/50 rounded text-sm">
-                <p className="font-medium">Agent Coordination</p>
-                <p className="text-xs text-muted-foreground">Improved task distribution patterns</p>
-              </div>
-              <div className="p-2 bg-muted/50 rounded text-sm">
-                <p className="font-medium">Automation Growth</p>
-                <p className="text-xs text-muted-foreground">Expanding automated workflows</p>
-              </div>
+              {(patternInsights?.patterns ?? []).length > 0 ? (
+                (patternInsights?.patterns ?? []).map((pattern, i) => (
+                  <div key={i} className="p-2 bg-muted/50 rounded text-sm">
+                    <p className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      {pattern}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 bg-muted/50 rounded text-sm">
+                  <p className="text-xs text-muted-foreground">No activity patterns yet - check back after some task completion</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
