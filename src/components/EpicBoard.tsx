@@ -377,7 +377,7 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
           <button
             onClick={() => setIsLeftPaneCollapsed(!isLeftPaneCollapsed)}
             className="p-2 hover:bg-muted rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-            title={isLeftPaneCollapsed ? "Show tasks" : "Hide tasks"}
+            aria-label={isLeftPaneCollapsed ? "Show tasks" : "Hide tasks"}
           >
             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isLeftPaneCollapsed ? 'rotate-180' : 'rotate-0'}`} />
             {isLeftPaneCollapsed ? "Show Tasks" : "Hide Tasks"}
@@ -515,7 +515,11 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
               <span className="badge bg-red-100 text-red-700">Overdue</span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded"
+            aria-label="Close task preview"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -642,7 +646,13 @@ function CreateEpicModal({
       <div className="modal-content w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-xl font-semibold">Create Epic</h2>
-          <button onClick={onClose} className="btn btn-ghost p-2"><X className="w-5 h-5" /></button>
+          <button
+            onClick={onClose}
+            className="btn btn-ghost p-2"
+            aria-label="Close create epic modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {!businessId && (
@@ -712,7 +722,13 @@ function EditEpicModal({
       <div className="card rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-xl font-semibold">Edit Epic</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-lg"
+            aria-label="Close edit epic modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>

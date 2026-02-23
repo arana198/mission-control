@@ -115,9 +115,10 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
               <p style={{ color: "var(--muted-foreground)" }}>{agent.role}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+            aria-label="Close agent detail modal"
           >
             <X className="w-5 h-5" style={{ color: "var(--foreground)" }} />
           </button>

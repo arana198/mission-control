@@ -341,7 +341,7 @@ function AgentCard({ agent, onClick, onDelete, compact = false }: { agent: Agent
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 rounded transition-all"
-          title="Delete agent"
+          aria-label={`Delete ${agent.name}`}
           type="button"
         >
           <Trash2 className="w-3.5 h-3.5" />
