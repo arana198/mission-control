@@ -10,11 +10,13 @@ import { CardGridSkeleton, LoadingSkeleton, KanbanSkeleton } from "../LoadingSke
 import { DocumentPanel } from "../DocumentPanel";
 import { SettingsPanel } from "../SettingsPanel";
 import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
+import { AutomationsPanel } from "../AutomationsPanel";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
+const BusinessAnalyticsDashboard = lazy(() => import("../analytics/BusinessAnalyticsDashboard").then(m => ({ default: m.BusinessAnalyticsDashboard })));
 
-type BusinessTabType = "overview" | "board" | "epics" | "wiki" | "settings";
+type BusinessTabType = "overview" | "board" | "epics" | "wiki" | "analytics" | "settings";
 
 interface BusinessDashboardProps {
   tab: BusinessTabType;
@@ -128,10 +130,24 @@ export function BusinessDashboard({
           </ErrorBoundary>
         );
 
+      case "analytics":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSkeleton />}>
+              <BusinessAnalyticsDashboard businessId={businessId as any} />
+            </Suspense>
+          </ErrorBoundary>
+        );
+
       case "settings":
         return (
           <ErrorBoundary>
-            <BusinessSettingsPanel businessId={businessId} />
+            <div className="space-y-6 p-6">
+              <BusinessSettingsPanel businessId={businessId} />
+              <div className="border-t pt-6">
+                <AutomationsPanel businessId={businessId as any} />
+              </div>
+            </div>
           </ErrorBoundary>
         );
 

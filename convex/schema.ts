@@ -300,36 +300,47 @@ export default defineSchema({
    * Real-time alerts with delivery tracking
    */
   notifications: defineTable({
-    recipientId: convexVal.id("agents"),   // who gets notified
+    businessId: convexVal.optional(convexVal.id("businesses")),  // for scoped notifications
+    recipientId: convexVal.optional(convexVal.id("agents")),   // who gets notified (optional for broadcast alerts)
     type: convexVal.union(
       convexVal.literal("mention"),
       convexVal.literal("assignment"),
       convexVal.literal("status_change"),
       convexVal.literal("block"),
       convexVal.literal("dependency_unblocked"),
-      convexVal.literal("help_request")
+      convexVal.literal("help_request"),
+      convexVal.literal("alert_rule_triggered")
     ),
-    
+
     content: convexVal.string(),
-    
+
     // Source (denormalized)
     fromId: convexVal.string(),
     fromName: convexVal.string(),
-    
+
     // Context
     taskId: convexVal.optional(convexVal.id("tasks")),
     taskTitle: convexVal.optional(convexVal.string()),
     messageId: convexVal.optional(convexVal.id("messages")),
-    
+
+    // Alert-specific fields
+    title: convexVal.optional(convexVal.string()),
+    severity: convexVal.optional(convexVal.union(
+      convexVal.literal("info"),
+      convexVal.literal("warning"),
+      convexVal.literal("critical")
+    )),
+    metadata: convexVal.optional(convexVal.any()),
+
     // Delivery state
     read: convexVal.boolean(),
     readAt: convexVal.optional(convexVal.number()),
     clicked: convexVal.optional(convexVal.boolean()),
     clickedAt: convexVal.optional(convexVal.number()),
-    
+
     // Expiry
     expiresAt: convexVal.optional(convexVal.number()),
-    
+
     createdAt: convexVal.number(),
   })
     .index("by_recipient", ["recipientId"])
@@ -729,6 +740,9 @@ export default defineSchema({
     slackMention: convexVal.optional(convexVal.string()),  // @openclaw
     emailAddresses: convexVal.optional(convexVal.array(convexVal.string())),
 
+    // Tracking last fire time for cooldown enforcement
+    lastFiredAt: convexVal.optional(convexVal.number()),
+
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
@@ -749,11 +763,12 @@ export default defineSchema({
       convexVal.literal("unblocked"),
       convexVal.literal("marked_executed"),
       convexVal.literal("deprioritized"),
+      convexVal.literal("alert_rule_triggered"),
       convexVal.literal("custom")
     ),
 
-    // What was affected
-    taskId: convexVal.id("tasks"),
+    // What was affected (optional for alert_rule_triggered actions)
+    taskId: convexVal.optional(convexVal.id("tasks")),
     fromAgent: convexVal.optional(convexVal.string()),
     toAgent: convexVal.optional(convexVal.string()),
 

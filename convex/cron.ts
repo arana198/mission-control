@@ -1,6 +1,6 @@
 import { cronJobs } from "convex/server";
 import { internalMutation } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 
 /**
  * Cron Jobs for Mission Control
@@ -168,6 +168,154 @@ export const escalationCheckCronHandler = internalMutation({
   },
 });
 
+/**
+ * Alert Rule Evaluator Handler
+ * Called every 5 minutes to evaluate alert rules for all businesses
+ * Checks conditions and creates notifications/decisions when rules trigger (Phase 4C)
+ */
+export const alertEvaluatorCronHandler = internalMutation({
+  handler: async (ctx) => {
+    console.log("[Cron] Running alert rule evaluator...");
+
+    // Get all businesses
+    const businesses = await ctx.db.query("businesses").collect();
+
+    let totalEvaluated = 0;
+
+    // Evaluate rules for each business
+    for (const business of businesses) {
+      try {
+        const now = Date.now();
+
+        // Fetch all enabled rules for this business
+        const rules = await ctx.db
+          .query("alertRules")
+          .withIndex("by_business", (q) => q.eq("businessId", business._id))
+          .collect();
+
+        const enabledRules = rules.filter((r) => r.enabled);
+
+        for (const rule of enabledRules) {
+          // Check cooldown: skip if rule fired recently
+          if (rule.lastFiredAt && now - rule.lastFiredAt < rule.cooldownSeconds * 1000) {
+            continue;
+          }
+
+          // Evaluate condition
+          let conditionMet = false;
+          let metrics: Record<string, number> = {};
+
+          if (rule.condition === "taskBlocked > Xmin") {
+            const threshold = rule.threshold || 30;
+            const blockedThresholdMs = threshold * 60 * 1000;
+
+            const blockedTasks = await ctx.db
+              .query("tasks")
+              .withIndex("by_business_status", (q) =>
+                q.eq("businessId", business._id).eq("status", "blocked")
+              )
+              .collect();
+
+            const staleBlockedTasks = blockedTasks.filter(
+              (t) => now - t.updatedAt >= blockedThresholdMs
+            );
+
+            conditionMet = staleBlockedTasks.length > 0;
+            metrics = {
+              blockedTasksCount: staleBlockedTasks.length,
+              thresholdMinutes: threshold,
+            };
+          } else if (rule.condition === "queueDepth > threshold") {
+            const threshold = rule.threshold || 10;
+
+            const backlogTasks = await ctx.db
+              .query("tasks")
+              .withIndex("by_business_status", (q) =>
+                q.eq("businessId", business._id).eq("status", "backlog")
+              )
+              .collect();
+
+            conditionMet = backlogTasks.length > threshold;
+            metrics = {
+              backlogCount: backlogTasks.length,
+              threshold,
+            };
+          }
+
+          if (conditionMet) {
+            // Get up to 3 lead agents for notification
+            const agents = await ctx.db.query("agents").collect();
+            const leadAgents = agents.filter((a) => a.role === "lead").slice(0, 3);
+
+            // Create notification for each lead agent
+            for (const agent of leadAgents) {
+              await ctx.db.insert("notifications", {
+                businessId: business._id,
+                recipientId: agent._id,
+                type: "alert_rule_triggered",
+                title: `Alert: ${rule.name}`,
+                content: `Rule "${rule.name}" triggered. Condition: ${rule.condition}`,
+                severity: rule.severity,
+                metadata: {
+                  ruleId: rule._id,
+                  condition: rule.condition,
+                  metrics,
+                },
+                fromId: "system",
+                fromName: "Alert System",
+                read: false,
+                createdAt: now,
+              });
+            }
+
+            // Create decision log entry
+            await ctx.db.insert("decisions", {
+              businessId: business._id,
+              action: "alert_rule_triggered",
+              taskId: undefined,
+              fromAgent: undefined,
+              toAgent: undefined,
+              reason: `Alert rule "${rule.name}" triggered: ${rule.condition}`,
+              ruleId: rule._id,
+              result: "success",
+              resultMessage: `Created notifications for ${leadAgents.length} lead agents`,
+              decidedBy: "system:alert-evaluator",
+              decidedAt: now,
+              createdAt: now,
+            });
+
+            // Update rule's lastFiredAt to enforce cooldown
+            await ctx.db.patch(rule._id, {
+              lastFiredAt: now,
+            });
+
+            // Create an alert event record
+            await ctx.db.insert("alertEvents", {
+              businessId: business._id,
+              ruleId: rule._id,
+              ruleName: rule.name,
+              triggered: true,
+              metrics,
+              notificationIds: [],
+              createdAt: now,
+            });
+          }
+        }
+
+        totalEvaluated += enabledRules.length;
+      } catch (error) {
+        console.error(
+          `[Cron] Error evaluating rules for business ${business._id}:`,
+          error
+        );
+      }
+    }
+
+    console.log(`[Cron] Alert evaluator: checked ${totalEvaluated} rules across ${businesses.length} businesses`);
+    return { businessesChecked: businesses.length, rulesEvaluated: totalEvaluated };
+  },
+});
+
 // Register crons with Convex
 const jobs = cronJobs();
 
@@ -187,4 +335,10 @@ jobs.interval(
   "escalation-check",
   { minutes: 15 },
   escalationCheckCronHandler as any
+);
+
+jobs.interval(
+  "alert-rule-evaluator",
+  { minutes: 5 },
+  alertEvaluatorCronHandler as any
 );

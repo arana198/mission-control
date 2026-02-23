@@ -1120,3 +1120,25 @@ export const migrationWikiSimplify = mutation({
  *
  * Used by: convex/cron.ts heartbeatMonitorCron, escalationCheckCron (Phase 4A)
  */
+
+/**
+ * MIG-13: Alert Rules & Decisions Schema - Phase 4C (2026-02-23)
+ *
+ * Schema changes:
+ * - alertRules: Added lastFiredAt field (v.optional(v.number())) to track rule firing time
+ * - decisions: Added "alert_rule_triggered" action to action union
+ * - decisions: Made taskId optional (was required, now optional) to support alert rule events
+ *
+ * Reason: Phase 4C adds alert rule evaluation system. Rules need to track last fire time
+ * to enforce cooldown periods and prevent alert spam. Alert-triggered decisions may not
+ * always have a specific task (e.g., queue depth alerts), so taskId is now optional.
+ *
+ * Migration action:
+ * - No data migration needed: existing records remain unchanged
+ * - New alertRules can be created with optional lastFiredAt
+ * - New decisions with action "alert_rule_triggered" can be inserted without taskId
+ *
+ * Idempotent: Schema-only change, no data operation required.
+ *
+ * Used by: convex/alertEvaluator.ts evaluateRulesForBusiness (Phase 4C)
+ */
