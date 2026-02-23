@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
   Clock, CheckCircle2, AlertCircle, Loader2, Users,
-  Briefcase, BarChart3, Calendar, ArrowUpRight, X
+  Briefcase, BarChart3, Calendar, ArrowUpRight, X, Zap, AlertTriangle
 } from "lucide-react";
 
 interface Agent {
@@ -39,13 +41,34 @@ const TIME_HOURS: Record<string, number> = {
   XL: 40,
 };
 
-export function AgentWorkload({ agents, tasks, epics }: { 
-  agents: Agent[]; 
+export function AgentWorkload({ agents, tasks, epics }: {
+  agents: Agent[];
   tasks: Task[];
   epics: Epic[];
 }) {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [sortBy, setSortBy] = useState<"workload" | "tasks" | "name">("workload");
+
+  // Rebalance functionality
+  const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
+  const [rebalancing, setRebalancing] = useState(false);
+  const [rebalanceResult, setRebalanceResult] = useState<string | null>(null);
+
+  const handleRebalance = async () => {
+    setRebalancing(true);
+    setRebalanceResult(null);
+    try {
+      const result = await autoAssignBacklog({ jarvisId: "system", limit: 10 });
+      setRebalanceResult(`${result.assigned} task${result.assigned !== 1 ? "s" : ""} auto-assigned`);
+      // Clear message after 3 seconds
+      setTimeout(() => setRebalanceResult(null), 3000);
+    } catch (error) {
+      setRebalanceResult("Failed to auto-assign tasks");
+      setTimeout(() => setRebalanceResult(null), 3000);
+    } finally {
+      setRebalancing(false);
+    }
+  };
 
   // Calculate workload for each agent
   const agentWorkloads = useMemo(() => {
@@ -119,15 +142,29 @@ export function AgentWorkload({ agents, tasks, epics }: {
             Capacity planning and task distribution across the squad
           </p>
         </div>
-        <select 
-          value={sortBy} 
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="input w-auto"
-        >
-          <option value="workload">Sort by hours</option>
-          <option value="tasks">Sort by task count</option>
-          <option value="name">Sort by name</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRebalance}
+            disabled={rebalancing}
+            className="btn btn-secondary text-sm flex items-center gap-2"
+            title="Auto-assign unassigned backlog tasks to best-fit agents"
+          >
+            {rebalancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            Rebalance
+          </button>
+          {rebalanceResult && (
+            <span className="text-sm text-green-600 font-medium">{rebalanceResult}</span>
+          )}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="input w-auto"
+          >
+            <option value="workload">Sort by hours</option>
+            <option value="tasks">Sort by task count</option>
+            <option value="name">Sort by name</option>
+          </select>
+        </div>
       </div>
 
       {/* Team Stats */}
@@ -174,10 +211,12 @@ export function AgentWorkload({ agents, tasks, epics }: {
           };
 
           return (
-            <div 
-              key={agent._id} 
+            <div
+              key={agent._id}
               onClick={() => setSelectedAgent(agent)}
-              className="card p-4 cursor-pointer hover:scale-[1.02] transition-transform"
+              className={`card p-4 cursor-pointer hover:scale-[1.02] transition-transform ${
+                workload.totalEstimatedHours > 80 ? "ring-2 ring-red-200" : ""
+              }`}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
@@ -236,6 +275,13 @@ export function AgentWorkload({ agents, tasks, epics }: {
                   <p className="text-[10px] text-red-600 uppercase">Overdue</p>
                 </div>
               </div>
+
+              {workload.totalEstimatedHours > 80 && (
+                <div className="mt-3 flex items-center gap-1 text-xs text-red-600 font-medium">
+                  <AlertTriangle className="w-3 h-3" />
+                  Overloaded ({workload.totalEstimatedHours}h)
+                </div>
+              )}
 
               {workload.overdueTasks.length > 0 && (
                 <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">

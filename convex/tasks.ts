@@ -1701,3 +1701,38 @@ export const getInboxForAgent = query({
     };
   },
 });
+
+/**
+ * ============================================
+ * Phase 3B: Stale Task Detection Query
+ * ============================================
+ * Identifies tasks stuck in blocked or in_progress
+ * status for longer than the specified threshold (default 24h)
+ */
+export const getStaleTaskIds = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+    staleHours: convexVal.optional(convexVal.number()),
+  },
+  handler: async (ctx, { businessId, staleHours = 24 }) => {
+    // Calculate cutoff timestamp (staleHours in the past)
+    const cutoff = Date.now() - staleHours * 60 * 60 * 1000;
+
+    // Fetch all tasks for the business
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .collect();
+
+    // Find tasks that are blocked or in_progress AND older than cutoff
+    const staleTasks = allTasks.filter((task) =>
+      (task.status === "blocked" || task.status === "in_progress") &&
+      task.updatedAt < cutoff
+    );
+
+    return {
+      count: staleTasks.length,
+      taskIds: staleTasks.map((t) => t._id),
+    };
+  },
+});

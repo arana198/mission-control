@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { getTaskIdRange } from "@/lib/rangeSelect";
 import { useNotification } from "@/hooks/useNotification";
 import { useSetState } from "@/hooks/useSetState";
 import { Task } from "@/types/task";
@@ -12,7 +13,7 @@ import { Epic } from "@/types/epic";
 import { useFilterPersistence, FilterState } from "@/hooks/useFilterPersistence";
 import {
   CheckCircle2, AlertCircle, Clock3, Inbox, CheckCircle,
-  AlertTriangle, Loader2
+  AlertTriangle, Loader2, Zap, Users
 } from "lucide-react";
 import { TaskFilterBar } from "./TaskFilterBar";
 import { BulkActionBar } from "./BulkActionBar";
@@ -67,6 +68,9 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
   const [draggedTask, setDraggedTask] = useState<any>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
+  // Shift+click multi-select (Phase 3D)
+  const lastSelectedRef = useRef<{ taskId: string; columnId: string } | null>(null);
+
   // Load task from URL parameter if present (using ticketNumber)
   useEffect(() => {
     const ticketNumberFromUrl = searchParams?.get('task');
@@ -94,6 +98,71 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
   const updateTask = useMutation(api.tasks.update);
   const addDependency = useMutation(api.tasks.addDependency);
   const removeDependency = useMutation(api.tasks.removeDependency);
+  const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
+
+  // Stale task detection (Phase 3B)
+  const staleData = useQuery(
+    api.tasks.getStaleTaskIds,
+    businessId ? { businessId: businessId as any } : "skip"
+  );
+  const [escalating, setEscalating] = useState(false);
+
+  const handleEscalateStale = async () => {
+    if (!staleData?.taskIds?.length || !updateTask) return;
+    setEscalating(true);
+    try {
+      await Promise.all(
+        staleData.taskIds.map((id) => updateTask({ id: id as any, priority: "P0" as any }))
+      );
+      notif.success(`${staleData.taskIds.length} stale task${staleData.taskIds.length !== 1 ? "s" : ""} escalated to P0`);
+    } catch (error: any) {
+      notif.error("Failed to escalate stale tasks");
+    } finally {
+      setEscalating(false);
+    }
+  };
+
+  // Unassigned tasks auto-assign (Phase 3C)
+  const [autoAssigning, setAutoAssigning] = useState(false);
+  const unassignedCount = useMemo(
+    () => tasks.filter((t) => t.status === "backlog" && t.assigneeIds.length === 0).length,
+    [tasks]
+  );
+
+  const handleAutoAssign = async () => {
+    setAutoAssigning(true);
+    try {
+      const result = await autoAssignBacklog({ jarvisId: "system", limit: 20 });
+      notif.success(`${result.assigned} task${result.assigned !== 1 ? "s" : ""} auto-assigned`);
+    } catch (error: any) {
+      notif.error("Failed to auto-assign tasks");
+    } finally {
+      setAutoAssigning(false);
+    }
+  };
+
+  // Shift+click range selection handler (Phase 3D)
+  const handleTaskSelect = (
+    taskId: string,
+    e: React.MouseEvent<HTMLInputElement>,
+    columnId: string
+  ) => {
+    if (e.shiftKey && lastSelectedRef.current?.columnId === columnId) {
+      // Shift+click: select range from last selected to current
+      const columnTasks = tasksByStatus[columnId] || [];
+      const range = getTaskIdRange(
+        columnTasks.map((t) => t._id),
+        lastSelectedRef.current.taskId,
+        taskId
+      );
+      addAll(range);
+    } else {
+      // Regular click: toggle single task
+      toggleTaskSelection(taskId);
+    }
+    // Update last selected
+    lastSelectedRef.current = { taskId, columnId };
+  };
 
   // Filter tasks
   const filteredTasks = useMemo(() => {
@@ -243,6 +312,42 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
         hasFilters={hasFilters}
       />
 
+      {/* Stale Task Escalation Banner (Phase 3B) */}
+      {staleData && staleData.count > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+          <div className="flex items-center gap-2 text-amber-700">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{staleData.count} task{staleData.count > 1 ? "s" : ""} stuck &gt;24h (blocked or in progress)</span>
+          </div>
+          <button
+            onClick={handleEscalateStale}
+            disabled={escalating}
+            className="flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 underline disabled:opacity-50"
+          >
+            {escalating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+            Escalate to P0
+          </button>
+        </div>
+      )}
+
+      {/* Unassigned Tasks Auto-assign Banner (Phase 3C) */}
+      {unassignedCount > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+          <div className="flex items-center gap-2 text-blue-700">
+            <Users className="w-4 h-4" />
+            <span>{unassignedCount} unassigned task{unassignedCount > 1 ? "s" : ""} in backlog</span>
+          </div>
+          <button
+            onClick={handleAutoAssign}
+            disabled={autoAssigning}
+            className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-900 underline disabled:opacity-50"
+          >
+            {autoAssigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+            Auto-assign
+          </button>
+        </div>
+      )}
+
       {/* Bulk Action Bar */}
       <BulkActionBar
         bulkMode={bulkMode}
@@ -276,7 +381,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
                 selectedTasks={selectedTasks}
                 isDragOver={dragOverColumn === col.id}
                 onTaskClick={handleSelectTask}
-                onTaskSelect={toggleTaskSelection}
+                onTaskSelect={(taskId, e) => handleTaskSelect(taskId, e, col.id)}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => handleDragOver(e, col.id)}
                 onDragLeave={handleDragLeave}

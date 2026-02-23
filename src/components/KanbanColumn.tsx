@@ -31,7 +31,7 @@ interface KanbanColumnProps {
   selectedTasks: Set<string>;
   isDragOver: boolean;
   onTaskClick: (task: Task) => void;
-  onTaskSelect: (taskId: string) => void;
+  onTaskSelect: (taskId: string, e: React.MouseEvent<HTMLInputElement>) => void;
   onDragStart: (task: Task) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
@@ -103,8 +103,11 @@ function KanbanColumnComponent({
                   <input
                     type="checkbox"
                     checked={selectedTasks.has(task._id)}
-                    onChange={() => onTaskSelect(task._id)}
-                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => {}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTaskSelect(task._id, e);
+                    }}
                     className="w-4 h-4"
                     aria-label={`Select task: ${task.title}`}
                   />
