@@ -1736,3 +1736,176 @@ export const getStaleTaskIds = query({
     };
   },
 });
+
+/**
+ * GET cycle time metrics for completed tasks (Phase 4B)
+ * Calculates average time from start to completion, grouped by priority
+ */
+export const getCycleTimeMetrics = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+  },
+  handler: async (ctx, { businessId }) => {
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .collect();
+
+    // Filter for completed tasks with both startedAt and completedAt
+    const completedTasks = allTasks.filter(
+      (t) => t.status === "done" && t.startedAt && t.completedAt
+    );
+
+    if (completedTasks.length === 0) {
+      return {
+        overallAvgDays: 0,
+        byPriority: { P0: 0, P1: 0, P2: 0, P3: 0 },
+        sampleSize: 0,
+      };
+    }
+
+    // Calculate cycle time in days for each task
+    const cycleTimes = completedTasks.map((t) => ({
+      priority: t.priority || "P2",
+      days: (t.completedAt! - t.startedAt!) / (1000 * 60 * 60 * 24),
+    }));
+
+    // Calculate overall average
+    const overallAvgDays =
+      cycleTimes.reduce((sum, ct) => sum + ct.days, 0) / cycleTimes.length;
+
+    // Calculate by priority
+    const byPriority = {
+      P0: 0,
+      P1: 0,
+      P2: 0,
+      P3: 0,
+    } as Record<string, number>;
+
+    const countByPriority = { P0: 0, P1: 0, P2: 0, P3: 0 } as Record<
+      string,
+      number
+    >;
+
+    cycleTimes.forEach((ct) => {
+      if (ct.priority in byPriority) {
+        byPriority[ct.priority] += ct.days;
+        countByPriority[ct.priority]++;
+      }
+    });
+
+    // Calculate averages
+    Object.keys(byPriority).forEach((p) => {
+      if (countByPriority[p] > 0) {
+        byPriority[p] = byPriority[p] / countByPriority[p];
+      }
+    });
+
+    return {
+      overallAvgDays: Math.round(overallAvgDays * 10) / 10,
+      byPriority: {
+        P0: Math.round(byPriority.P0 * 10) / 10,
+        P1: Math.round(byPriority.P1 * 10) / 10,
+        P2: Math.round(byPriority.P2 * 10) / 10,
+        P3: Math.round(byPriority.P3 * 10) / 10,
+      },
+      sampleSize: completedTasks.length,
+    };
+  },
+});
+
+/**
+ * GET velocity metrics by week (Phase 4B)
+ * Counts completed tasks per week for trend analysis
+ */
+export const getVelocityByWeek = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+    weeks: convexVal.optional(convexVal.number()),
+  },
+  handler: async (ctx, { businessId, weeks = 8 }) => {
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const cutoff = now - weeks * weekMs;
+
+    // Get task_completed activities for the business in the time range
+    const activities = await ctx.db
+      .query("activities")
+      .withIndex("by_business_created_at", (q) =>
+        q.eq("businessId", businessId).gte("createdAt", cutoff)
+      )
+      .collect();
+
+    const completedActivities = activities.filter(
+      (a) => a.type === "task_completed"
+    );
+
+    // Group by ISO week
+    const weekMap: Record<string, number> = {};
+
+    completedActivities.forEach((activity: any) => {
+      const date = new Date(activity.createdAt);
+      const year = date.getFullYear();
+      const week = Math.ceil(
+        (date.getTime() - new Date(year, 0, 1).getTime()) / weekMs
+      );
+      const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+
+      weekMap[weekKey] = (weekMap[weekKey] || 0) + 1;
+    });
+
+    // Convert to sorted array
+    const result = Object.entries(weekMap)
+      .map(([week, count]) => ({ week, count }))
+      .sort((a, b) => a.week.localeCompare(b.week));
+
+    return result;
+  },
+});
+
+/**
+ * GET status overview for business tasks (Phase 4B)
+ * Shows task distribution by status and priority, plus completion rate
+ */
+export const getStatusOverview = query({
+  args: {
+    businessId: convexVal.id("businesses"),
+  },
+  handler: async (ctx, { businessId }) => {
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .collect();
+
+    const total = allTasks.length;
+    const completedCount = allTasks.filter((t) => t.status === "done").length;
+    const completionRate =
+      total === 0 ? 0 : Math.round((completedCount / total) * 100);
+
+    // Count by status
+    const byStatus: Record<string, number> = {};
+    allTasks.forEach((task) => {
+      const status = task.status || "unknown";
+      byStatus[status] = (byStatus[status] || 0) + 1;
+    });
+
+    // Count by priority
+    const byPriority = { P0: 0, P1: 0, P2: 0, P3: 0 };
+    allTasks.forEach((task) => {
+      const priority = task.priority || "P2";
+      if (priority in byPriority) {
+        byPriority[priority]++;
+      }
+    });
+
+    return {
+      total,
+      byStatus: Object.entries(byStatus).map(([status, count]) => ({
+        status,
+        count,
+      })),
+      byPriority,
+      completionRate,
+    };
+  },
+});

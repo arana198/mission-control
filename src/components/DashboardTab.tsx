@@ -49,7 +49,7 @@ export function DashboardTabClientContent({
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   // Determine tab type
-  const isBusinessSpecificTab = ["overview", "board", "epics", "wiki", "settings"].includes(tab);
+  const isBusinessSpecificTab = ["overview", "board", "epics", "wiki", "analytics", "settings"].includes(tab);
   const targetBusinessId = currentBusiness?._id;
 
   // Log page load
@@ -106,7 +106,7 @@ export function DashboardTabClientContent({
       {/* Render appropriate dashboard based on tab type */}
       {isBusinessSpecificTab && targetBusinessId ? (
         <BusinessDashboard
-          tab={tab as "overview" | "board" | "epics" | "wiki" | "settings"}
+          tab={tab as "overview" | "board" | "epics" | "wiki" | "analytics" | "settings"}
           businessId={targetBusinessId}
           isCreatingTask={isCreatingTask}
           setIsCreatingTask={setIsCreatingTask}

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Sparkles } from "lucide-react";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "settings" | "inbox";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "sync" | "analytics" | "settings" | "inbox";
 
 interface SidebarNavProps {
   activeTab: TabType;
@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { id: "inbox", label: "Agent Inbox", icon: Inbox },
   { id: "workload", label: "Workload", icon: Briefcase },
   { id: "activity", label: "Activity", icon: Activity },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "brain", label: "2nd Brain", icon: Brain },
   { id: "bottlenecks", label: "Bottlenecks", icon: AlertCircle },
