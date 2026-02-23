@@ -883,4 +883,103 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_parent", ["parentId"]),
 
+  /**
+   * TASK COMMENTS - Threaded discussions on tasks (Phase 5A)
+   * Supports nested replies with emoji reactions and @mentions
+   */
+  taskComments: defineTable({
+    businessId: convexVal.id("businesses"),
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.id("agents"),
+    agentName: convexVal.string(),
+
+    // Content
+    content: convexVal.string(),  // markdown support
+    mentions: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+
+    // Threading
+    parentCommentId: convexVal.optional(convexVal.id("taskComments")),
+
+    // Reactions (emoji → array of agent IDs)
+    reactions: convexVal.optional(convexVal.record(convexVal.string(), convexVal.array(convexVal.id("agents")))),
+
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_task_created_at", ["taskId", "createdAt"])
+    .index("by_agent", ["agentId"])
+    .index("by_business", ["businessId"])
+    .index("by_parent", ["parentCommentId"]),
+
+  /**
+   * MENTIONS - @mention tracking for notifications (Phase 5A)
+   */
+  mentions: defineTable({
+    businessId: convexVal.id("businesses"),
+    mentionedAgentId: convexVal.id("agents"),
+    mentionedBy: convexVal.id("agents"),
+
+    context: convexVal.union(
+      convexVal.literal("task_comment"),
+      convexVal.literal("task_description"),
+      convexVal.literal("decision"),
+      convexVal.literal("epic")
+    ),
+    contextId: convexVal.string(),
+    contextTitle: convexVal.string(),
+
+    read: convexVal.boolean(),
+    readAt: convexVal.optional(convexVal.number()),
+
+    createdAt: convexVal.number(),
+  })
+    .index("by_mentioned_agent", ["mentionedAgentId"])
+    .index("by_read", ["mentionedAgentId", "read"])
+    .index("by_business", ["businessId"]),
+
+  /**
+   * TASK SUBSCRIPTIONS - Agent subscriptions for task notifications (Phase 5A)
+   */
+  taskSubscriptions: defineTable({
+    businessId: convexVal.id("businesses"),
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.id("agents"),
+
+    notifyOn: convexVal.union(
+      convexVal.literal("all"),
+      convexVal.literal("comments"),
+      convexVal.literal("status"),
+      convexVal.literal("mentions")
+    ),
+
+    subscribedAt: convexVal.number(),
+  })
+    .index("by_agent_task", ["agentId", "taskId"])
+    .index("by_task", ["taskId"])
+    .index("by_agent", ["agentId"]),
+
+  /**
+   * PRESENCE INDICATORS - Real-time agent status and activity (Phase 5A)
+   */
+  presenceIndicators: defineTable({
+    businessId: convexVal.id("businesses"),
+    agentId: convexVal.id("agents"),
+
+    status: convexVal.union(
+      convexVal.literal("online"),
+      convexVal.literal("away"),
+      convexVal.literal("do_not_disturb"),
+      convexVal.literal("offline")
+    ),
+
+    currentActivity: convexVal.optional(convexVal.string()),  // e.g., "viewing task #123"
+    lastActivity: convexVal.number(),
+
+    updatedAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_agent", ["agentId"])
+    .index("by_status", ["status"]),
+
 });

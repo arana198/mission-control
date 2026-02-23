@@ -1142,3 +1142,25 @@ export const migrationWikiSimplify = mutation({
  *
  * Used by: convex/alertEvaluator.ts evaluateRulesForBusiness (Phase 4C)
  */
+
+/**
+ * MIG-14: Task Comments & Collaboration - Phase 5A (2026-02-23)
+ *
+ * New tables:
+ * - taskComments: Threaded task discussions with reactions and mentions
+ * - mentions: @mention tracking for notifications
+ * - taskSubscriptions: Agent opt-in for task notifications
+ * - presenceIndicators: Real-time agent status and activity
+ *
+ * Reason: Phase 5A adds collaboration features enabling team discussions
+ * on tasks without disrupting message-based communication. Presence
+ * tracking enables awareness of who is online and what they're working on.
+ *
+ * Migration action:
+ * - No data migration needed: new tables are initialized empty
+ * - Existing agents get initial presence indicators created on first activity
+ *
+ * Idempotent: Schema-only change, no data operation required.
+ *
+ * Used by: convex/taskComments.ts, convex/presence.ts (Phase 5A)
+ */

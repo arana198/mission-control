@@ -1,0 +1,346 @@
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+/**
+ * Task Comments System (Phase 5A)
+ * Threaded discussions on tasks with reactions, mentions, and notifications
+ */
+
+/**
+ * Get all comments for a task, ordered by creation time
+ */
+export const getTaskComments = query({
+  args: {
+    taskId: v.id("tasks"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { taskId, limit = 50 }) => {
+    return await ctx.db
+      .query("taskComments")
+      .withIndex("by_task_created_at", (q) => q.eq("taskId", taskId))
+      .order("desc")
+      .take(limit);
+  },
+});
+
+/**
+ * Get replies to a specific comment (thread)
+ */
+export const getThreadReplies = query({
+  args: {
+    parentCommentId: v.id("taskComments"),
+  },
+  handler: async (ctx, { parentCommentId }) => {
+    return await ctx.db
+      .query("taskComments")
+      .withIndex("by_parent", (q) => q.eq("parentCommentId", parentCommentId))
+      .order("asc")
+      .collect();
+  },
+});
+
+/**
+ * Get comment count for a task
+ */
+export const getCommentCount = query({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, { taskId }) => {
+    const comments = await ctx.db
+      .query("taskComments")
+      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .collect();
+    return comments.length;
+  },
+});
+
+/**
+ * Create a new comment (root or reply)
+ */
+export const createComment = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    agentId: v.id("agents"),
+    agentName: v.string(),
+    businessId: v.id("businesses"),
+    content: v.string(),
+    parentCommentId: v.optional(v.id("taskComments")),
+    mentions: v.optional(v.array(v.id("agents"))),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    const commentId = await ctx.db.insert("taskComments", {
+      businessId: args.businessId,
+      taskId: args.taskId,
+      agentId: args.agentId,
+      agentName: args.agentName,
+      content: args.content,
+      parentCommentId: args.parentCommentId,
+      mentions: args.mentions,
+      reactions: {},
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create mention notifications for @mentioned agents
+    if (args.mentions && args.mentions.length > 0) {
+      for (const mentionedId of args.mentions) {
+        await ctx.db.insert("mentions", {
+          businessId: args.businessId,
+          mentionedAgentId: mentionedId,
+          mentionedBy: args.agentId,
+          context: "task_comment",
+          contextId: args.taskId as any,
+          contextTitle: "Task comment",
+          read: false,
+          createdAt: now,
+        });
+
+        // Also create notification
+        await ctx.db.insert("notifications", {
+          businessId: args.businessId,
+          recipientId: mentionedId,
+          type: "mention",
+          content: `${args.agentName} mentioned you in a task comment`,
+          taskId: args.taskId,
+          fromId: args.agentId as any,
+          fromName: args.agentName,
+          read: false,
+          createdAt: now,
+        });
+      }
+    }
+
+    // Notify task subscribers (except commenter)
+    const subscribers = await ctx.db
+      .query("taskSubscriptions")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .collect();
+
+    for (const sub of subscribers) {
+      if (sub.agentId !== args.agentId) {
+        if (sub.notifyOn === "all" || sub.notifyOn === "comments") {
+          await ctx.db.insert("notifications", {
+            businessId: args.businessId,
+            recipientId: sub.agentId,
+            type: "mention",
+            content: `${args.agentName} commented on a task you're subscribed to`,
+            taskId: args.taskId,
+            fromId: args.agentId as any,
+            fromName: args.agentName,
+            read: false,
+            createdAt: now,
+          });
+        }
+      }
+    }
+
+    return commentId;
+  },
+});
+
+/**
+ * Add emoji reaction to a comment (toggle on/off)
+ */
+export const addReaction = mutation({
+  args: {
+    commentId: v.id("taskComments"),
+    emoji: v.string(),
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, { commentId, emoji, agentId }) => {
+    const comment = await ctx.db.get(commentId);
+    if (!comment) throw new Error("Comment not found");
+
+    const reactions = comment.reactions || {};
+    const emojiReactions = reactions[emoji] || [];
+
+    // Toggle: remove if already reacted, add if not
+    const alreadyReacted = emojiReactions.some((id) => id === agentId);
+    if (alreadyReacted) {
+      reactions[emoji] = emojiReactions.filter((id) => id !== agentId);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    } else {
+      reactions[emoji] = [...emojiReactions, agentId];
+    }
+
+    await ctx.db.patch(commentId, {
+      reactions,
+      updatedAt: Date.now(),
+    });
+
+    return reactions;
+  },
+});
+
+/**
+ * Delete a comment (soft delete - keep for history)
+ */
+export const deleteComment = mutation({
+  args: {
+    commentId: v.id("taskComments"),
+  },
+  handler: async (ctx, { commentId }) => {
+    const comment = await ctx.db.get(commentId);
+    if (!comment) throw new Error("Comment not found");
+
+    // Replace content with deletion marker
+    await ctx.db.patch(commentId, {
+      content: "[deleted]",
+      updatedAt: Date.now(),
+    });
+
+    return commentId;
+  },
+});
+
+/**
+ * Edit a comment
+ */
+export const editComment = mutation({
+  args: {
+    commentId: v.id("taskComments"),
+    content: v.string(),
+    mentions: v.optional(v.array(v.id("agents"))),
+  },
+  handler: async (ctx, { commentId, content, mentions }) => {
+    const comment = await ctx.db.get(commentId);
+    if (!comment) throw new Error("Comment not found");
+
+    const now = Date.now();
+
+    await ctx.db.patch(commentId, {
+      content,
+      mentions,
+      updatedAt: now,
+    });
+
+    return commentId;
+  },
+});
+
+/**
+ * Subscribe agent to task notifications
+ */
+export const subscribeToTask = mutation({
+  args: {
+    businessId: v.id("businesses"),
+    taskId: v.id("tasks"),
+    agentId: v.id("agents"),
+    notifyOn: v.optional(
+      v.union(
+        v.literal("all"),
+        v.literal("comments"),
+        v.literal("status"),
+        v.literal("mentions")
+      )
+    ),
+  },
+  handler: async (
+    ctx,
+    { businessId, taskId, agentId, notifyOn = "all" }
+  ) => {
+    // Check if already subscribed
+    const existing = await ctx.db
+      .query("taskSubscriptions")
+      .withIndex("by_agent_task", (q) =>
+        q.eq("agentId", agentId).eq("taskId", taskId)
+      )
+      .first();
+
+    if (existing) {
+      // Update notification type
+      await ctx.db.patch(existing._id, {
+        notifyOn,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("taskSubscriptions", {
+      businessId,
+      taskId,
+      agentId,
+      notifyOn,
+      subscribedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Unsubscribe agent from task
+ */
+export const unsubscribeFromTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, { taskId, agentId }) => {
+    const subscription = await ctx.db
+      .query("taskSubscriptions")
+      .withIndex("by_agent_task", (q) =>
+        q.eq("agentId", agentId).eq("taskId", taskId)
+      )
+      .first();
+
+    if (subscription) {
+      await ctx.db.delete(subscription._id);
+      return true;
+    }
+    return false;
+  },
+});
+
+/**
+ * Get task subscribers
+ */
+export const getTaskSubscribers = query({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, { taskId }) => {
+    return await ctx.db
+      .query("taskSubscriptions")
+      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .collect();
+  },
+});
+
+/**
+ * Mark mentions as read
+ */
+export const markMentionAsRead = mutation({
+  args: {
+    mentionId: v.id("mentions"),
+  },
+  handler: async (ctx, { mentionId }) => {
+    const mention = await ctx.db.get(mentionId);
+    if (!mention) throw new Error("Mention not found");
+
+    await ctx.db.patch(mentionId, {
+      read: true,
+      readAt: Date.now(),
+    });
+
+    return mentionId;
+  },
+});
+
+/**
+ * Get unread mentions for an agent
+ */
+export const getUnreadMentions = query({
+  args: {
+    agentId: v.id("agents"),
+    businessId: v.id("businesses"),
+  },
+  handler: async (ctx, { agentId, businessId }) => {
+    return await ctx.db
+      .query("mentions")
+      .withIndex("by_read", (q) =>
+        q.eq("mentionedAgentId", agentId).eq("read", false)
+      )
+      .collect();
+  },
+});

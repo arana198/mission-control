@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { Agent } from "@/types/agent";
-import { useNotification } from "@/hooks/useNotification";
-import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
 import { MessageSquare, Send, Trash2, X } from "lucide-react";
 
 /**
  * Task Comments Component with @mention support
  */
 export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent[] }) {
-  const notif = useNotification();
   const [commentText, setCommentText] = useState("");
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -23,50 +20,13 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
   const createMessageMutation = useMutation(api.messages.create);
   const deleteMessageMutation = useMutation(api.messages.remove);
 
-  // Centralized mutation handlers with notifications
-  const { execute: execCreateMessage, isLoading: isCreatingMessage } = useMutationWithNotification(
-    async (args: any) => createMessageMutation?.(args),
-    {
-      successMessage: "Comment posted",
-      onSuccess: () => {
-        setCommentText("");
-        setReplyTo(null);
-      }
-    }
-  );
-
-  const { execute: execDeleteMessage, isLoading: isDeletingMessage } = useMutationWithNotification(
-    async (args: any) => deleteMessageMutation?.(args),
-    {
-      successMessage: "Comment deleted"
-    }
-  );
-
-  // Parse mentions from comment text
-  const parseMentions = (text: string): { mentions: string[]; mentionAll: boolean } => {
-    const mentionPattern = /@(\w+)/g;
-    const matches = [...text.matchAll(mentionPattern)];
-    const mentionNames = matches.map(m => m[1].toLowerCase());
-
-    // Check for @all
-    const mentionAll = mentionNames.includes("all");
-
-    // Find agent IDs for mentions (excluding "all")
-    const mentions = mentionNames
-      .filter(name => name !== "all")
-      .map(name => agents.find(a => a.name.toLowerCase() === name)?._id)
-      .filter(Boolean) as string[];
-
-    return { mentions, mentionAll };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim() || !createMessageMutation) return;
 
     const { mentions, mentionAll } = parseMentions(commentText);
 
-    await execCreateMessage({
+    await createMessageMutation({
       taskId: taskId as any,
       content: commentText.trim(),
       senderId: "user",
@@ -75,11 +35,28 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
       mentionAll: mentionAll || undefined,
       parentId: replyTo ? (replyTo.id as any) : undefined,
     });
+
+    setCommentText("");
+    setReplyTo(null);
   };
 
-  // Handle @mention autocomplete
+  const parseMentions = (text: string): { mentions: string[]; mentionAll: boolean } => {
+    const mentionPattern = /@(\w+)/g;
+    const matches = [...text.matchAll(mentionPattern)];
+    const mentionNames = matches.map(m => m[1].toLowerCase());
+
+    const mentionAll = mentionNames.includes("all");
+
+    const mentions = mentionNames
+      .filter(name => name !== "all")
+      .map(name => agents.find(a => a.name.toLowerCase() === name)?._id)
+      .filter(Boolean) as string[];
+
+    return { mentions, mentionAll };
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "@" || (e.shiftKey && e.key === "2")) {
+    if (e.key === "@") {
       setShowMentions(true);
       setMentionQuery("");
     } else if (e.key === "Escape") {
@@ -91,7 +68,6 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
     const value = e.target.value;
     setCommentText(value);
 
-    // Check if typing after @
     const lastAtIndex = value.lastIndexOf("@");
     if (lastAtIndex !== -1) {
       const afterAt = value.slice(lastAtIndex + 1);
@@ -123,7 +99,6 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
         )
       ];
 
-  // Render comment with highlighted mentions
   const renderCommentContent = (content: string) => {
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, i) => {
@@ -180,7 +155,6 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
                     onClick={() => setReplyTo({ id: msg._id, name: msg.fromName })}
                     className="opacity-0 group-hover:opacity-100 ml-auto p-1 text-blue-600 hover:bg-blue-50 rounded transition-all"
                     title="Reply to this message"
-                    aria-label={`Reply to ${msg.fromName}`}
                   >
                     <MessageSquare className="w-3 h-3" />
                   </button>
@@ -189,12 +163,10 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
                       onClick={async () => {
                         if (!deleteMessageMutation) return;
                         if (!confirm("Delete this comment?")) return;
-                        await execDeleteMessage({ messageId: msg._id, senderId: "user" });
+                        await deleteMessageMutation({ messageId: msg._id, senderId: "user" });
                       }}
-                      disabled={isDeletingMessage}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 rounded transition-all disabled:opacity-50"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 rounded transition-all"
                       title="Delete comment"
-                      aria-label="Delete comment"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -219,7 +191,6 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
               type="button"
               onClick={() => setReplyTo(null)}
               className="ml-auto p-1 hover:bg-blue-100 rounded"
-              aria-label="Cancel reply"
             >
               <X className="w-3 h-3 text-blue-600" />
             </button>
@@ -234,19 +205,13 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
             placeholder="Add a comment... Use @name to mention agents or @all for everyone"
             rows={3}
             className="input resize-none w-full pr-12"
-            aria-label="Comment input"
           />
           <button
             type="submit"
-            disabled={!commentText.trim() || !createMessageMutation || isCreatingMessage}
+            disabled={!commentText.trim() || !createMessageMutation}
             className="absolute bottom-2 right-2 btn btn-primary p-2 disabled:opacity-50"
-            aria-label="Submit comment"
           >
-            {isCreatingMessage ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            <Send className="w-4 h-4" />
           </button>
         </div>
 
