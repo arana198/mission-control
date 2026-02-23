@@ -81,6 +81,7 @@ export function TaskFilterBar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="input"
+            aria-label="Search tasks by title or description"
           />
         </div>
 
@@ -88,6 +89,7 @@ export function TaskFilterBar({
           value={filterPriority}
           onChange={(e) => onPriorityChange(e.target.value)}
           className="input w-32"
+          aria-label="Filter tasks by priority level"
         >
           <option value="">All Priorities</option>
           <option value="P0">P0</option>
@@ -100,6 +102,7 @@ export function TaskFilterBar({
           value={filterAssignee}
           onChange={(e) => onAssigneeChange(e.target.value)}
           className="input w-40"
+          aria-label="Filter tasks by assigned agent"
         >
           <option value="">All Assignees</option>
           <option value="unassigned">Unassigned</option>
@@ -114,6 +117,7 @@ export function TaskFilterBar({
           value={filterEpic}
           onChange={(e) => onEpicChange(e.target.value)}
           className="input w-40"
+          aria-label="Filter tasks by epic"
         >
           <option value="">All Epics</option>
           <option value="none">No Epic</option>

@@ -303,6 +303,7 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search memories, tasks, insights..."
                   className="input pl-10"
+                  aria-label="Search memories, tasks, and insights"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -311,6 +312,7 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
                   value={selectedFilter}
                   onChange={(e) => setSelectedFilter(e.target.value)}
                   className="input w-40"
+                  aria-label="Filter knowledge items by type"
                 >
                   <option value="all">All Items</option>
                   <option value="memory">Memories</option>
@@ -510,15 +512,20 @@ function AddMemoryModal({
             <Plus className="w-5 h-5" />
             Add Memory
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded"
+            aria-label="Close add memory modal"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-1 block">Title</label>
+            <label htmlFor="memory-title" className="text-sm font-medium mb-1 block">Title</label>
             <input
+              id="memory-title"
               type="text"
               value={state.title}
               onChange={(e) => setState({ ...state, title: e.target.value })}
@@ -528,8 +535,9 @@ function AddMemoryModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1 block">Content</label>
+            <label htmlFor="memory-content" className="text-sm font-medium mb-1 block">Content</label>
             <textarea
+              id="memory-content"
               value={state.content}
               onChange={(e) => setState({ ...state, content: e.target.value })}
               placeholder="Describe this memory..."
@@ -538,8 +546,9 @@ function AddMemoryModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1 block">Tags (comma-separated)</label>
+            <label htmlFor="memory-tags" className="text-sm font-medium mb-1 block">Tags (comma-separated)</label>
             <input
+              id="memory-tags"
               type="text"
               value={state.tags}
               onChange={(e) => setState({ ...state, tags: e.target.value })}
@@ -564,11 +573,13 @@ function AddMemoryModal({
           </div>
 
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-2">Link to Task (optional)</h4>
+            <label htmlFor="link-task" className="font-medium mb-2 block">Link to Task (optional)</label>
             <select
+              id="link-task"
               value={state.linkToTask}
               onChange={(e) => setState({ ...state, linkToTask: e.target.value })}
               className="input w-full mb-2"
+              aria-label="Select a task to link to this memory"
             >
               <option value="">Select a task...</option>
               {tasks.map((task) => (
@@ -579,19 +590,24 @@ function AddMemoryModal({
             </select>
 
             {state.linkToTask && (
-              <select
-                value={state.memoryPath}
-                onChange={(e) => setState({ ...state, memoryPath: e.target.value })}
-                className="input w-full"
-              >
-                <option value="">Select memory file...</option>
-                {memoryPaths.map((path) => (
-                  <option key={path} value={path}>
-                    {path}
-                  </option>
-                ))}
-                <option value="MEMORY.md">MEMORY.md</option>
-              </select>
+              <>
+                <label htmlFor="memory-file" className="font-medium mb-2 block text-sm">Memory File</label>
+                <select
+                  id="memory-file"
+                  value={state.memoryPath}
+                  onChange={(e) => setState({ ...state, memoryPath: e.target.value })}
+                  className="input w-full"
+                  aria-label="Select memory file to link"
+                >
+                  <option value="">Select memory file...</option>
+                  {memoryPaths.map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))}
+                  <option value="MEMORY.md">MEMORY.md</option>
+                </select>
+              </>
             )}
           </div>
         </div>
@@ -636,7 +652,11 @@ function ExportModal({
             <Download className="w-5 h-5" />
             Export Knowledge
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded"
+            aria-label="Close export knowledge modal"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -718,7 +738,11 @@ function ArchiveModal({
             <Archive className="w-5 h-5" />
             Archive Old Items
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-muted rounded"
+            aria-label="Close archive modal"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -738,16 +762,18 @@ function ArchiveModal({
           <>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="archive-days-range" className="text-sm font-medium mb-2 block">
                   Archive items older than {state.daysOld} days
                 </label>
                 <input
+                  id="archive-days-range"
                   type="range"
                   min="7"
                   max="90"
                   value={state.daysOld}
                   onChange={(e) => setState({ ...state, daysOld: Number(e.target.value) })}
                   className="w-full"
+                  aria-label={`Archive items older than ${state.daysOld} days`}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>7 days</span>
