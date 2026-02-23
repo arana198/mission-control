@@ -42,7 +42,7 @@
     "@tiptap/starter-kit": "^3.20.0",
     "autoprefixer": "^10.4.0",
     "clsx": "^2.1.0",
-    "convex": "^1.31.0",
+    "convex": "^1.32.0",
     "date-fns": "^3.6.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.400.0",

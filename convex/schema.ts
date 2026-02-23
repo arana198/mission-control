@@ -246,7 +246,9 @@ export default defineSchema({
    */
   activities: defineTable({
     // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this activity belongs to
+    // NOTE: businessId is optional to support agent-scoped activities (like heartbeat changes)
+    // that don't belong to a specific business (agents are global)
+    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: for task/business-scoped activities
 
     type: convexVal.union(
       convexVal.literal("task_created"),

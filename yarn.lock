@@ -2438,13 +2438,14 @@ convert-source-map@^2.0.0:
   resolved "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz"
   integrity sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==
 
-convex@^1.31.0:
-  version "1.31.7"
-  resolved "https://registry.npmjs.org/convex/-/convex-1.31.7.tgz"
-  integrity sha512-PtNMe1mAIOvA8Yz100QTOaIdgt2rIuWqencVXrb4McdhxBHZ8IJ1eXTnrgCC9HydyilGT1pOn+KNqT14mqn9fQ==
+convex@^1.32.0:
+  version "1.32.0"
+  resolved "https://registry.npmjs.org/convex/-/convex-1.32.0.tgz"
+  integrity sha512-5FlajdLpW75pdLS+/CgGH5H6yeRuA+ru50AKJEYbJpmyILUS+7fdTvsdTaQ7ZFXMv0gE8mX4S+S3AtJ94k0mfw==
   dependencies:
     esbuild "0.27.0"
     prettier "^3.0.0"
+    ws "8.18.0"
 
 copy-to-clipboard@^3.3.1:
   version "3.3.3"
@@ -6919,6 +6920,11 @@ ws@^8.18.0:
   version "8.19.0"
   resolved "https://registry.npmjs.org/ws/-/ws-8.19.0.tgz"
   integrity sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==
+
+ws@8.18.0:
+  version "8.18.0"
+  resolved "https://registry.npmjs.org/ws/-/ws-8.18.0.tgz"
+  integrity sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==
 
 xml-but-prettier@^1.0.1:
   version "1.0.1"

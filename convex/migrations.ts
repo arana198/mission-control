@@ -1100,3 +1100,23 @@ export const migrationWikiSimplify = mutation({
     };
   },
 });
+
+/**
+ * MIG-12: Activities Schema - Optional BusinessId (2026-02-23)
+ *
+ * Schema change:
+ * - Modified activities table: made businessId optional v.optional(v.id("businesses"))
+ *
+ * Reason: Agents are global (not business-scoped), so agent-scoped activities
+ * (like heartbeat status changes) don't belong to a specific business.
+ * This change allows such activities to be recorded without requiring a businessId,
+ * while task-scoped activities can still include it for business filtering.
+ *
+ * Migration action:
+ * - No data migration needed: existing activities with businessId remain unchanged,
+ *   new activities can be inserted without businessId
+ *
+ * Idempotent: Schema-only change, no data operation required.
+ *
+ * Used by: convex/cron.ts heartbeatMonitorCron, escalationCheckCron (Phase 4A)
+ */
