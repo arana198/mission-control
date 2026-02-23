@@ -34,10 +34,9 @@ export function BottleneckVisualizer() {
   const [view, setView] = useState<"heatmap" | "graph" | "path" | "agents">("heatmap");
 
   // Always call hooks in the same order - React requirement
-  const goals = useQuery(api.goals.getByProgress,
-    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
-  );
-  const tasks = useQuery(api.tasks.getAllTasks,
+  const goals = useQuery(api.goals.getByProgress);
+  const tasks = useQuery(
+    api.tasks.getAllTasks,
     currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
   );
   const agents = useQuery(api.agents.getAllAgents);

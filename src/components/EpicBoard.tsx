@@ -4,8 +4,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { useNotification } from "@/hooks/useNotification";
 import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
+import { useBusiness } from "./BusinessProvider";
 import {
   Plus, ChevronRight, Target, Clock, CheckCircle2, AlertCircle,
   ArrowLeft, Users, BarChart3, Layers, Calendar, X, AlertTriangle,
@@ -56,6 +58,7 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
   const notif = useNotification();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currentBusiness } = useBusiness();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<Epic | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -195,7 +198,11 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
 
       {/* Create Modal */}
       {isCreating && (
-        <CreateEpicModal agents={agents} onClose={() => setIsCreating(false)} />
+        <CreateEpicModal
+          businessId={currentBusiness?._id as Id<"businesses"> | undefined}
+          agents={agents}
+          onClose={() => setIsCreating(false)}
+        />
       )}
     </div>
   );
@@ -590,7 +597,15 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
 }
 
 // Create Epic Modal
-function CreateEpicModal({ agents, onClose }: { agents: Agent[]; onClose: () => void }) {
+function CreateEpicModal({
+  businessId,
+  agents,
+  onClose
+}: {
+  businessId?: Id<"businesses">;
+  agents: Agent[];
+  onClose: () => void;
+}) {
   const notif = useNotification();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -604,13 +619,19 @@ function CreateEpicModal({ agents, onClose }: { agents: Agent[]; onClose: () => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createEpic || !title.trim()) return;
+    if (!createEpic || !title.trim() || !businessId) return;
     setIsSubmitting(true);
     try {
-      await createEpic({ title: title.trim(), description: description.trim(), ownerId: ownerId || undefined });
+      await createEpic({
+        businessId,
+        title: title.trim(),
+        description: description.trim(),
+        ownerId: ownerId || undefined
+      });
       onClose();
     } catch (err) {
-      notif.error("Failed to create epic");
+      const errorMsg = (err as Error)?.message || "Failed to create epic";
+      notif.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -624,6 +645,11 @@ function CreateEpicModal({ agents, onClose }: { agents: Agent[]; onClose: () => 
           <button onClick={onClose} className="btn btn-ghost p-2"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {!businessId && (
+            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              Please select a business context to create an epic.
+            </div>
+          )}
           <div>
             <label className="label">Title</label>
             <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="input" placeholder="Epic name..." required />
@@ -643,7 +669,13 @@ function CreateEpicModal({ agents, onClose }: { agents: Agent[]; onClose: () => 
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
-            <button type="submit" disabled={isSubmitting || !title.trim()} className="btn btn-primary flex-1">Create Epic</button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !title.trim() || !businessId}
+              className="btn btn-primary flex-1"
+            >
+              Create Epic
+            </button>
           </div>
         </form>
       </div>
