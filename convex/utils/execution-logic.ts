@@ -318,3 +318,108 @@ export function calculateAgentMetricsLogic(
     onlinePercent,
   };
 }
+
+/**
+ * ========== PHASE 4: AGENT CONTROL & METRICS ==========
+ */
+
+/**
+ * Aggregate execution metrics for a specific hour.
+ */
+export function aggregateMetricsLogic(
+  executions: any[]
+): {
+  successCount: number;
+  failureCount: number;
+  totalTokens: number;
+  totalCostCents: number;
+  avgDurationMs: number;
+  failureRate: number;
+} {
+  if (executions.length === 0) {
+    return {
+      successCount: 0,
+      failureCount: 0,
+      totalTokens: 0,
+      totalCostCents: 0,
+      avgDurationMs: 0,
+      failureRate: 0,
+    };
+  }
+
+  let successCount = 0;
+  let failureCount = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+  let totalDuration = 0;
+
+  for (const exec of executions) {
+    if (exec.status === "success") successCount++;
+    if (exec.status === "failed") failureCount++;
+
+    totalTokens += (exec.inputTokens || 0) + (exec.outputTokens || 0);
+    totalCost += exec.costCents || 0;
+    totalDuration += exec.durationMs || 0;
+  }
+
+  const failureRate = Math.round((failureCount / executions.length) * 100) / 100;
+  const avgDurationMs = Math.round(totalDuration / executions.length);
+
+  return {
+    successCount,
+    failureCount,
+    totalTokens,
+    totalCostCents: totalCost,
+    avgDurationMs,
+    failureRate,
+  };
+}
+
+/**
+ * Check if events should be cleaned up based on age.
+ */
+export function shouldCleanupEventLogic(
+  eventTimestampMs: number,
+  currentTimeMs: number,
+  maxAgeMs: number = 24 * 60 * 60 * 1000 // 24 hours
+): boolean {
+  return currentTimeMs - eventTimestampMs > maxAgeMs;
+}
+
+/**
+ * Validate all execution prerequisites.
+ */
+export function validateExecutionAllowedLogic(
+  agentStatus: string,
+  rateLimitAllowed: boolean,
+  budgetAllowed: boolean
+): {
+  allowed: boolean;
+  error?: string;
+} {
+  // Check agent status first
+  if (agentStatus === "failed" || agentStatus === "stopped") {
+    return {
+      allowed: false,
+      error: `Agent not available (status: ${agentStatus})`,
+    };
+  }
+
+  // Check rate limit
+  if (!rateLimitAllowed) {
+    return {
+      allowed: false,
+      error: "Rate limit exceeded",
+    };
+  }
+
+  // Check budget
+  if (!budgetAllowed) {
+    return {
+      allowed: false,
+      error: "Budget exceeded",
+    };
+  }
+
+  return { allowed: true };
+}
