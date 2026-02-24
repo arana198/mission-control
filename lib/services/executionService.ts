@@ -233,6 +233,7 @@ You have ${config.timeoutMinutes} minutes to complete this task.
 
   /**
    * Log execution to execution log
+   * TODO: Phase 6A - Replace with proper executions table logging
    */
   private async logExecution(args: {
     taskId: Id<'tasks'>;
@@ -243,14 +244,9 @@ You have ${config.timeoutMinutes} minutes to complete this task.
     attemptNumber: number;
   }): Promise<void> {
     try {
-      await this.client.mutation(api.executionLog.create, {
-        taskId: args.taskId,
-        status: args.status as any,
-        output: args.output,
-        error: args.error,
-        timeSpent: args.timeSpent,
-        attemptNumber: args.attemptNumber,
-      });
+      // Phase 6A: Placeholder - will be replaced with executions table implementation
+      console.log('[ExecutionService] Phase 6A placeholder - logExecution:', args);
+      // await this.client.mutation(api.executionLog.create, { ... });
     } catch (error) {
       console.error('Failed to log execution:', error);
     }
@@ -258,9 +254,13 @@ You have ${config.timeoutMinutes} minutes to complete this task.
 
   /**
    * Get execution history for a task
+   * TODO: Phase 6A - Replace with proper executions table querying
    */
   async getExecutionHistory(taskId: Id<'tasks'>): Promise<any[]> {
-    return this.client.query(api.executionLog.getByTask, { taskId });
+    // Phase 6A: Placeholder - will be replaced with executions table implementation
+    console.log('[ExecutionService] Phase 6A placeholder - getExecutionHistory:', taskId);
+    return [];
+    // return this.client.query(api.executionLog.getByTask, { taskId });
   }
 }
 

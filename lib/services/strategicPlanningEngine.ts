@@ -101,20 +101,16 @@ export class StrategicPlanningEngine {
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
     
     // Get all data in parallel
-    const [goals, executionLogs, activities] = await Promise.all([
+    const [goals, activities] = await Promise.all([
       this.client.query(api.goals.getByProgress),
-      this.client.query(api.executionLog.getByStatus, {
-        status: 'success',
-      }),
       this.client.query(api.activities.getRecent, {
         limit: 100,
       }),
     ]);
 
-    // Filter execution logs to last 7 days client-side
-    const recentExecutionLogs = Array.isArray(executionLogs)
-      ? executionLogs.filter((log: any) => log._creationTime >= weekAgo)
-      : [];
+    // TODO: Phase 6A - Replace with proper executions table querying
+    const recentExecutionLogs: any[] = [];
+    // await this.client.query(api.executionLog.getByStatus, { status: 'success' });
 
     // Calculate goal progress
     const goalAnalysis = this.analyzeGoalProgress(goals);

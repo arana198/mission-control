@@ -60,12 +60,71 @@ export default defineSchema({
     keyRotationCount: convexVal.optional(convexVal.number()),    // Total rotations (for audit)
     previousApiKey: convexVal.optional(convexVal.string()),      // Old key during grace period
     previousKeyExpiresAt: convexVal.optional(convexVal.number()), // When old key becomes invalid
+    // Phase 1: Extended runtime info
+    runtimeLocation: convexVal.optional(convexVal.string()),    // workspace path or remote
+    version: convexVal.optional(convexVal.string()),            // agent version
+    runtimeStatus: convexVal.optional(convexVal.union(         // actual runtime status
+      convexVal.literal("stopped"),
+      convexVal.literal("running"),
+      convexVal.literal("error")
+    )),
+    scale: convexVal.optional(convexVal.number()),              // horizontal workers
   })
     .index("by_name", ["name"])
     .index("by_status", ["status"])
     .index("by_session_key", ["sessionKey"])
     .index("by_current_task", ["currentTaskId"])
     .index("by_api_key", ["apiKey"]),
+
+  /**
+   * EXECUTIONS - Agent Execution Audit Ledger (Phase 1/6A)
+   * Every agent action logged for observability (immutable audit trail)
+   */
+  executions: defineTable({
+    businessId: convexVal.optional(convexVal.id("businesses")), // optional for system-level executions
+    agentId: convexVal.id("agents"),
+    agentName: convexVal.string(),           // denormalized
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    taskTitle: convexVal.optional(convexVal.string()),
+    workflowId: convexVal.optional(convexVal.id("workflows")), // Phase 6C: multi-agent pipelines
+    triggerType: convexVal.union(
+      convexVal.literal("manual"),
+      convexVal.literal("cron"),
+      convexVal.literal("autonomous"),
+      convexVal.literal("webhook")
+    ),
+    status: convexVal.union(
+      convexVal.literal("pending"),
+      convexVal.literal("running"),
+      convexVal.literal("success"),
+      convexVal.literal("failed"),
+      convexVal.literal("aborted")
+    ),
+    startTime: convexVal.number(),
+    endTime: convexVal.optional(convexVal.number()),
+    durationMs: convexVal.optional(convexVal.number()),
+    inputTokens: convexVal.optional(convexVal.number()),
+    outputTokens: convexVal.optional(convexVal.number()),
+    totalTokens: convexVal.optional(convexVal.number()),
+    costCents: convexVal.optional(convexVal.number()),
+    model: convexVal.optional(convexVal.string()),
+    modelProvider: convexVal.optional(convexVal.string()),
+    error: convexVal.optional(convexVal.string()),
+    logs: convexVal.optional(convexVal.array(convexVal.string())),
+    metadata: convexVal.optional(convexVal.object({
+      sessionKey: convexVal.optional(convexVal.string()),
+      sessionId: convexVal.optional(convexVal.string()),
+      retryCount: convexVal.optional(convexVal.number()),
+    })),
+  })
+    .index("by_agent_time", ["agentId", "startTime"])
+    .index("by_status_time", ["status", "startTime"])
+    .index("by_workflow_id", ["workflowId"])
+    .index("by_business_id", ["businessId"])
+    .index("by_agent", ["agentId"])
+    .index("by_status", ["status"])
+    .index("by_start_time", ["startTime"])
+    .index("by_trigger", ["triggerType"]),
 
   /**
    * EPICS - Large Initiatives
@@ -1058,5 +1117,179 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_severity", ["severity"])
     .index("by_flagged", ["flagged"]),
+
+  /**
+   * AGENT_STATUS - Real-time Agent State (Phase 6A)
+   * Ephemeral state (separate from agents table to avoid contention)
+   * Updated frequently via heartbeat, separately from static agent registry
+   */
+  agent_status: defineTable({
+    agentId: convexVal.id("agents"),
+    status: convexVal.union(
+      convexVal.literal("idle"),
+      convexVal.literal("busy"),
+      convexVal.literal("failed"),
+      convexVal.literal("stopped")
+    ),
+    currentTaskId: convexVal.optional(convexVal.id("tasks")),
+    queuedTaskCount: convexVal.number(),           // tasks waiting
+    lastHeartbeatAt: convexVal.number(),           // unix timestamp
+    uptimePercent: convexVal.number(),             // 24h rolling 0-100
+    totalExecutions: convexVal.number(),           // lifetime counter
+    failureRate: convexVal.number(),               // 0-1.0
+    cpuPercent: convexVal.optional(convexVal.number()), // optional metrics
+    memoryMb: convexVal.optional(convexVal.number()),   // optional metrics
+  })
+    .index("by_agent", ["agentId"]),
+
+  /**
+   * EVENTS - Real-time Event Stream (Phase 6A)
+   * Immutable event log for dashboard subscriptions + notifications
+   * 24-hour retention, then automatically deleted
+   */
+  events: defineTable({
+    type: convexVal.union(
+      convexVal.literal("agent_started"),
+      convexVal.literal("agent_stopped"),
+      convexVal.literal("execution_started"),
+      convexVal.literal("execution_completed"),
+      convexVal.literal("execution_failed"),
+      convexVal.literal("error_occurred"),
+      convexVal.literal("retry_attempt"),
+      convexVal.literal("workflow_started"),
+      convexVal.literal("workflow_completed"),
+      convexVal.literal("cron_triggered")
+    ),
+    agentId: convexVal.optional(convexVal.id("agents")),
+    executionId: convexVal.optional(convexVal.id("executions")),
+    workflowId: convexVal.optional(convexVal.id("workflows")),
+    message: convexVal.string(),
+    severity: convexVal.union(
+      convexVal.literal("info"),
+      convexVal.literal("warning"),
+      convexVal.literal("error")
+    ),
+    timestamp: convexVal.number(),
+  })
+    .index("by_timestamp", ["timestamp"]),
+
+  /**
+   * WORKFLOWS - Multi-Agent Pipeline Definitions (Phase 6C)
+   * DAG-based workflow orchestration (business-scoped)
+   */
+  workflows: defineTable({
+    businessId: convexVal.id("businesses"),
+    name: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
+
+    // DAG structure (adjacency list)
+    definition: convexVal.object({
+      nodes: convexVal.any(),                    // { [nodeId]: { agentId, taskTemplate, retryPolicy, timeoutMs } }
+      edges: convexVal.any(),                    // { [fromNodeId]: [toNodeId1, toNodeId2, ...] }
+      conditionalBranches: convexVal.optional(convexVal.any()), // conditional routing
+    }),
+
+    isActive: convexVal.boolean(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_active", ["isActive"]),
+
+  /**
+   * WORKFLOW_EXECUTIONS - Multi-Agent Pipeline Runs (Phase 6C)
+   * Track execution of multi-agent workflows (immutable)
+   */
+  workflow_executions: defineTable({
+    workflowId: convexVal.id("workflows"),
+    status: convexVal.union(
+      convexVal.literal("running"),
+      convexVal.literal("success"),
+      convexVal.literal("failed"),
+      convexVal.literal("aborted")
+    ),
+
+    // Node execution tracking
+    nodeExecutions: convexVal.any(),              // { [nodeId]: Id<executions> }
+
+    startTime: convexVal.number(),
+    endTime: convexVal.optional(convexVal.number()),
+    durationMs: convexVal.optional(convexVal.number()),
+
+    // Overall result
+    error: convexVal.optional(convexVal.string()),
+    totalTokens: convexVal.optional(convexVal.number()),
+    totalCostCents: convexVal.optional(convexVal.number()),
+  })
+    .index("by_workflow", ["workflowId"])
+    .index("by_status", ["status"])
+    .index("by_start_time", ["startTime"]),
+
+  /**
+   * METRICS - Aggregated Performance Metrics (Phase 6B)
+   * Pre-calculated hourly summaries for dashboard performance
+   * Recalculated hourly via background job (immutable per hour)
+   */
+  metrics: defineTable({
+    agentId: convexVal.id("agents"),
+    date: convexVal.string(),                    // YYYY-MM-DD
+    hour: convexVal.number(),                    // 0-23
+
+    // Execution counts
+    executionCount: convexVal.number(),
+    successCount: convexVal.number(),
+    failureCount: convexVal.number(),
+
+    // Duration
+    totalDurationMs: convexVal.number(),
+    avgDurationMs: convexVal.number(),
+
+    // Tokens & cost
+    totalTokens: convexVal.number(),
+    avgTokensPerExecution: convexVal.number(),
+    totalCostCents: convexVal.number(),
+    avgCostCentsPerExecution: convexVal.number(),
+
+    // Rates
+    failureRate: convexVal.number(),             // 0-1.0
+  })
+    .index("by_agent_date", ["agentId", "date"])
+    .index("by_date", ["date"]),
+
+  /**
+   * CRON_JOBS - Scheduled Workflow Executions (Phase 6C)
+   * Store cron schedules and execution history (business-scoped)
+   */
+  cron_jobs: defineTable({
+    businessId: convexVal.id("businesses"),
+    name: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
+
+    // Schedule
+    schedule: convexVal.string(),                // cron expression "0 * * * *"
+    timezone: convexVal.optional(convexVal.string()), // "UTC", "America/New_York"
+
+    // Execution target
+    workflowId: convexVal.id("workflows"),
+
+    // State
+    isActive: convexVal.boolean(),
+    lastRunAt: convexVal.optional(convexVal.number()),
+    lastStatus: convexVal.optional(convexVal.union(
+      convexVal.literal("success"),
+      convexVal.literal("failed"),
+      convexVal.literal("partial")
+    )),
+
+    // Retry policy
+    maxRetries: convexVal.number(),
+    retryDelayMs: convexVal.number(),
+
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_active", ["isActive"])
+    .index("by_workflow", ["workflowId"]),
 
 });

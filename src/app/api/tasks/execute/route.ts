@@ -77,13 +77,9 @@ export async function POST(request: Request): Promise<Response> {
     let executionLogId: Id<"executionLog"> | undefined;
 
     try {
-      // Step 1: Create execution log entry
-      executionLogId = await client.mutation(api.executionLog.create, {
-        taskId: taskId as Id<"tasks">,
-        status: 'started',
-        attemptNumber: 1,
-        timeSpent: 0,
-      });
+      // TODO: Phase 6A - Replace with proper executions table logging
+      // Step 1: Create execution log entry (disabled - Phase 6A implementation)
+      // executionLogId = await client.mutation(api.executionLog.create, { ... });
 
       // Step 2: Spawn OpenClaw sub-agent
       // This calls OpenClaw's sessions_spawn API (mocked here)
@@ -97,13 +93,9 @@ export async function POST(request: Request): Promise<Response> {
         throw new Error(subagentResult.error || "Subagent execution failed");
       }
 
-      // Step 3: Update execution log with result
-      await client.mutation(api.executionLog.complete, {
-        id: executionLogId,
-        status: 'success',
-        output: subagentResult.output || '',
-        timeSpent: Date.now() - startedAt,
-      });
+      // TODO: Phase 6A - Replace with proper executions table logging
+      // Step 3: Update execution log with result (disabled - Phase 6A implementation)
+      // await client.mutation(api.executionLog.complete, { ... });
 
       // Step 4: Update task status
       await client.mutation(api.tasks.updateStatus, {
@@ -129,15 +121,11 @@ export async function POST(request: Request): Promise<Response> {
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     } catch (error: any) {
-      // Log failure
-      if (executionLogId) {
-        await client.mutation(api.executionLog.complete, {
-          id: executionLogId,
-          status: 'failed',
-          output: error?.message || 'Unknown error',
-          timeSpent: Date.now() - startedAt,
-        });
-      }
+      // TODO: Phase 6A - Replace with proper executions table logging
+      // Log failure (disabled - Phase 6A implementation)
+      // if (executionLogId) {
+      //   await client.mutation(api.executionLog.complete, { ... });
+      // }
 
       return new Response(
         JSON.stringify({

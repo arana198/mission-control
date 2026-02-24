@@ -170,15 +170,9 @@ async function handleComplete(body: any, taskId: string): Promise<Response> {
       status: (status as "done" | "review") || "done",
     });
 
-    // Create execution log entry
-    await convex.mutation(api.executionLog.create, {
-      taskId: taskId as Id<"tasks">,
-      agentId: agentId as Id<"agents">,
-      status: "success",
-      output: completionNotes || "",
-      timeSpent: timeSpent || 0,
-      attemptNumber: 1,
-    });
+    // TODO: Phase 6A - Replace with proper executions table logging
+    // Create execution log entry (disabled - Phase 6A implementation)
+    // await convex.mutation(api.executionLog.create, { ... });
 
     log.info("Task completed", { agentId, taskId });
     return jsonResponse(

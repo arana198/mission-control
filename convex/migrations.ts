@@ -1298,3 +1298,80 @@ export const migrationDenormalizeAgentMetrics = mutation({
  *
  * Used by: convex/skillInference.ts, convex/patternLearning.ts, convex/anomalyDetection.ts (Phase 5B)
  */
+
+/**
+ * MIG-17: Phase 6A - Control Plane Foundation (2026-02-24)
+ *
+ * New tables:
+ * - agent_status: Real-time ephemeral agent state (separate from agents table)
+ * - events: Real-time event stream for dashboard subscriptions (24h retention)
+ * - workflows: Multi-agent pipeline DAG definitions (Phase 6C foundation)
+ * - workflow_executions: Track multi-agent workflow runs (Phase 6C foundation)
+ * - metrics: Hourly pre-aggregated performance metrics (Phase 6B foundation)
+ * - cron_jobs: Scheduled workflow executions (Phase 6C foundation)
+ *
+ * Schema changes to existing tables:
+ * - executions: Added businessId (optional), workflowId (optional), renamed indexes
+ * - executions: Added new indexes by_agent_time, by_status_time, by_workflow_id, by_business_id
+ *
+ * Reason: Phase 6A implements the Agent Operating System control plane.
+ *
+ * agent_status: Separate from agents table to prevent heartbeat contention.
+ * Frequent updates (every 30s) would block agent registry queries.
+ * By splitting ephemeral state into agent_status, we can update safely.
+ *
+ * events: Dashboard real-time subscriptions + operational alerts. Immutable
+ * per-event with automatic 24-hour cleanup via background job. Provides
+ * system observability without creating unbounded growth.
+ *
+ * workflows/workflow_executions/cron_jobs: Foundation for Phase 6C multi-agent
+ * orchestration and scheduling. Defined now, populated/used in Phase 6C.
+ *
+ * metrics: Hourly aggregation of execution data. Pre-calculated by background
+ * worker (convex/workers/metricsAggregator.ts runs every hour). Dashboards
+ * query this instead of scanning execution ledger (performance).
+ *
+ * Migration action:
+ * - No data migration needed: new tables initialized empty
+ * - executions.businessId backfilled from tasks[].businessId where available
+ * - Initial agent_status records created for all existing agents (idle, 0 queue)
+ * - Metrics aggregator background job starts hourly on deployment
+ * - Event cleanup cron starts, deletes events >24 hours old hourly
+ *
+ * Idempotent: Schema-only change for new tables. executions migration is
+ * backfill-safe (skips already-populated businessId). agent_status initialization
+ * is idempotent (creates only if missing).
+ *
+ * Used by: Phase 6A (convex/executions.ts, convex/agents-lifecycle.ts,
+ * convex/agent-control.ts), Phase 6B (convex/observability.ts,
+ * convex/workers/metricsAggregator.ts), Phase 6C (convex/workflows.ts,
+ * convex/cron-jobs.ts)
+ */
+
+/**
+ * Implementation notes for Phase 6A migration:
+ *
+ * 1. Execute schema upgrade (schema.ts already updated)
+ *
+ * 2. Run backfill in migration handler:
+ *    - For each execution without businessId:
+ *      - Look up task via taskId
+ *      - Copy task.businessId to execution.businessId
+ *      - Safe: only fills if null, skips if already set
+ *
+ * 3. Initialize agent_status:
+ *    - For each agent:
+ *      - Create agent_status record if not exists
+ *      - status: "idle", queuedTaskCount: 0, lastHeartbeatAt: now,
+ *        uptimePercent: 100, totalExecutions: 0, failureRate: 0
+ *
+ * 4. Start background jobs (deployed separately):
+ *    - convex/workers/metricsAggregator.ts: Runs hourly (00 * * * *)
+ *    - convex/workers/eventCleanup.ts: Runs hourly (30 * * * *)
+ *
+ * 5. E2E validation:
+ *    - npm test convex/__tests__/executions.test.ts
+ *    - npm test convex/__tests__/agent-lifecycle.test.ts
+ *    - Verify agent_status records created for all agents
+ *    - Verify executions.businessId backfilled correctly
+ */
