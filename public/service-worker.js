@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles/globals.css',
+  '/offline.html', // Fallback for offline state (Phase 5D)
 ];
 
 // Install event - cache static assets
@@ -118,7 +119,15 @@ async function networkFirstStrategy(request) {
     if (cached) {
       return cached;
     }
-    // Return offline page if available
+    // Return offline page for navigation requests (Phase 5D)
+    if (request.mode === 'navigate') {
+      const offlineCache = await caches.open(CACHE_NAMES.static);
+      const offlinePage = await offlineCache.match('/offline.html');
+      if (offlinePage) {
+        return offlinePage;
+      }
+    }
+    // Fallback text response
     return new Response('Offline - Please check your connection', {
       status: 503,
       statusText: 'Service Unavailable',

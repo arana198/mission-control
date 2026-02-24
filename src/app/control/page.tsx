@@ -6,22 +6,35 @@ import { api } from "@/convex/_generated/api";
 
 /**
  * Mission Control V2 - Agent Control Panel
- * Phase 1: Agent Registry + Execution Logging
+ * Phase 6B: Observability Dashboard using Phase 5 queries
  */
 export default function ControlPage() {
-  const summary = useQuery(api.dashboard.getDashboardSummary);
-  const executions = useQuery(api.dashboard.getExecutions, { limit: 20 });
+  // Phase 5 Observability Queries
+  const systemHealth = useQuery(api.agentLifecycle.getSystemHealthFixed, {
+    businessId: "default-business" as any,
+  });
+  const recentExecutions = useQuery(api.executions.getRecentExecutions, {
+    limit: 20,
+  });
+  const events = useQuery(api.executions.getEventStream, {
+    limit: 50,
+  });
+  const costBreakdown = useQuery(api.executions.getCostBreakdown, {
+    date: new Date().toISOString().split("T")[0],
+  });
   const agents = useQuery(api.agents.getAllAgents);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
 
-  // Format tokens
+  // Helpers
   const formatTokens = (n: number) => {
     if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
     if (n >= 1000) return (n / 1000).toFixed(1) + "K";
     return n.toString();
   };
 
-  // Format time ago
+  const formatCents = (cents: number) => {
+    return `$${(cents / 100).toFixed(2)}`;
+  };
+
   const timeAgo = (ts: number) => {
     const secs = Math.floor((Date.now() - ts) / 1000);
     if (secs < 60) return `${secs}s ago`;
@@ -30,155 +43,270 @@ export default function ControlPage() {
     return `${Math.floor(secs / 86400)}d ago`;
   };
 
-  // Quick sync function (calls via button)
-  const handleSync = async () => {
-    setLastSync(new Date());
-    // In full impl, would call sync script here
-    window.location.reload();
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "success":
+      case "idle":
+        return "text-green-400";
+      case "busy":
+      case "running":
+        return "text-yellow-400";
+      case "failed":
+      case "error":
+        return "text-red-400";
+      default:
+        return "text-gray-400";
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "info":
+        return "text-blue-400";
+      case "warning":
+        return "text-yellow-400";
+      case "error":
+        return "text-red-400";
+      default:
+        return "text-gray-400";
+    }
   };
 
   return (
-    <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-        <div>
-          <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: 0 }}>
-            🎛️ Mission Control V2
-          </h1>
-          <p style={{ color: "#666", marginTop: "4px" }}>Agent Control Panel — Phase 1</p>
+    <div className="min-h-screen bg-slate-950 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              🎛️ Mission Control
+            </h1>
+            <p className="text-gray-400">
+              Observability Dashboard — Phase 6B Control Plane
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            ↻ Refresh
+          </button>
         </div>
-        <button
-          onClick={handleSync}
-          style={{
-            padding: "10px 20px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: 500,
-          }}
-        >
-          ↻ Sync Now
-        </button>
-      </header>
 
-      {/* Stats Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
-        <StatCard label="Total Agents" value={summary?.totalAgents ?? 0} color="#2563eb" />
-        <StatCard label="Active" value={summary?.activeAgents ?? 0} color="#16a34a" />
-        <StatCard label="Tokens Today" value={formatTokens(summary?.todayTokens ?? 0)} color="#9333ea" />
-        <StatCard label="Success Rate" value={`${summary?.successRate ?? 0}%`} color={(summary?.successRate ?? 0) >= 80 ? "#16a34a" : "#dc2626"} />
-      </div>
+        {/* System Health Stats */}
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">System Health</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              label="Total Agents"
+              value={systemHealth?.totalAgents ?? 0}
+              icon="🤖"
+            />
+            <StatCard
+              label="Active"
+              value={systemHealth?.activeAgents ?? 0}
+              icon="🚀"
+            />
+            <StatCard
+              label="Health"
+              value={`${systemHealth?.systemHealthPercent ?? 0}%`}
+              icon="❤️"
+            />
+            <StatCard
+              label="Avg Queue"
+              value={systemHealth?.avgQueueDepth?.toFixed(1) ?? 0}
+              icon="📊"
+            />
+          </div>
+        </section>
 
-      {/* Agent Registry */}
-      <section style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: 600, marginBottom: "16px" }}>🤖 Agent Registry</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
-          {agents?.map((agent: any) => (
-            <div
-              key={agent._id}
-              style={{
-                background: "white",
-                border: "1px solid #e5e7eb",
-                borderRadius: "12px",
-                padding: "16px",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                <div>
-                  <h3 style={{ fontWeight: 600, margin: 0 }}>{agent.name}</h3>
-                  <p style={{ color: "#666", fontSize: "14px", margin: "4px 0" }}>
-                    {agent.role} • {agent.level}
-                  </p>
-                </div>
-                <span
-                  style={{
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    background: agent.status === "active" ? "#dcfce7" : "#f3f4f6",
-                    color: agent.status === "active" ? "#16a34a" : "#666",
-                  }}
+        {/* Main Grid: Executions + Events */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Recent Executions */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              📋 Recent Executions
+            </h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {recentExecutions?.slice(0, 10).map((exec: any) => (
+                <div
+                  key={exec._id}
+                  className="bg-slate-800 rounded p-3 border border-slate-700 hover:border-slate-600 transition-colors"
                 >
-                  {agent.status}
-                </span>
-              </div>
-              <div style={{ marginTop: "12px", fontSize: "13px", color: "#666" }}>
-                <p>📁 {agent.workspacePath || "—"}</p>
-                <p>🔑 Last heartbeat: {timeAgo(agent.lastHeartbeat)}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium text-white">
+                        {exec.agentName || "Unknown"}
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {exec.triggerType || "manual"} •{" "}
+                        <span className={getStatusColor(exec.status)}>
+                          {exec.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right text-sm text-gray-400">
+                      <div>{formatTokens(exec.inputTokens || 0)} tokens</div>
+                      <div className="text-xs">
+                        {timeAgo(exec.startTime || 0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!recentExecutions || recentExecutions.length === 0 && (
+                <div className="text-center text-gray-500 py-8">No recent executions</div>
+              )}
+            </div>
+          </div>
+
+          {/* Live Event Feed */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              📢 Event Stream
+            </h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {events?.slice(0, 15).map((event: any) => (
+                <div
+                  key={event._id}
+                  className="bg-slate-800 rounded p-3 border border-slate-700 hover:border-slate-600 transition-colors"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${getSeverityColor(event.severity)}`}>
+                          ●
+                        </span>
+                        <span className="text-white font-medium text-sm">
+                          {event.type}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400 truncate">
+                        {event.message}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 whitespace-nowrap">
+                      {timeAgo(event.timestamp || 0)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!events || events.length === 0 && (
+                <div className="text-center text-gray-500 py-8">No events</div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Cost Breakdown */}
+        <section className="card mb-8">
+          <h3 className="text-lg font-semibold text-white mb-4">
+            💰 Cost Today
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-800 rounded p-4 border border-slate-700">
+              <div className="text-sm text-gray-400 mb-2">Total Cost</div>
+              <div className="text-3xl font-bold text-white">
+                {formatCents(costBreakdown?.totalCostCents || 0)}
               </div>
             </div>
-          ))}
-          {(!agents || agents.length === 0) && (
-            <p style={{ color: "#666", gridColumn: "1 / -1" }}>No agents registered</p>
+            <div className="bg-slate-800 rounded p-4 border border-slate-700">
+              <div className="text-sm text-gray-400 mb-2">Agents</div>
+              <div className="text-3xl font-bold text-white">
+                {costBreakdown?.byAgent?.length || 0}
+              </div>
+            </div>
+            <div className="bg-slate-800 rounded p-4 border border-slate-700">
+              <div className="text-sm text-gray-400 mb-2">Avg per Agent</div>
+              <div className="text-3xl font-bold text-white">
+                {formatCents(
+                  ((costBreakdown?.totalCostCents || 0) / (costBreakdown?.byAgent?.length || 1)) | 0
+                )}
+              </div>
+            </div>
+          </div>
+          {costBreakdown?.byAgent && costBreakdown.byAgent.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-slate-700">
+              <div className="text-sm text-gray-400 mb-3">Per-Agent Breakdown</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {costBreakdown.byAgent.map((item: any) => (
+                  <div
+                    key={item.agentId}
+                    className="bg-slate-900 rounded p-3 flex justify-between items-center"
+                  >
+                    <span className="text-gray-300 text-sm truncate">
+                      {agents?.find((a: any) => a._id === item.agentId)?.name ||
+                        "Unknown"}
+                    </span>
+                    <span className="text-white font-medium">
+                      {formatCents(item.costCents)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
-      </section>
+        </section>
 
-      {/* Execution History */}
-      <section>
-        <h2 style={{ fontSize: "20px", fontWeight: 600, marginBottom: "16px" }}>📊 Execution History</h2>
-        <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "12px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500 }}>Agent</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500 }}>Trigger</th>
-                <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500 }}>Status</th>
-                <th style={{ padding: "12px 16px", textAlign: "right", fontWeight: 500 }}>Tokens</th>
-                <th style={{ padding: "12px 16px", textAlign: "right", fontWeight: 500 }}>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {executions?.slice(0, 10).map((ex: any) => (
-                <tr key={ex._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <td style={{ padding: "12px 16px" }}>{ex.agentName}</td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ 
-                      padding: "2px 8px", 
-                      borderRadius: "4px", 
-                      fontSize: "12px",
-                      background: ex.triggerType === "cron" ? "#fef3c7" : ex.triggerType === "autonomous" ? "#dbeafe" : "#f3f4f6"
-                    }}>
-                      {ex.triggerType}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span style={{ 
-                      color: ex.status === "success" ? "#16a34a" : ex.status === "failed" ? "#dc2626" : "#666"
-                    }}>
-                      {ex.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontFamily: "monospace" }}>
-                    {formatTokens(ex.totalTokens || 0)}
-                  </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", color: "#666" }}>
-                    {timeAgo(ex.startTime)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!executions || executions.length === 0) && (
-            <p style={{ padding: "24px", textAlign: "center", color: "#666" }}>No executions yet</p>
-          )}
-        </div>
-      </section>
+        {/* Agent Registry */}
+        <section>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            🤖 Agent Registry
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {agents?.map((agent: any) => (
+              <div key={agent._id} className="card">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 className="font-semibold text-white">{agent.name}</h4>
+                    <p className="text-sm text-gray-400">
+                      {agent.role} • Level {agent.level || 1}
+                    </p>
+                  </div>
+                  <span className="badge bg-slate-700 text-gray-300 text-xs">
+                    {agent.runtimeStatus || "idle"}
+                  </span>
+                </div>
+                <div className="space-y-1 text-sm text-gray-400">
+                  <div>
+                    {agent.workspacePath ? (
+                      <div className="truncate font-mono text-xs">
+                        {agent.workspacePath}
+                      </div>
+                    ) : (
+                      <div>—</div>
+                    )}
+                  </div>
+                  <div>Last seen: {timeAgo(agent.lastHeartbeat || 0)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+/**
+ * Stat Card Component
+ */
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: string;
+}) {
   return (
-    <div style={{
-      background: "white",
-      border: "1px solid #e5e7eb",
-      borderRadius: "12px",
-      padding: "20px",
-    }}>
-      <p style={{ color: "#666", fontSize: "14px", margin: "0 0 8px 0" }}>{label}</p>
-      <p style={{ fontSize: "28px", fontWeight: "bold", margin: 0, color }}>{value}</p>
+    <div className="card">
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-2xl">{icon}</span>
+      </div>
+      <div className="text-gray-400 text-sm mb-1">{label}</div>
+      <div className="text-3xl font-bold text-white">{value}</div>
     </div>
   );
 }

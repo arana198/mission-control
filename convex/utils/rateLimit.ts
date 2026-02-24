@@ -1,13 +1,21 @@
 /**
- * Rate Limiting Utility
+ * Rate Limiting Utility (Schema-Fixed)
  *
  * Uses settings table to track rate limit windows.
- * Pattern: Store key with { count, windowStart }
+ * Pattern: Store key with value as JSON { count, windowStart }
  * Reset when window expires (now - windowStart > windowMs)
+ *
+ * SCHEMA FIX: count and windowStart are encoded in the value JSON string,
+ * not as direct fields (which aren't in the settings schema).
  */
 
 import { mutation, query } from "../_generated/server";
 import { v as convexVal } from "convex/values";
+
+interface RateLimitData {
+  count: number;
+  windowStart: number;
+}
 
 /**
  * Check if action is allowed under rate limit
@@ -35,10 +43,14 @@ export async function checkRateLimit(
 
   if (!setting) {
     // First call in this window
-    await ctx.db.insert("settings", {
-      key,
+    const rateLimitData: RateLimitData = {
       count: 1,
       windowStart: now,
+    };
+    await ctx.db.insert("settings", {
+      key,
+      value: JSON.stringify(rateLimitData),
+      updatedAt: now,
     });
     return {
       allowed: true,
@@ -47,13 +59,26 @@ export async function checkRateLimit(
     };
   }
 
-  const elapsedMs = now - (setting.windowStart || now);
+  // Parse the stored rate limit data from JSON
+  let rateLimitData: RateLimitData;
+  try {
+    rateLimitData = JSON.parse(setting.value || "{}");
+  } catch {
+    // Corrupted data, reset
+    rateLimitData = { count: 1, windowStart: now };
+  }
+
+  const elapsedMs = now - (rateLimitData.windowStart || now);
 
   if (elapsedMs > windowMs) {
     // Window expired, reset
-    await ctx.db.patch(setting._id, {
+    const newData: RateLimitData = {
       count: 1,
       windowStart: now,
+    };
+    await ctx.db.patch(setting._id, {
+      value: JSON.stringify(newData),
+      updatedAt: now,
     });
     return {
       allowed: true,
@@ -63,23 +88,28 @@ export async function checkRateLimit(
   }
 
   // Still in same window
-  if (setting.count >= maxCalls) {
+  if (rateLimitData.count >= maxCalls) {
     return {
       allowed: false,
       remaining: 0,
-      resetAt: setting.windowStart + windowMs,
+      resetAt: rateLimitData.windowStart + windowMs,
     };
   }
 
   // Increment counter
+  const updatedData: RateLimitData = {
+    count: rateLimitData.count + 1,
+    windowStart: rateLimitData.windowStart,
+  };
   await ctx.db.patch(setting._id, {
-    count: setting.count + 1,
+    value: JSON.stringify(updatedData),
+    updatedAt: now,
   });
 
   return {
     allowed: true,
-    remaining: maxCalls - (setting.count + 1),
-    resetAt: setting.windowStart + windowMs,
+    remaining: maxCalls - (rateLimitData.count + 1),
+    resetAt: rateLimitData.windowStart + windowMs,
   };
 }
 
@@ -141,10 +171,22 @@ export const getRateLimitStatus = query({
       };
     }
 
+    let rateLimitData: RateLimitData;
+    try {
+      rateLimitData = JSON.parse(setting.value || "{}");
+    } catch {
+      return {
+        key,
+        count: 0,
+        windowStart: 0,
+        status: "corrupted_data",
+      };
+    }
+
     return {
       key,
-      count: setting.count,
-      windowStart: setting.windowStart,
+      count: rateLimitData.count,
+      windowStart: rateLimitData.windowStart,
       status: "active",
     };
   },

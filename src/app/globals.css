@@ -495,3 +495,28 @@ html {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mobile modal full-bleed layout */
+@media (max-width: 640px) {
+  .modal-content {
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+    width: 100%;
+  }
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-start;
+  }
+}

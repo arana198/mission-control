@@ -10,6 +10,7 @@
 
 import type * as actions from "../actions.js";
 import type * as activities from "../activities.js";
+import type * as agentLifecycle from "../agentLifecycle.js";
 import type * as agentMetrics from "../agentMetrics.js";
 import type * as agentSelfCheck from "../agentSelfCheck.js";
 import type * as agents from "../agents.js";
@@ -44,6 +45,7 @@ import type * as types from "../types.js";
 import type * as utils_activityLogger from "../utils/activityLogger.js";
 import type * as utils_batchDelete from "../utils/batchDelete.js";
 import type * as utils_epicTaskSync from "../utils/epicTaskSync.js";
+import type * as utils_executionLogic from "../utils/executionLogic.js";
 import type * as utils_graphValidation from "../utils/graphValidation.js";
 import type * as utils_rateLimit from "../utils/rateLimit.js";
 import type * as utils_roleKeywords from "../utils/roleKeywords.js";
@@ -60,6 +62,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   activities: typeof activities;
+  agentLifecycle: typeof agentLifecycle;
   agentMetrics: typeof agentMetrics;
   agentSelfCheck: typeof agentSelfCheck;
   agents: typeof agents;
@@ -94,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   "utils/activityLogger": typeof utils_activityLogger;
   "utils/batchDelete": typeof utils_batchDelete;
   "utils/epicTaskSync": typeof utils_epicTaskSync;
+  "utils/executionLogic": typeof utils_executionLogic;
   "utils/graphValidation": typeof utils_graphValidation;
   "utils/rateLimit": typeof utils_rateLimit;
   "utils/roleKeywords": typeof utils_roleKeywords;
