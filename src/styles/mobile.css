@@ -1,0 +1,387 @@
+/**
+ * Mobile & Responsive Styles
+ * Phase 5D: Mobile & PWA Support
+ *
+ * Breakpoints:
+ * sm: 640px
+ * md: 768px
+ * lg: 1024px
+ * xl: 1280px
+ * 2xl: 1536px
+ *
+ * Touch target sizing: 48x48px minimum (WCAG 2.1)
+ */
+
+/* ==================== Touch Target Sizing ==================== */
+
+/* Buttons - ensure 48x48px touch target */
+button,
+[role="button"],
+[role="option"],
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 2.75rem; /* 44px - Apple recommended */
+  min-width: 2.75rem;
+  padding: 0.625rem; /* 10px */
+}
+
+/* Mobile: Increase touch targets further */
+@media (max-width: 640px) {
+  button,
+  [role="button"],
+  [role="option"] {
+    min-height: 3rem; /* 48px */
+    min-width: 3rem;
+    padding: 0.75rem; /* 12px */
+  }
+
+  /* Icon-only buttons */
+  button > svg {
+    width: 1.5rem; /* 24px */
+    height: 1.5rem;
+  }
+}
+
+/* ==================== Responsive Container ==================== */
+
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 1rem; /* 16px */
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding: 0 1.5rem; /* 24px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 64rem; /* 1024px */
+  }
+}
+
+/* ==================== Mobile Navigation ==================== */
+
+/* Sidebar - full-width on mobile */
+[class*="sidebar"] {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 40;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+}
+
+@media (min-width: 1024px) {
+  [class*="sidebar"] {
+    position: static;
+    width: auto;
+    transform: translateX(0);
+    max-width: 16rem;
+  }
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .mobile-menu-toggle {
+    display: block;
+  }
+}
+
+/* ==================== Modals - Full Screen on Mobile ==================== */
+
+[role="dialog"] {
+  max-height: 90vh;
+  border-radius: 1rem;
+}
+
+@media (max-width: 640px) {
+  [role="dialog"] {
+    max-height: 100vh;
+    border-radius: 1rem 1rem 0 0;
+    margin: 0;
+    bottom: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Modal backdrop - better contrast on mobile */
+  [role="dialog"]::before {
+    background-color: rgba(0, 0, 0, 0.75);
+  }
+}
+
+/* ==================== Forms - Mobile Friendly ==================== */
+
+input,
+textarea,
+select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    font-size: 1.0625rem; /* Prevent iOS zoom on focus */
+  }
+
+  /* Stack form fields vertically on mobile */
+  form > * + * {
+    margin-top: 1.5rem;
+  }
+}
+
+/* ==================== Grid & Layout - Responsive ==================== */
+
+/* Kanban board - single column on mobile */
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .kanban-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Data tables - horizontal scroll on mobile */
+table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+
+  td {
+    display: block;
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    text-align: left;
+    font-weight: 600;
+  }
+}
+
+/* ==================== Spacing & Padding - Mobile ==================== */
+
+.p-mobile {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .p-mobile {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .p-mobile {
+    padding: 2rem;
+  }
+}
+
+/* ==================== Text - Readable on Mobile ==================== */
+
+body {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 1rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* ==================== Scrolling & Overflow ==================== */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Touch scrolling - momentum scroll */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==================== Viewport Meta ==================== */
+
+/* Handled in HTML head, but CSS can enhance: */
+@viewport {
+  width: device-width;
+  zoom: 1;
+}
+
+/* ==================== Orientation Handling ==================== */
+
+/* Lock orientation for specific views if needed */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce padding in landscape on small devices */
+  body {
+    padding: 0.5rem;
+  }
+
+  [role="dialog"] {
+    max-height: 90vh;
+  }
+}
+
+@media (orientation: portrait) {
+  /* Standard portrait optimizations */
+  .landscape-only {
+    display: none;
+  }
+}
+
+/* ==================== Print Styles ==================== */
+
+@media print {
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Hide interactive elements when printing */
+  button,
+  [role="button"],
+  .no-print {
+    display: none;
+  }
+
+  /* Improve link visibility */
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* ==================== Dark Mode Mobile Adjustments ==================== */
+
+@media (prefers-color-scheme: dark) {
+  /* Enhanced contrast for dark mode on mobile */
+  body {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+
+  [role="dialog"] {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+
+  input,
+  textarea,
+  select {
+    background-color: #1e293b;
+    border-color: #475569;
+    color: #f1f5f9;
+  }
+}
+
+/* ==================== Reduced Motion ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==================== High Contrast Mode ==================== */
+
+@media (prefers-contrast: more) {
+  body {
+    color: #000;
+    background-color: #fff;
+  }
+
+  button {
+    border: 2px solid currentColor;
+  }
+
+  input,
+  textarea,
+  select {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ==================== Touch Device Specific ==================== */
+
+/* Hover states only on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+  button:hover,
+  [role="button"]:hover {
+    opacity: 0.9;
+  }
+}
+
+/* Touch devices - use active state instead */
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  [role="button"]:active {
+    opacity: 0.8;
+  }
+}
