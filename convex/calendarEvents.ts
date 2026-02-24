@@ -1,13 +1,16 @@
 /**
  * Calendar Events - Convex Functions
- * 
+ *
  * Manages merged timeline of human calendar + AI-scheduled tasks
  * Provides intelligent scheduling and conflict resolution
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from './_generated/server';
 import { v as convexVal } from "convex/values";
 import { Id } from './_generated/dataModel';
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * GET events in time range (human + AI merged)
@@ -94,10 +97,10 @@ export const createHumanEvent = mutation(async (ctx, args: {
 
 /**
  * CREATE AI-scheduled task event
- * 
+ *
  * Called when a task is scheduled for a specific time
  */
-export const scheduleTaskEvent = mutation(async (ctx, args: {
+export const scheduleTaskEvent = mutation(wrapConvexHandler(async (ctx, args: {
   taskId: Id<'tasks'>;
   startTime: number;
   durationHours: number;
@@ -105,7 +108,7 @@ export const scheduleTaskEvent = mutation(async (ctx, args: {
   goalIds?: Id<'goals'>[];
 }) => {
   const task = await ctx.db.get(args.taskId);
-  if (!task) throw new Error('Task not found');
+  if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
   const endTime = args.startTime + (args.durationHours * 60 * 60 * 1000);
 
@@ -124,7 +127,7 @@ export const scheduleTaskEvent = mutation(async (ctx, args: {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   });
-});
+}));
 
 /**
  * FIND free time slots
@@ -207,7 +210,7 @@ export const findFreeSlots = query(async (ctx, args: {
 /**
  * RESCHEDULE a task to a new time
  */
-export const rescheduleTask = mutation(async (ctx, args: {
+export const rescheduleTask = mutation(wrapConvexHandler(async (ctx, args: {
   taskId: Id<'tasks'>;
   newStartTime: number;
   reason?: string;
@@ -224,7 +227,7 @@ export const rescheduleTask = mutation(async (ctx, args: {
     .first();
 
   if (!existingEvent) {
-    throw new Error('No scheduled event found for this task');
+    throw ApiError.notFound('Scheduled Event', { taskId: args.taskId, type: 'ai_task' });
   }
 
   const duration = existingEvent.endTime - existingEvent.startTime;
@@ -238,7 +241,7 @@ export const rescheduleTask = mutation(async (ctx, args: {
   });
 
   return existingEvent._id;
-});
+}));
 
 /**
  * MARK task as executed

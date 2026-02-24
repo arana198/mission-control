@@ -3,10 +3,13 @@ import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { MessageSenderId } from "./types";
 import { Id } from "./_generated/dataModel";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Message / Comment System
  * Threaded discussions with @mentions
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  *
  * PHASE 6: Race Condition Safety
  * ─────────────────────────────────────────────────────────────────────────────
@@ -40,9 +43,9 @@ export const create = mutation({
     mentionAll: convexVal.optional(convexVal.boolean()), // @all support
     parentId: convexVal.optional(convexVal.id("messages")), // MSG-01: Reply to thread
   },
-  handler: async (ctx, { taskId, content, senderId, senderName, mentions, mentionAll, parentId }) => {
+  handler: wrapConvexHandler(async (ctx, { taskId, content, senderId, senderName, mentions, mentionAll, parentId }) => {
     const task = await ctx.db.get(taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound("Task", { taskId });
 
     // Insert message (scoped to task's business)
     const messageId = await ctx.db.insert("messages", {
@@ -234,7 +237,7 @@ export const create = mutation({
     }
 
     return messageId;
-  },
+  }),
 });
 
 // Get messages for a task
@@ -298,13 +301,13 @@ export const remove = mutation({
     messageId: convexVal.id("messages"),
     senderId: convexVal.string(), // Must match original sender
   },
-  handler: async (ctx, { messageId, senderId }) => {
+  handler: wrapConvexHandler(async (ctx, { messageId, senderId }) => {
     const message = await ctx.db.get(messageId);
-    if (!message) throw new Error("Message not found");
+    if (!message) throw ApiError.notFound("Message", { messageId });
 
     // Verify sender owns this message
     if (message.fromId !== senderId) {
-      throw new Error("Only the message author can delete it");
+      throw ApiError.forbidden("Only the message author can delete it", { messageId, requestSenderId: senderId, actualSenderId: message.fromId });
     }
 
     // Get task for activity log
@@ -327,7 +330,7 @@ export const remove = mutation({
     });
 
     return { success: true };
-  },
+  }),
 });
 
 /**
@@ -345,12 +348,12 @@ export const createHelpRequest = mutation({
     context: convexVal.optional(convexVal.string()), // Additional context/details
     leadAgentId: convexVal.optional(convexVal.id("agents")), // Escalate to lead agent
   },
-  handler: async (
+  handler: wrapConvexHandler(async (
     ctx,
     { taskId, fromId, fromName, reason, context, leadAgentId }
   ) => {
     const task = await ctx.db.get(taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound("Task", { taskId });
 
     // Build help request message content
     const content = context
@@ -405,5 +408,5 @@ export const createHelpRequest = mutation({
       messageId,
       notification: leadAgentId ? { recipientId: leadAgentId } : null,
     };
-  },
+  }),
 });

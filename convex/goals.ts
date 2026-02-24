@@ -1,13 +1,16 @@
 /**
  * Goals - Convex Functions
- * 
+ *
  * Long-term objective management with progress tracking
  * Integrates with task completion and memory
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from './_generated/server';
 import { v as convexVal } from "convex/values";
 import { Id } from './_generated/dataModel';
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * GET all active goals
@@ -168,14 +171,14 @@ export const update = mutation(async (ctx, args: {
 /**
  * LINK task to goal
  */
-export const linkTask = mutation(async (ctx, args: {
+export const linkTask = mutation(wrapConvexHandler(async (ctx, args: {
   goalId: Id<'goals'>;
   taskId: Id<'tasks'>;
 }) => {
   const goal = await ctx.db.get(args.goalId);
   const task = await ctx.db.get(args.taskId);
 
-  if (!goal || !task) throw new Error('Goal or task not found');
+  if (!goal || !task) throw ApiError.notFound('Goal or Task', { goalId: args.goalId, taskId: args.taskId, goalFound: !!goal, taskFound: !!task });
 
   // Add task to goal
   if (!goal.relatedTaskIds.includes(args.taskId)) {
@@ -195,19 +198,19 @@ export const linkTask = mutation(async (ctx, args: {
   // Recalculate goal progress
   const newProgress = await calculateProgress(ctx, args.goalId);
   await ctx.db.patch(args.goalId, { progress: newProgress });
-});
+}));
 
 /**
  * UNLINK task from goal
  */
-export const unlinkTask = mutation(async (ctx, args: {
+export const unlinkTask = mutation(wrapConvexHandler(async (ctx, args: {
   goalId: Id<'goals'>;
   taskId: Id<'tasks'>;
 }) => {
   const goal = await ctx.db.get(args.goalId);
   const task = await ctx.db.get(args.taskId);
 
-  if (!goal || !task) throw new Error('Goal or task not found');
+  if (!goal || !task) throw ApiError.notFound('Goal or Task', { goalId: args.goalId, taskId: args.taskId, goalFound: !!goal, taskFound: !!task });
 
   // Remove task from goal
   await ctx.db.patch(args.goalId, {
@@ -223,7 +226,7 @@ export const unlinkTask = mutation(async (ctx, args: {
   // Recalculate goal progress
   const newProgress = await calculateProgress(ctx, args.goalId);
   await ctx.db.patch(args.goalId, { progress: newProgress });
-});
+}));
 
 /**
  * Helper: Calculate goal progress based on linked tasks

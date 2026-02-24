@@ -1,10 +1,13 @@
 /**
  * Decisions Module
  * Track and audit all management decisions made by OpenClaw
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Create a decision record
@@ -173,9 +176,9 @@ export const updateOutcome = mutation({
     decisionId: v.id("decisions"),
     outcome: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const decision = await ctx.db.get(args.decisionId);
-    if (!decision) throw new Error("Decision not found");
+    if (!decision) throw ApiError.notFound('Decision', { decisionId: args.decisionId });
 
     await ctx.db.patch(args.decisionId, {
       outcome: args.outcome,
@@ -183,7 +186,7 @@ export const updateOutcome = mutation({
     });
 
     return decision;
-  },
+  }),
 });
 
 /**

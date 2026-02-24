@@ -1,6 +1,7 @@
 import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Wiki Backend Functions - Phase 2
@@ -11,7 +12,9 @@ import { Doc, Id } from "./_generated/dataModel";
  * - Full type safety with Zod validation
  * - Bidirectional denormalization maintained (parentId + childIds)
  * - Business-scoped queries ensure data isolation
- * - Error handling with AppError patterns
+ * - Error handling with ApiError patterns
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -210,7 +213,7 @@ export const createPage = mutation({
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
   },
-  handler: async (
+  handler: wrapConvexHandler(async (
     ctx,
     {
       businessId,
@@ -226,7 +229,7 @@ export const createPage = mutation({
     // Get parent page
     const parent = await ctx.db.get(parentId);
     if (!parent) {
-      throw new Error(`Parent page not found: ${parentId}`);
+      throw ApiError.notFound('Parent WikiPage', { parentId });
     }
 
     // Get current child count (for position)
@@ -264,7 +267,7 @@ export const createPage = mutation({
     });
 
     return pageId;
-  },
+  }),
 });
 
 /**
@@ -280,7 +283,7 @@ export const updatePage = mutation({
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     epicId: convexVal.optional(convexVal.id("epics")),
   },
-  handler: async (
+  handler: wrapConvexHandler(async (
     ctx,
     {
       pageId,
@@ -294,7 +297,7 @@ export const updatePage = mutation({
   ) => {
     const page = await ctx.db.get(pageId);
     if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
+      throw ApiError.notFound('WikiPage', { pageId });
     }
 
     // Update the page with new content
@@ -309,7 +312,7 @@ export const updatePage = mutation({
     });
 
     return pageId;
-  },
+  }),
 });
 
 /**
@@ -318,7 +321,7 @@ export const updatePage = mutation({
 async function deletePageRecursive(ctx: any, pageId: Id<"wikiPages">) {
   const page = await ctx.db.get(pageId);
   if (!page) {
-    throw new Error(`Page not found: ${pageId}`);
+    throw ApiError.notFound('WikiPage', { pageId });
   }
 
   // Recursively delete all children
@@ -356,10 +359,10 @@ async function deletePageRecursive(ctx: any, pageId: Id<"wikiPages">) {
  */
 export const deletePage = mutation({
   args: { pageId: convexVal.id("wikiPages") },
-  handler: async (ctx, { pageId }) => {
+  handler: wrapConvexHandler(async (ctx, { pageId }) => {
     await deletePageRecursive(ctx, pageId);
     return pageId;
-  },
+  }),
 });
 
 /**
@@ -372,15 +375,15 @@ export const movePage = mutation({
     newParentId: convexVal.id("wikiPages"),
     position: convexVal.number(),
   },
-  handler: async (ctx, { pageId, newParentId, position }) => {
+  handler: wrapConvexHandler(async (ctx, { pageId, newParentId, position }) => {
     const page = await ctx.db.get(pageId);
     if (!page) {
-      throw new Error(`Page not found: ${pageId}`);
+      throw ApiError.notFound('WikiPage', { pageId });
     }
 
     const newParent = await ctx.db.get(newParentId);
     if (!newParent) {
-      throw new Error(`New parent page not found: ${newParentId}`);
+      throw ApiError.notFound('New Parent WikiPage', { newParentId });
     }
 
     // Remove from old parent
@@ -408,7 +411,7 @@ export const movePage = mutation({
     });
 
     return pageId;
-  },
+  }),
 });
 
 /**
@@ -420,10 +423,10 @@ export const reorderPages = mutation({
     parentId: convexVal.id("wikiPages"),
     orderedChildIds: convexVal.array(convexVal.id("wikiPages")),
   },
-  handler: async (ctx, { parentId, orderedChildIds }) => {
+  handler: wrapConvexHandler(async (ctx, { parentId, orderedChildIds }) => {
     const parent = await ctx.db.get(parentId);
     if (!parent) {
-      throw new Error(`Parent page not found: ${parentId}`);
+      throw ApiError.notFound('Parent WikiPage', { parentId });
     }
 
     // Update parent's childIds order
@@ -439,7 +442,7 @@ export const reorderPages = mutation({
     }
 
     return parentId;
-  },
+  }),
 });
 
 /**
@@ -455,7 +458,7 @@ export const addComment = mutation({
     content: convexVal.string(),
     parentId: convexVal.optional(convexVal.id("wikiComments")),
   },
-  handler: async (
+  handler: wrapConvexHandler(async (
     ctx,
     { pageId, businessId, fromId, fromName, content, parentId }
   ) => {
@@ -482,7 +485,7 @@ export const addComment = mutation({
     }
 
     return commentId;
-  },
+  }),
 });
 
 /**
@@ -491,7 +494,7 @@ export const addComment = mutation({
 async function deleteCommentRecursive(ctx: any, commentId: Id<"wikiComments">) {
   const comment = await ctx.db.get(commentId);
   if (!comment) {
-    throw new Error(`Comment not found: ${commentId}`);
+    throw ApiError.notFound('WikiComment', { commentId });
   }
 
   // Remove from parent's replyIds if this is a reply
@@ -519,9 +522,9 @@ async function deleteCommentRecursive(ctx: any, commentId: Id<"wikiComments">) {
  */
 export const deleteComment = mutation({
   args: { commentId: convexVal.id("wikiComments") },
-  handler: async (ctx, { commentId }) => {
+  handler: wrapConvexHandler(async (ctx, { commentId }) => {
     await deleteCommentRecursive(ctx, commentId);
     return commentId;
-  },
+  }),
 });
 

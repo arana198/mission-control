@@ -1,9 +1,12 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Document Management
  * Deliverables, research, specs, drafts
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 // Create document
@@ -93,9 +96,9 @@ export const update = mutation({
     content: convexVal.optional(convexVal.string()),
     updatedBy: convexVal.string(),
   },
-  handler: async (ctx, { documentId, title, content, updatedBy }) => {
+  handler: wrapConvexHandler(async (ctx, { documentId, title, content, updatedBy }) => {
     const doc = await ctx.db.get(documentId);
-    if (!doc) throw new Error("Document not found");
+    if (!doc) throw ApiError.notFound('Document', { documentId });
 
     const updateData: any = {
       updatedAt: Date.now(),
@@ -107,7 +110,7 @@ export const update = mutation({
     await ctx.db.patch(documentId, updateData);
 
     return { success: true };
-  },
+  }),
 });
 
 // Get documents for a task
