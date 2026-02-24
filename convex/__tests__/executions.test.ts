@@ -19,7 +19,11 @@ import {
   aggregateMetricsLogic,
   shouldCleanupEventLogic,
   validateExecutionAllowedLogic,
-} from "../utils/execution-logic";
+  calculateTrendPercent,
+  groupExecutionsByHour,
+  buildCostTrend,
+  rankAgentsByEfficiency,
+} from "../utils/executionLogic";
 
 /**
  * ========== PHASE 1: NO DEPENDENCIES ==========
@@ -534,7 +538,7 @@ describe("Suite 2.4: getAgentMetrics()", () => {
       { status: "idle", timestamp: 3600000 }, // 30 min busy
     ];
 
-    const executions = [];
+    const executions: Array<{ status: string; durationMs: number }> = [];
     const metrics = calculateAgentMetricsLogic(statusHistory, executions);
 
     expect(metrics.utilization).toBe(50); // 50% busy
@@ -558,7 +562,7 @@ describe("Suite 2.4: getAgentMetrics()", () => {
   });
 
   test("2.4.3: Calculates avg execution time", () => {
-    const statusHistory = [];
+    const statusHistory: Array<{ status: string; timestamp: number }> = [];
     const executions = [
       { status: "success", durationMs: 100 },
       { status: "success", durationMs: 200 },
@@ -578,7 +582,7 @@ describe("Suite 2.4: getAgentMetrics()", () => {
       { status: "failed", timestamp: 4000 },
     ];
 
-    const executions = [];
+    const executions: Array<{ status: string; durationMs: number }> = [];
     const metrics = calculateAgentMetricsLogic(statusHistory, executions);
     expect(metrics.onlinePercent).toBe(60); // 3 online out of 5
   });
@@ -867,5 +871,280 @@ describe("Phase 4: Complex Scenarios", () => {
 
     const toDelete = events.filter((e) => shouldCleanupEventLogic(e.timestamp, now));
     expect(toDelete.length).toBe(2); // Should delete 2 old events
+  });
+});
+
+/**
+ * ========== PHASE 5: OBSERVABILITY DASHBOARD ANALYTICS ==========
+ * 25 new tests for 4 pure logic analytics functions
+ */
+
+describe("Suite 5.1: calculateTrendPercent()", () => {
+  test("5.1.1: Returns null when previous is 0", () => {
+    expect(calculateTrendPercent(100, 0)).toBeNull();
+  });
+
+  test("5.1.2: Returns null when both are 0", () => {
+    expect(calculateTrendPercent(0, 0)).toBeNull();
+  });
+
+  test("5.1.3: Calculates 50% increase correctly", () => {
+    expect(calculateTrendPercent(150, 100)).toBe(50);
+  });
+
+  test("5.1.4: Calculates 50% decrease correctly (negative)", () => {
+    expect(calculateTrendPercent(50, 100)).toBe(-50);
+  });
+
+  test("5.1.5: Returns 0 when current equals previous", () => {
+    expect(calculateTrendPercent(100, 100)).toBe(0);
+  });
+
+  test("5.1.6: Handles large values with correct rounding", () => {
+    // 1/3 percent change: 10000 → 10033.33
+    const result = calculateTrendPercent(10033, 10000);
+    expect(result).toBe(0.33);
+  });
+});
+
+describe("Suite 5.2: groupExecutionsByHour()", () => {
+  test("5.2.1: Returns array of correct length for requested hours", () => {
+    const result = groupExecutionsByHour([], 24);
+    expect(result).toHaveLength(24);
+  });
+
+  test("5.2.2: All slots are zero for empty executions", () => {
+    const result = groupExecutionsByHour([], 6);
+    result.forEach((slot: { count: number; successCount: number; failureCount: number }) => {
+      expect(slot.count).toBe(0);
+      expect(slot.successCount).toBe(0);
+      expect(slot.failureCount).toBe(0);
+    });
+  });
+
+  test("5.2.3: Counts executions in correct bucket", () => {
+    const nowMs = 1000 * 3600 * 24; // arbitrary anchor
+    const executions = [
+      { startTime: nowMs - 1000, status: "success" },
+      { startTime: nowMs - 2000, status: "success" },
+      { startTime: nowMs - 3000, status: "failed" },
+    ];
+    const result = groupExecutionsByHour(executions, 24, nowMs);
+    const lastSlot = result[result.length - 1]; // most recent slot
+    expect(lastSlot.count).toBe(3);
+    expect(lastSlot.successCount).toBe(2);
+    expect(lastSlot.failureCount).toBe(1);
+  });
+
+  test("5.2.4: Ignores executions outside the window", () => {
+    const nowMs = 1000 * 3600 * 24;
+    const executions = [
+      { startTime: nowMs - 25 * 3600000, status: "success" }, // outside 24h window
+    ];
+    const result = groupExecutionsByHour(executions, 24, nowMs);
+    const total = result.reduce((sum: number, s) => sum + s.count, 0);
+    expect(total).toBe(0);
+  });
+
+  test("5.2.5: Assigns correct slot index per execution time", () => {
+    const nowMs = 24 * 3600000;
+    const executions = [
+      { startTime: nowMs - 1800000, status: "success" }, // 30 min ago → slot 23 (most recent 1h bucket)
+      { startTime: nowMs - 12.5 * 3600000, status: "success" }, // 12.5h ago → slot 11
+    ];
+    const result = groupExecutionsByHour(executions, 24, nowMs);
+    expect(result[23].count).toBe(1); // most recent window
+    expect(result[11].count).toBe(1); // 12h ago window
+  });
+
+  test("5.2.6: Performance <5ms for 1000 executions", () => {
+    const nowMs = Date.now();
+    const executions = Array.from({ length: 1000 }, (_, i) => ({
+      startTime: nowMs - i * 30000, // spread over 30s intervals
+      status: i % 3 === 0 ? "failed" : "success",
+    }));
+    const start = Date.now();
+    groupExecutionsByHour(executions, 24, nowMs);
+    expect(Date.now() - start).toBeLessThan(5);
+  });
+});
+
+describe("Suite 5.3: buildCostTrend()", () => {
+  test("5.3.1: Returns empty array for empty input", () => {
+    expect(buildCostTrend([])).toEqual([]);
+  });
+
+  test("5.3.2: Single agent single hour returns one entry", () => {
+    const rows = [{ date: "2024-02-24", hour: 9, totalCostCents: 500, agentId: "a1" }];
+    const result = buildCostTrend(rows);
+    expect(result).toHaveLength(1);
+    expect(result[0].label).toBe("2024-02-24:09");
+    expect(result[0].costCents).toBe(500);
+  });
+
+  test("5.3.3: Multiple agents in same hour are summed", () => {
+    const rows = [
+      { date: "2024-02-24", hour: 10, totalCostCents: 300, agentId: "a1" },
+      { date: "2024-02-24", hour: 10, totalCostCents: 200, agentId: "a2" },
+    ];
+    const result = buildCostTrend(rows);
+    expect(result).toHaveLength(1);
+    expect(result[0].costCents).toBe(500);
+  });
+
+  test("5.3.4: Results are sorted chronologically", () => {
+    const rows = [
+      { date: "2024-02-24", hour: 15, totalCostCents: 100, agentId: "a1" },
+      { date: "2024-02-24", hour: 9, totalCostCents: 200, agentId: "a1" },
+      { date: "2024-02-24", hour: 12, totalCostCents: 150, agentId: "a1" },
+    ];
+    const result = buildCostTrend(rows);
+    expect(result[0].label).toBe("2024-02-24:09");
+    expect(result[1].label).toBe("2024-02-24:12");
+    expect(result[2].label).toBe("2024-02-24:15");
+  });
+
+  test("5.3.5: Integration — full dashboard cost trend from 24h metrics", () => {
+    // Simulate 24 hours of metrics, 2 agents per hour
+    const rows = Array.from({ length: 24 }, (_, i) => [
+      { date: "2024-02-24", hour: i, totalCostCents: 100 + i, agentId: "a1" },
+      { date: "2024-02-24", hour: i, totalCostCents: 50 + i, agentId: "a2" },
+    ]).flat();
+
+    const result = buildCostTrend(rows);
+    expect(result).toHaveLength(24);
+    // Hour 0: 100 + 50 = 150
+    expect(result[0].costCents).toBe(150);
+    // Hour 23: (100+23) + (50+23) = 123 + 73 = 196
+    expect(result[23].costCents).toBe(196);
+  });
+});
+
+describe("Suite 5.4: rankAgentsByEfficiency()", () => {
+  test("5.4.1: Returns empty array for empty input", () => {
+    expect(rankAgentsByEfficiency([])).toEqual([]);
+  });
+
+  test("5.4.2: Single agent gets rank 1", () => {
+    const result = rankAgentsByEfficiency([
+      {
+        agentId: "a1",
+        agentName: "Alpha",
+        successCount: 8,
+        totalExecutions: 10,
+        totalDurationMs: 10000,
+      },
+    ]);
+    expect(result[0].rank).toBe(1);
+    expect(result[0].successRate).toBe(0.8);
+  });
+
+  test("5.4.3: Sorts by efficiency score descending", () => {
+    const agents = [
+      {
+        agentId: "a1",
+        agentName: "Slow",
+        successCount: 9,
+        totalExecutions: 10,
+        totalDurationMs: 100000,
+      },
+      {
+        agentId: "a2",
+        agentName: "Fast",
+        successCount: 9,
+        totalExecutions: 10,
+        totalDurationMs: 10000,
+      },
+    ];
+    const result = rankAgentsByEfficiency(agents);
+    expect(result[0].agentId).toBe("a2"); // faster has better throughputScore
+    expect(result[0].rank).toBe(1);
+    expect(result[1].rank).toBe(2);
+  });
+
+  test("5.4.4: Agent with zero executions gets efficiencyScore 0", () => {
+    const result = rankAgentsByEfficiency([
+      {
+        agentId: "a1",
+        agentName: "Idle",
+        successCount: 0,
+        totalExecutions: 0,
+        totalDurationMs: 0,
+      },
+    ]);
+    expect(result[0].efficiencyScore).toBe(0);
+    expect(result[0].successRate).toBe(0);
+  });
+
+  test("5.4.5: Ranks are 1-based and consecutive", () => {
+    const agents = Array.from({ length: 5 }, (_, i) => ({
+      agentId: `a${i}`,
+      agentName: `Agent ${i}`,
+      successCount: 10 - i,
+      totalExecutions: 10,
+      totalDurationMs: 10000 + i * 1000,
+    }));
+    const result = rankAgentsByEfficiency(agents);
+    const ranks = result.map((r) => r.rank);
+    expect(ranks).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("Suite 5.5: Phase 5 Integration Scenarios", () => {
+  test("Full dashboard data assembly: trend + cost + efficiency", () => {
+    // Trend: previous hour had 8 successes, current has 9
+    const trend = calculateTrendPercent(9, 8);
+    expect(trend).toBeCloseTo(12.5, 1);
+
+    // Cost trend from raw rows
+    const costRows = [
+      { date: "2024-02-24", hour: 0, totalCostCents: 500, agentId: "a1" },
+      { date: "2024-02-24", hour: 1, totalCostCents: 600, agentId: "a1" },
+    ];
+    const costTrend = buildCostTrend(costRows);
+    expect(costTrend).toHaveLength(2);
+    expect(costTrend[1].costCents).toBeGreaterThan(costTrend[0].costCents);
+
+    // Rank agents
+    const ranked = rankAgentsByEfficiency([
+      {
+        agentId: "a1",
+        agentName: "Alpha",
+        successCount: 17,
+        totalExecutions: 20,
+        totalDurationMs: 60000,
+      },
+    ]);
+    expect(ranked[0].rank).toBe(1);
+  });
+
+  test("Trend comparison across two periods", () => {
+    const previousPeriodCost = 5000;
+    const currentPeriodCost = 6500;
+    const trend = calculateTrendPercent(currentPeriodCost, previousPeriodCost);
+    expect(trend).toBe(30); // 30% increase
+  });
+
+  test("getSystemHealthFixed N+1 fix: verify in-memory join pattern", () => {
+    // Simulate fetching all statuses at once and joining in memory
+    const agents = [{ _id: "a1" }, { _id: "a2" }, { _id: "a3" }];
+    const allStatuses = [
+      { agentId: "a1", status: "idle", queuedTaskCount: 0, failureRate: 0 },
+      { agentId: "a2", status: "busy", queuedTaskCount: 2, failureRate: 0 },
+      { agentId: "a3", status: "failed", queuedTaskCount: 0, failureRate: 1 },
+    ];
+
+    // Build lookup map (the fix pattern)
+    const statusMap: Record<string, any> = {};
+    for (const s of allStatuses) {
+      statusMap[s.agentId] = s;
+    }
+
+    // calculateSystemHealth is already tested; verify the fix joins correctly
+    const result = calculateSystemHealth(agents as any, statusMap);
+    expect(result.totalAgents).toBe(3);
+    expect(result.activeAgents).toBe(1);
+    expect(result.failedAgents).toBe(1);
+    expect(result.systemHealthPercent).toBe(67); // 2 healthy / 3 total
   });
 });

@@ -592,11 +592,19 @@ export const aggregateMetrics = mutation({
     hour: v.number(), // 0-23
   },
   handler: async (ctx, args) => {
-    // Get all executions for this hour (simplified - would use proper time range)
+    // Get executions for the specified hour using time-window filter
+    // Calculate epoch ms bounds for the given date+hour
+    const dateMs = new Date(`${args.date}T${String(args.hour).padStart(2, "0")}:00:00Z`).getTime();
+    const windowStartMs = dateMs;
+    const windowEndMs = dateMs + 3600000; // one hour later
+
     const executions = await ctx.db
       .query("executions")
-      .filter((q: any) => q.eq(q.field("status"), "success"))
+      .withIndex("by_start_time", (q: any) =>
+        q.gte("startTime", windowStartMs).lte("startTime", windowEndMs)
+      )
       .collect();
+    // Note: No status filter here — we need both successes and failures to compute failureRate
 
     if (executions.length === 0) {
       return { agentsProcessed: 0, metricsCreated: 0 };
@@ -698,6 +706,179 @@ export const cleanupOldEvents = mutation({
     }
 
     return { deleted };
+  },
+});
+
+/**
+ * ========== PHASE 5: OBSERVABILITY DASHBOARD QUERIES ==========
+ */
+
+/**
+ * PHASE 5: getRecentExecutions() - Query
+ *
+ * Get recent executions, optionally scoped to a business or agent.
+ * Uses appropriate index based on filter parameters.
+ */
+export const getRecentExecutions = query({
+  args: {
+    businessId: v.optional(v.id("businesses")),
+    agentId: v.optional(v.id("agents")),
+    startTime: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const cappedLimit = Math.min(args.limit ?? 50, 200);
+
+    let query = ctx.db.query("executions");
+
+    // Use appropriate index based on filter parameters
+    if (args.agentId && args.startTime) {
+      query = query.withIndex("by_agent_time", (q: any) =>
+        q.eq("agentId", args.agentId).gte("startTime", args.startTime)
+      ) as any;
+    } else if (args.agentId) {
+      query = query.withIndex("by_agent", (q: any) =>
+        q.eq("agentId", args.agentId)
+      ) as any;
+    } else if (args.businessId) {
+      query = query.withIndex("by_business_id", (q: any) =>
+        q.eq("businessId", args.businessId)
+      ) as any;
+    } else {
+      query = query.withIndex("by_start_time") as any;
+    }
+
+    const executions = await query.order("desc").take(cappedLimit);
+    return executions;
+  },
+});
+
+/**
+ * PHASE 5: getEventStream() - Query
+ *
+ * Get recent events, optionally filtered by agent and severity.
+ * Returns newest events first.
+ */
+export const getEventStream = query({
+  args: {
+    agentId: v.optional(v.id("agents")),
+    severity: v.optional(
+      v.union(v.literal("info"), v.literal("warning"), v.literal("error"))
+    ),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const cappedLimit = Math.min(args.limit ?? 100, 500);
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_timestamp")
+      .order("desc")
+      .take(cappedLimit);
+
+    // Post-filter by agentId and severity in memory
+    let filtered = events;
+    if (args.agentId) {
+      filtered = filtered.filter((e: any) => e.agentId === args.agentId);
+    }
+    if (args.severity) {
+      filtered = filtered.filter((e: any) => e.severity === args.severity);
+    }
+
+    return filtered;
+  },
+});
+
+/**
+ * PHASE 5: getCostBreakdown() - Query
+ *
+ * Get cost breakdown for a specific date.
+ * If agentId is provided, return hourly breakdown for that agent.
+ * Otherwise, return per-agent breakdown for the entire date.
+ */
+export const getCostBreakdown = query({
+  args: {
+    date: v.string(), // "YYYY-MM-DD"
+    agentId: v.optional(v.id("agents")),
+  },
+  handler: async (ctx, args) => {
+    if (args.agentId) {
+      // Single agent, hourly breakdown
+      const rows = await ctx.db
+        .query("metrics")
+        .withIndex("by_agent_date", (q: any) =>
+          q.eq("agentId", args.agentId).eq("date", args.date)
+        )
+        .collect();
+
+      let totalCostCents = 0;
+      const byHour = [];
+      for (const row of rows) {
+        totalCostCents += row.totalCostCents || 0;
+        byHour.push({
+          hour: row.hour,
+          costCents: row.totalCostCents,
+        });
+      }
+
+      return {
+        agentId: args.agentId,
+        date: args.date,
+        totalCostCents,
+        byHour,
+      };
+    } else {
+      // All agents, per-agent breakdown
+      const rows = await ctx.db
+        .query("metrics")
+        .withIndex("by_date", (q: any) => q.eq("date", args.date))
+        .collect();
+
+      const agentCosts: Record<string, number> = {};
+      let totalCostCents = 0;
+
+      for (const row of rows) {
+        const cost = row.totalCostCents || 0;
+        agentCosts[row.agentId] = (agentCosts[row.agentId] ?? 0) + cost;
+        totalCostCents += cost;
+      }
+
+      const byAgent = Object.entries(agentCosts).map(([agentId, costCents]) => ({
+        agentId,
+        costCents,
+      }));
+
+      return {
+        date: args.date,
+        totalCostCents,
+        byAgent,
+      };
+    }
+  },
+});
+
+/**
+ * PHASE 5: getExecutionTimeline() - Query
+ *
+ * Get time-windowed execution history for an agent.
+ * Uses compound by_agent_time index for efficiency.
+ */
+export const getExecutionTimeline = query({
+  args: {
+    agentId: v.id("agents"),
+    startTime: v.number(),
+    endTime: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const executions = await ctx.db
+      .query("executions")
+      .withIndex("by_agent_time", (q: any) =>
+        q.eq("agentId", args.agentId).gte("startTime", args.startTime)
+      )
+      .filter((q: any) => q.lte(q.field("startTime"), args.endTime))
+      .take(500); // Hard cap to prevent unbounded queries
+
+    return executions;
   },
 });
 
