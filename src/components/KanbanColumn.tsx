@@ -36,6 +36,8 @@ interface KanbanColumnProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, status: string) => void;
+  draggedTaskId?: string;
+  presenceMap?: Map<string, string>;
 }
 
 function KanbanColumnComponent({
@@ -52,6 +54,8 @@ function KanbanColumnComponent({
   onDragOver,
   onDragLeave,
   onDrop,
+  draggedTaskId,
+  presenceMap,
 }: KanbanColumnProps) {
   const Icon = column.icon;
 
@@ -86,7 +90,9 @@ function KanbanColumnComponent({
               draggable={!bulkMode}
               onDragStart={() => !bulkMode && onDragStart(task)}
               onClick={() => !bulkMode && onTaskClick(task)}
-              className="card p-3 cursor-pointer hover:shadow-md transition-all relative"
+              className={`card p-3 cursor-pointer hover:shadow-md transition-all relative ${
+                task._id === draggedTaskId ? "opacity-50 scale-95" : ""
+              }`}
               role="button"
               tabIndex={0}
               onKeyPress={(e) => {
@@ -164,9 +170,24 @@ function KanbanColumnComponent({
                   <div className="flex items-center gap-1">
                     {task.assigneeIds.slice(0, 3).map((agentId: string) => {
                       const agent = agents.find((a) => a._id === agentId);
+                      const presenceStatus = presenceMap?.get(agentId);
+                      const dotColor = {
+                        online: "bg-green-500",
+                        away: "bg-yellow-500",
+                        do_not_disturb: "bg-red-500",
+                        offline: "bg-gray-300",
+                      }[presenceStatus ?? "offline"] ?? "bg-gray-300";
+
                       return agent ? (
-                        <span key={agentId} className="text-xs">
+                        <span
+                          key={agentId}
+                          className="relative text-xs"
+                          title={`${agent.name}: ${presenceStatus ?? "offline"}`}
+                        >
                           {agent.emoji}
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${dotColor}`}
+                          />
                         </span>
                       ) : null;
                     })}

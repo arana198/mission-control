@@ -99,7 +99,25 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     router.push('?');
   };
 
-  const updateTask = useMutation(api.tasks.update);
+  // Optimistic updates for task status changes (drag-and-drop)
+  const updateTask = useMutation(api.tasks.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const { id, status } = args;
+      if (!status || !businessId) return;
+
+      // Update getAllTasks cache with new status
+      const currentTasks = localStore.getQuery(api.tasks.getAllTasks, {
+        businessId: businessId as any,
+      });
+      if (!currentTasks) return;
+
+      localStore.setQuery(
+        api.tasks.getAllTasks,
+        { businessId: businessId as any },
+        currentTasks.map((t) => (t._id === id ? { ...t, status } : t))
+      );
+    }
+  );
   const addDependency = useMutation(api.tasks.addDependency);
   const removeDependency = useMutation(api.tasks.removeDependency);
   const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
@@ -110,6 +128,18 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     businessId ? { businessId: businessId as any } : "skip"
   );
   const [escalating, setEscalating] = useState(false);
+
+  // Presence data for all agents in this business (Phase 3: single subscription)
+  const businessPresence = useQuery(
+    api.presence.getBusinessPresence,
+    businessId ? { businessId: businessId as any } : "skip"
+  );
+
+  // Build efficient lookup map: agentId -> status
+  const presenceMap = useMemo(
+    () => new Map((businessPresence ?? []).map((p) => [p.agentId as string, p.status as string])),
+    [businessPresence]
+  );
 
   const handleEscalateStale = async () => {
     if (!staleData?.taskIds?.length || !updateTask) return;
@@ -390,6 +420,8 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
                 onDragOver={(e) => handleDragOver(e, col.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                draggedTaskId={draggedTask?._id}
+                presenceMap={presenceMap}
               />
             </div>
           ))}

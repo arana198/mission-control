@@ -1,6 +1,6 @@
 import { cronJobs } from "convex/server";
 import { internalMutation } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { ApiError, withRetry, CircuitBreaker, RETRY_CONFIGS } from "../lib/errors";
 
 /**
@@ -501,31 +501,80 @@ export const alertEvaluatorCronHandler = internalMutation({
   },
 });
 
-// TEMPORARILY DISABLED - broken
-/*
+/**
+ * Presence Cleanup Handler
+ * Called every 30 minutes to mark stale agent presence as offline
+ * Cleans up presence records for agents inactive > 30 minutes
+ *
+ * Phase 2 + Phase 3: Uses retry logic for robustness
+ */
+export const presenceCleanupCronHandler = internalMutation({
+  handler: async (ctx) => {
+    try {
+      console.log("[Cron] Running presence cleanup...");
+
+      const businesses = await ctx.db.query("businesses").collect();
+      let totalCleaned = 0;
+
+      for (const business of businesses) {
+        const result: any = await withRetry(
+          () =>
+            ctx.runMutation(api.presence.cleanupStalePresence, {
+              businessId: business._id,
+              staleThresholdMs: 30 * 60 * 1000, // 30 minutes
+            }),
+          `cleanup-${business._id}`,
+          RETRY_CONFIGS.STANDARD
+        );
+        totalCleaned += result?.cleaned ?? 0;
+      }
+
+      console.log(`[Cron] Presence cleanup: ${totalCleaned} stale records cleared across ${businesses.length} businesses`);
+      return { cleaned: totalCleaned };
+    } catch (error: any) {
+      console.error("[Cron] Presence cleanup failed:", error.message);
+      throw ApiError.internal("Presence cleanup cron handler failed", {
+        operationName: "presence-cleanup",
+        error: error.message,
+      });
+    }
+  },
+});
+
+/**
+ * Cron Job Registration (Phase 2 + Phase 3)
+ * Schedules all automated background tasks
+ */
 const jobs = cronJobs();
 
 jobs.interval(
   "auto-claim-tasks",
   { seconds: 60 },
-  autoClaimCronHandler as any
+  internal.cron.autoClaimCronHandler
 );
 
 jobs.interval(
   "agent-heartbeat-monitor",
   { minutes: 5 },
-  heartbeatMonitorCronHandler as any
+  internal.cron.heartbeatMonitorCronHandler
 );
 
 jobs.interval(
   "escalation-check",
   { minutes: 15 },
-  escalationCheckCronHandler as any
+  internal.cron.escalationCheckCronHandler
 );
 
 jobs.interval(
   "alert-rule-evaluator",
   { minutes: 5 },
-  alertEvaluatorCronHandler as any
+  internal.cron.alertEvaluatorCronHandler
 );
-*/
+
+jobs.interval(
+  "presence-cleanup",
+  { minutes: 30 },
+  internal.cron.presenceCleanupCronHandler
+);
+
+export default jobs;

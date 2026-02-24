@@ -8,7 +8,7 @@ import { Task } from "@/types/task";
 import { Epic } from "@/types/epic";
 import { useNotification } from "@/hooks/useNotification";
 import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
-import { TaskComments } from "./TaskComments";
+import { EnhancedTaskComments } from "./EnhancedTaskComments";
 import { TaskCommits } from "./TaskCommits";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
@@ -357,7 +357,13 @@ export function TaskDetailModal({
             </div>
 
             {/* Comments Section */}
-            <TaskComments taskId={task._id} agents={agents} />
+            <EnhancedTaskComments
+              taskId={task._id}
+              businessId={currentTask?.businessId ?? ""}
+              agentId="user"
+              agentName="You"
+              agents={agents}
+            />
           </div>
 
           {/* Right column (1/3): Epic, Assignees, Details */}
