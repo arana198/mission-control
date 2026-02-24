@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+
 import { renderHook } from '@testing-library/react';
 import { useServiceWorker, useClearServiceWorkerCache, useRequestServiceWorkerUpdate } from '../useServiceWorker';
 

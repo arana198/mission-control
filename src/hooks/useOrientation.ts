@@ -87,9 +87,14 @@ export async function useLockOrientation(
       return false;
     }
 
-    await screen.orientation.lock(orientations);
-    console.log('[Orientation] Locked to:', orientations);
-    return true;
+    // Type assertion for lock() method which may not be in all TypeScript definitions
+    const screenOrientation = screen.orientation as any;
+    if (screenOrientation.lock) {
+      await screenOrientation.lock(orientations);
+      console.log('[Orientation] Locked to:', orientations);
+      return true;
+    }
+    return false;
   } catch (error) {
     console.error('[Orientation] Lock failed:', error);
     return false;

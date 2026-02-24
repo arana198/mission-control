@@ -85,9 +85,13 @@ export function useServiceWorker(): ServiceWorkerStatus {
       // Trigger background sync when coming back online
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         navigator.serviceWorker.ready.then((registration) => {
-          registration.sync.register('sync-tasks').catch((error) => {
-            console.error('[Service Worker] Background sync registration failed:', error);
-          });
+          // Type assertion for sync API which may not be in all TypeScript definitions
+          const reg = registration as any;
+          if (reg.sync?.register) {
+            reg.sync.register('sync-tasks').catch((error: Error) => {
+              console.error('[Service Worker] Background sync registration failed:', error);
+            });
+          }
         });
       }
     };

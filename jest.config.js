@@ -10,7 +10,7 @@ module.exports = {
   // Use ts-jest preset for TypeScript support
   preset: 'ts-jest',
 
-  // Test environment - use Node for backend tests
+  // Test environment - use Node for backend tests (can be overridden per file)
   testEnvironment: 'node',
 
   // Root directories to search for tests
@@ -52,8 +52,8 @@ module.exports = {
     '!**/coverage/**',
   ],
 
-  // Coverage thresholds
-  coverageThresholds: {
+  // Coverage threshold
+  coverageThreshold: {
     global: {
       branches: 50,
       functions: 50,
