@@ -1,74 +1,148 @@
 import { cronJobs } from "convex/server";
 import { internalMutation } from "./_generated/server";
 import { api } from "./_generated/api";
+import { ApiError, withRetry, CircuitBreaker, RETRY_CONFIGS } from "../lib/errors";
 
 /**
  * Cron Jobs for Mission Control
- * Automated background tasks (Phase 4A)
+ * Automated background tasks (Phase 4A + Phase 2 Resilience)
  *
  * NOTE: Cron handlers must be internalMutations to have database access.
+ *
+ * Phase 2 Features:
+ * - Retry logic with exponential backoff for transient failures
+ * - Circuit breaker to prevent cascading failures
+ * - Graceful error handling with detailed logging
  */
+
+// Circuit breakers for each cron operation
+const autoclaimCircuitBreaker = new CircuitBreaker("auto-claim", 5, 120000);
+const heartbeatCircuitBreaker = new CircuitBreaker("heartbeat-monitor", 5, 120000);
+const escalationCircuitBreaker = new CircuitBreaker("escalation-check", 5, 120000);
 
 /**
  * Auto-Claim Handler
  * Called every 60 seconds to check for tasks in "ready" status
  * and notifies assigned agents
+ *
+ * Phase 2 Enhancements:
+ * - Circuit breaker prevents cascading failures
+ * - Retry logic for transient failures
+ * - Graceful degradation when some notifications fail
  */
 export const autoClaimCronHandler = internalMutation({
   handler: async (ctx) => {
-    console.log("[Cron] Running auto-claim check...");
-    // Get all tasks in "ready" status with assignees
-    const readyTasks: any = await ctx.runQuery(api.tasks.getReadyWithAssignees, {});
+    try {
+      return await autoclaimCircuitBreaker.execute(async () => {
+        console.log("[Cron] Running auto-claim check...");
 
-    if (readyTasks.length === 0) {
-      return { notified: 0, tasks: [] };
-    }
+        // Fetch with retry for transient failures
+        const readyTasks: any = await withRetry(
+          () => ctx.runQuery(api.tasks.getReadyWithAssignees, {}),
+          "fetch-ready-tasks",
+          RETRY_CONFIGS.CRON
+        );
 
-    const notifiedAgents = new Set();
-    let notificationCount = 0;
-
-    for (const task of readyTasks) {
-      for (const assignee of task.assignees) {
-        // Skip if already notified this agent in this run
-        if (notifiedAgents.has(assignee.id)) {
-          continue;
+        if (readyTasks.length === 0) {
+          console.log("[Cron] No ready tasks found");
+          return { notified: 0, tasks: [], succeeded: true };
         }
 
-        try {
-          // Check if agent already has wake request pending
-          const existingWakes: any = await ctx.runQuery(api.wake.getPending, {});
-          const alreadyPending = existingWakes.some(
-            (w: any) => w.agentId === assignee.id && w.priority === "normal"
-          );
+        const notifiedAgents = new Set();
+        const failedNotifications: Array<{ agentId: string; error: string }> = [];
+        let notificationCount = 0;
 
-          if (!alreadyPending) {
-            // Create wake request for agent
-            await ctx.runMutation(api.wake.requestWake, {
-              agentId: assignee.id,
-              requestedBy: "system:auto-claim",
-              priority: "normal",
-            });
+        for (const task of readyTasks) {
+          for (const assignee of task.assignees) {
+            // Skip if already notified this agent in this run
+            if (notifiedAgents.has(assignee.id)) {
+              continue;
+            }
 
-            // Create notification for agent
-            await ctx.runMutation(api.notifications.create, {
-              recipientId: assignee.id,
-              type: "assignment",
-              content: `New task ready: "${task.title}" (Priority: ${task.priority})`,
-              fromId: "system",
-              fromName: "System",
-            });
+            try {
+              // Check if agent already has wake request pending (with retry)
+              const existingWakes: any = await withRetry(
+                () => ctx.runQuery(api.wake.getPending, {}),
+                `check-pending-wakes-${assignee.id}`,
+                RETRY_CONFIGS.FAST
+              );
 
-            notifiedAgents.add(assignee.id);
-            notificationCount++;
+              const alreadyPending = existingWakes.some(
+                (w: any) => w.agentId === assignee.id && w.priority === "normal"
+              );
+
+              if (!alreadyPending) {
+                // Create wake request (critical, use CRITICAL retry config)
+                await withRetry(
+                  () =>
+                    ctx.runMutation(api.wake.requestWake, {
+                      agentId: assignee.id,
+                      requestedBy: "system:auto-claim",
+                      priority: "normal",
+                    }),
+                  `request-wake-${assignee.id}`,
+                  RETRY_CONFIGS.CRITICAL
+                );
+
+                // Create notification (non-critical, can fail gracefully)
+                await withRetry(
+                  () =>
+                    ctx.runMutation(api.notifications.create, {
+                      recipientId: assignee.id,
+                      type: "assignment",
+                      content: `New task ready: "${task.title}" (Priority: ${task.priority})`,
+                      fromId: "system",
+                      fromName: "System",
+                    }),
+                  `create-notification-${assignee.id}`,
+                  RETRY_CONFIGS.FAST
+                ).catch((error) => {
+                  // Graceful degradation: log but don't fail the whole operation
+                  failedNotifications.push({
+                    agentId: assignee.id,
+                    error: error.message,
+                  });
+                  console.warn(
+                    `[Cron] Non-critical: Failed to create notification for ${assignee.id}: ${error.message}`
+                  );
+                });
+
+                notifiedAgents.add(assignee.id);
+                notificationCount++;
+              }
+            } catch (error: any) {
+              failedNotifications.push({
+                agentId: assignee.id,
+                error: error.message,
+              });
+              console.error(
+                `[Cron] Error processing agent ${assignee.id}:`,
+                error.message
+              );
+              // Continue processing other agents despite this error
+            }
           }
-        } catch (error) {
-          console.error(`[Cron] Error notifying agent ${assignee.id}:`, error);
         }
-      }
-    }
 
-    console.log(`[Cron] Auto-claim result: ${notificationCount} agents notified`);
-    return { notified: notificationCount, tasks: readyTasks };
+        console.log(
+          `[Cron] Auto-claim result: ${notificationCount} agents notified, ` +
+            `${failedNotifications.length} failures`
+        );
+
+        return {
+          notified: notificationCount,
+          tasks: readyTasks,
+          failedNotifications,
+          succeeded: failedNotifications.length === 0,
+        };
+      });
+    } catch (error: any) {
+      console.error("[Cron] Auto-claim cron failed:", error.message);
+      throw ApiError.internal("Auto-claim cron handler failed", {
+        operationName: "auto-claim",
+        error: error.message,
+      });
+    }
   },
 });
 
@@ -76,39 +150,87 @@ export const autoClaimCronHandler = internalMutation({
  * Heartbeat Monitor Handler
  * Called every 5 minutes to check for stale agents
  * Updates agent status to "idle" if no heartbeat > 5 min
+ *
+ * Phase 2 Enhancements:
+ * - Circuit breaker prevents repeated failures
+ * - Batch processing with limits to prevent timeouts
+ * - Graceful handling of individual agent update failures
  */
 export const heartbeatMonitorCronHandler = internalMutation({
   handler: async (ctx) => {
-    console.log("[Cron] Checking agent heartbeats...");
+    try {
+      return await heartbeatCircuitBreaker.execute(async () => {
+        console.log("[Cron] Checking agent heartbeats...");
 
-    // Find agents with no heartbeat in the last 5 minutes
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    const allAgents = await ctx.db.query("agents").collect();
+        // Find agents with no heartbeat in the last 5 minutes
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        const allAgents = await ctx.db.query("agents").collect();
 
-    const staleAgents = allAgents.filter(
-      (a: any) => a.lastHeartbeat < fiveMinutesAgo && a.status === "active"
-    );
+        const staleAgents = allAgents.filter(
+          (a: any) => a.lastHeartbeat < fiveMinutesAgo && a.status === "active"
+        );
 
-    // Mark stale agents as idle
-    for (const agent of staleAgents) {
-      await ctx.db.patch(agent._id, { status: "idle" });
+        // Process in batches to prevent timeout
+        const batchSize = 50;
+        let processedCount = 0;
+        const failedUpdates: Array<{ agentId: string; error: string }> = [];
 
-      // Log activity (no businessId needed for agent-scoped activities)
-      await ctx.db.insert("activities", {
-        type: "agent_status_changed",
-        agentId: agent._id,
-        agentName: agent.name,
-        message: `Agent status changed to idle (heartbeat stale)`,
-        oldValue: "active",
-        newValue: "idle",
-        createdAt: Date.now(),
+        for (let i = 0; i < staleAgents.length; i += batchSize) {
+          const batch = staleAgents.slice(i, i + batchSize);
+
+          for (const agent of batch) {
+            try {
+              await withRetry(
+                async () => {
+                  await ctx.db.patch(agent._id, { status: "idle" });
+
+                  // Log activity with retry
+                  await ctx.db.insert("activities", {
+                    type: "agent_status_changed",
+                    agentId: agent._id,
+                    agentName: agent.name,
+                    message: `Agent status changed to idle (heartbeat stale)`,
+                    oldValue: "active",
+                    newValue: "idle",
+                    createdAt: Date.now(),
+                  });
+                },
+                `heartbeat-update-${agent._id}`,
+                RETRY_CONFIGS.STANDARD
+              );
+              processedCount++;
+            } catch (error: any) {
+              failedUpdates.push({
+                agentId: agent._id,
+                error: error.message,
+              });
+              console.warn(
+                `[Cron] Failed to update agent ${agent._id}: ${error.message}`
+              );
+            }
+          }
+        }
+
+        console.log(
+          `[Cron] Heartbeat monitor: checked ${allAgents.length} agents, ` +
+            `marked ${processedCount} as idle, ${failedUpdates.length} failures`
+        );
+
+        return {
+          checked: allAgents.length,
+          stale: staleAgents.length,
+          processed: processedCount,
+          failedUpdates,
+          succeeded: failedUpdates.length === 0,
+        };
+      });
+    } catch (error: any) {
+      console.error("[Cron] Heartbeat monitor cron failed:", error.message);
+      throw ApiError.internal("Heartbeat monitor cron handler failed", {
+        operationName: "heartbeat-monitor",
+        error: error.message,
       });
     }
-
-    console.log(
-      `[Cron] Heartbeat monitor: checked ${allAgents.length} agents, marked ${staleAgents.length} as idle`
-    );
-    return { checked: allAgents.length, stale: staleAgents.length };
   },
 });
 
@@ -117,54 +239,117 @@ export const heartbeatMonitorCronHandler = internalMutation({
  * Called every 15 minutes to check for long-blocked tasks
  * Notifies lead agents of tasks blocked > 24 hours
  */
+/**
+ * Escalation Check Handler
+ * Called every 15 minutes to check for long-blocked tasks
+ * Notifies lead agents of tasks blocked > 24 hours
+ *
+ * Phase 2 Enhancements:
+ * - Circuit breaker prevents repeated failures
+ * - Retry logic for transient failures
+ * - Graceful degradation for notification failures
+ */
 export const escalationCheckCronHandler = internalMutation({
   handler: async (ctx) => {
-    console.log("[Cron] Running escalation check...");
+    try {
+      return await escalationCircuitBreaker.execute(async () => {
+        console.log("[Cron] Running escalation check...");
 
-    // Find tasks blocked for > 24 hours
-    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    const blockedTasks = await ctx.db
-      .query("tasks")
-      .withIndex("by_status", (q: any) => q.eq("status", "blocked"))
-      .take(100);
+        // Find tasks blocked for > 24 hours (with retry)
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const blockedTasks = await withRetry(
+          () =>
+            ctx.db
+              .query("tasks")
+              .withIndex("by_status", (q: any) => q.eq("status", "blocked"))
+              .take(100),
+          "fetch-blocked-tasks",
+          RETRY_CONFIGS.CRON
+        );
 
-    const escalatedTasks = blockedTasks.filter((t: any) => t.updatedAt < oneDayAgo).slice(0, 10); // Max 10 per run
+        const escalatedTasks = blockedTasks
+          .filter((t: any) => t.updatedAt < oneDayAgo)
+          .slice(0, 10); // Max 10 per run
 
-    // Get lead agents
-    const allAgents = await ctx.db.query("agents").collect();
-    const leadAgents = allAgents.filter((a: any) => a.level === "lead");
+        // Get lead agents (with retry)
+        const allAgents = await withRetry(
+          () => ctx.db.query("agents").collect(),
+          "fetch-agents",
+          RETRY_CONFIGS.STANDARD
+        );
+        const leadAgents = allAgents.filter((a: any) => a.level === "lead");
 
-    // Create notifications for leads
-    for (const task of escalatedTasks) {
-      for (const lead of leadAgents) {
-        await ctx.db.insert("notifications", {
-          recipientId: lead._id,
-          type: "assignment",
-          content: `🚨 ESCALATED: "${task.title}" has been blocked for 24+ hours`,
-          taskId: task._id,
-          taskTitle: task.title,
-          fromId: "system",
-          fromName: "System",
-          read: false,
-          createdAt: Date.now(),
-        });
-      }
+        const failedNotifications: Array<{
+          taskId: string;
+          leadId: string;
+          error: string;
+        }> = [];
 
-      // Log escalation activity (task-scoped, needs businessId from task)
-      await ctx.db.insert("activities", {
-        businessId: task.businessId,
-        type: "task_blocked",
-        agentId: "system",
-        agentName: "system",
-        message: `Task "${task.title}" escalated (blocked > 24 hours)`,
-        taskId: task._id,
-        taskTitle: task.title,
-        createdAt: Date.now(),
+        // Create notifications for leads
+        for (const task of escalatedTasks) {
+          for (const lead of leadAgents) {
+            try {
+              // Create notifications with retry (critical for escalations)
+              await withRetry(
+                async () => {
+                  await ctx.db.insert("notifications", {
+                    recipientId: lead._id,
+                    type: "assignment",
+                    content: `🚨 ESCALATED: "${task.title}" has been blocked for 24+ hours`,
+                    taskId: task._id,
+                    taskTitle: task.title,
+                    fromId: "system",
+                    fromName: "System",
+                    read: false,
+                    createdAt: Date.now(),
+                  });
+
+                  // Log escalation activity with notification
+                  await ctx.db.insert("activities", {
+                    businessId: task.businessId,
+                    type: "task_blocked",
+                    agentId: "system",
+                    agentName: "system",
+                    message: `Task "${task.title}" escalated (blocked > 24 hours)`,
+                    taskId: task._id,
+                    taskTitle: task.title,
+                    createdAt: Date.now(),
+                  });
+                },
+                `escalation-notify-${task._id}-${lead._id}`,
+                RETRY_CONFIGS.CRITICAL
+              );
+            } catch (error: any) {
+              failedNotifications.push({
+                taskId: task._id,
+                leadId: lead._id,
+                error: error.message,
+              });
+              console.warn(
+                `[Cron] Failed to escalate task ${task._id} to lead ${lead._id}: ${error.message}`
+              );
+            }
+          }
+        }
+
+        console.log(
+          `[Cron] Escalation check: found ${escalatedTasks.length} long-blocked tasks, ` +
+            `${failedNotifications.length} notification failures`
+        );
+
+        return {
+          escalatedTasks: escalatedTasks.length,
+          failedNotifications,
+          succeeded: failedNotifications.length === 0,
+        };
+      });
+    } catch (error: any) {
+      console.error("[Cron] Escalation check cron failed:", error.message);
+      throw ApiError.internal("Escalation check cron handler failed", {
+        operationName: "escalation-check",
+        error: error.message,
       });
     }
-
-    console.log(`[Cron] Escalation check: found ${escalatedTasks.length} long-blocked tasks`);
-    return { escalatedTasks: escalatedTasks.length };
   },
 });
 

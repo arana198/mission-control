@@ -1,7 +1,7 @@
 "use client";
 import { useNotification } from "@/hooks/useNotification";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import { Task } from "@/types/task";
@@ -82,37 +82,44 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
     }
   }, [searchParams, agents]);
 
-  // Sort: Lead first, then by level, then by name
-  const sortedAgents = [...agents].sort((a, b) => {
-    const levelOrder = { lead: 0, specialist: 1, intern: 2 };
-    if (levelOrder[a.level] !== levelOrder[b.level]) {
-      return levelOrder[a.level] - levelOrder[b.level];
-    }
-    return a.name.localeCompare(b.name);
-  });
+  // PERF: Phase 5C - Memoize sorted agents to prevent unnecessary re-renders
+  const sortedAgents = useMemo(() => {
+    return [...agents].sort((a, b) => {
+      const levelOrder = { lead: 0, specialist: 1, intern: 2 };
+      if (levelOrder[a.level] !== levelOrder[b.level]) {
+        return levelOrder[a.level] - levelOrder[b.level];
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [agents]);
 
-  const leadCount = agents.filter(a => a.level === "lead").length;
-  const specialistCount = agents.filter(a => a.level === "specialist").length;
-  const internCount = agents.filter(a => a.level === "intern").length;
-  const activeCount = agents.filter(a => a.status === "active").length;
+  // PERF: Phase 5C - Memoize agent counts to prevent unnecessary recalculation
+  const { leadCount, specialistCount, internCount, activeCount } = useMemo(() => ({
+    leadCount: agents.filter(a => a.level === "lead").length,
+    specialistCount: agents.filter(a => a.level === "specialist").length,
+    internCount: agents.filter(a => a.level === "intern").length,
+    activeCount: agents.filter(a => a.status === "active").length,
+  }), [agents]);
 
-  // Get agent's current tasks
-  const getAgentTasks = (agentId: string) => tasks.filter(t => t.assigneeIds?.includes(agentId));
+  // PERF: Phase 5C - Memoize getAgentTasks function
+  const getAgentTasks = useCallback((agentId: string) => {
+    return tasks.filter(t => t.assigneeIds?.includes(agentId));
+  }, [tasks]);
 
-  // Handle agent selection with URL update
-  const handleSelectAgent = (agent: Agent) => {
+  // PERF: Phase 5C - Memoize handlers to prevent recreation on every render
+  const handleSelectAgent = useCallback((agent: Agent) => {
     setSelectedAgent(agent);
     router.push(`/global/agents?agent=${agent._id}`);
-  };
+  }, [router]);
 
   // Handle closing agent detail and clearing URL
-  const handleCloseAgent = () => {
+  const handleCloseAgent = useCallback(() => {
     setSelectedAgent(null);
     router.push('/global/agents');
-  };
+  }, [router]);
 
   // Handle agent deletion
-  const handleDeleteAgent = async () => {
+  const handleDeleteAgent = useCallback(async () => {
     if (!deletingAgent) return;
     try {
       await deleteAgentMutation({ agentId: deletingAgent._id as any, deletedBy: "user" });
@@ -122,7 +129,7 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
     } finally {
       setDeletingAgent(null);
     }
-  };
+  }, [deletingAgent, deleteAgentMutation, notif]);
 
   // Show empty state if no agents
   if (!agents || agents.length === 0) {

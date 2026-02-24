@@ -6,7 +6,7 @@ import {
   CheckSquare, Send, AtSign, PenTool, Calendar,
   MoreHorizontal, Filter, Activity, TrendingUp, Zap
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 
 interface ActivityItem {
@@ -58,28 +58,30 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
   const [filter, setFilter] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<string>("all");
 
-  // Filter activities by type and time
-  const filteredActivities = activities.filter(activity => {
-    if (filter && activity.type !== filter) return false;
-    
-    if (timeFilter !== "all") {
-      const now = new Date();
-      const activityDate = new Date(activity.createdAt);
-      const diffHours = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60);
-      
-      switch (timeFilter) {
-        case "1h": return diffHours <= 1;
-        case "24h": return diffHours <= 24;
-        case "7d": return diffHours <= 168;
-        default: return true;
-      }
-    }
-    
-    return true;
-  });
+  // PERF: Phase 5C - Memoize filtered activities to prevent unnecessary re-renders
+  const filteredActivities = useMemo(() => {
+    return activities.filter(activity => {
+      if (filter && activity.type !== filter) return false;
 
-  // Group activities by date
-  const grouped = groupByDate(filteredActivities);
+      if (timeFilter !== "all") {
+        const now = new Date();
+        const activityDate = new Date(activity.createdAt);
+        const diffHours = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60);
+
+        switch (timeFilter) {
+          case "1h": return diffHours <= 1;
+          case "24h": return diffHours <= 24;
+          case "7d": return diffHours <= 168;
+          default: return true;
+        }
+      }
+
+      return true;
+    });
+  }, [activities, filter, timeFilter]);
+
+  // PERF: Phase 5C - Memoize grouped activities to prevent unnecessary regrouping
+  const grouped = useMemo(() => groupByDate(filteredActivities), [filteredActivities]);
   
   if (!activities || activities.length === 0) {
     return (

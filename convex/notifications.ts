@@ -1,12 +1,19 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { ApiError, wrapConvexHandler, withRetry, RETRY_CONFIGS } from "../lib/errors";
 
 /**
  * Notification System
  * @Mentions and thread subscriptions
+ *
+ * Phase 1: Error standardization
+ * Phase 2: Advanced error handling with retry logic for critical operations
  */
 
-// Create notification
+/**
+ * Create notification
+ * Phase 2: Added retry logic for transient DB failures
+ */
 export const create = mutation({
   args: {
     recipientId: convexVal.id("agents"),
@@ -24,20 +31,34 @@ export const create = mutation({
     fromName: convexVal.string(),
     messageId: convexVal.optional(convexVal.id("messages")),
   },
-  handler: async (ctx, { recipientId, type, content, taskId, taskTitle, fromId, fromName, messageId }) => {
-    return await ctx.db.insert("notifications", {
-      recipientId,
-      type,
-      content,
-      taskId,
-      taskTitle,
-      fromId,
-      fromName,
-      messageId,
-      read: false,
-      createdAt: Date.now(),
-    });
-  },
+  handler: wrapConvexHandler(
+    async (ctx, { recipientId, type, content, taskId, taskTitle, fromId, fromName, messageId }) => {
+      // Verify recipient exists
+      const recipient = await ctx.db.get(recipientId);
+      if (!recipient) {
+        throw ApiError.notFound("Agent", { agentId: recipientId });
+      }
+
+      // Insert with retry for transient failures
+      return await withRetry(
+        () =>
+          ctx.db.insert("notifications", {
+            recipientId,
+            type,
+            content,
+            taskId,
+            taskTitle,
+            fromId,
+            fromName,
+            messageId,
+            read: false,
+            createdAt: Date.now(),
+          }),
+        "create-notification",
+        RETRY_CONFIGS.STANDARD
+      );
+    }
+  ),
 });
 
 // Get all notifications
@@ -90,40 +111,90 @@ export const getForAgent = query({
   },
 });
 
-// Mark notification as read
+/**
+ * Mark notification as read
+ * Phase 2: Added error handling and validation
+ */
 export const markRead = mutation({
   args: { id: convexVal.id("notifications") },
-  handler: async (ctx, { id }) => {
-    await ctx.db.patch(id, {
-      read: true,
-      readAt: Date.now(),
-    });
-    return { success: true };
-  },
-});
+  handler: wrapConvexHandler(async (ctx, { id }) => {
+    // Verify notification exists
+    const notification = await ctx.db.get(id);
+    if (!notification) {
+      throw ApiError.notFound("Notification", { notificationId: id });
+    }
 
-// Mark all notifications as read for an agent
-export const markAllRead = mutation({
-  args: { agentId: convexVal.id("agents") },
-  handler: async (ctx, { agentId }) => {
-    // Use by_read index for efficient querying
-    const unread = await ctx.db
-      .query("notifications")
-      .withIndex("by_read", (q: any) => q.eq("recipientId", agentId).eq("read", false))
-      .take(500); // Reasonable cap for batch marking
-
-    // Mark all as read in parallel to avoid sequential patch timeout
-    await Promise.all(
-      unread.map((notif) =>
-        ctx.db.patch(notif._id, {
+    // Patch with retry
+    await withRetry(
+      () =>
+        ctx.db.patch(id, {
           read: true,
           readAt: Date.now(),
-        })
+        }),
+      "mark-read",
+      RETRY_CONFIGS.FAST
+    );
+
+    return { success: true };
+  }),
+});
+
+/**
+ * Mark all notifications as read for an agent
+ * Phase 2: Added error handling with graceful degradation
+ * Marks notifications as read in parallel with individual error handling
+ */
+export const markAllRead = mutation({
+  args: { agentId: convexVal.id("agents") },
+  handler: wrapConvexHandler(async (ctx, { agentId }) => {
+    // Verify agent exists
+    const agent = await ctx.db.get(agentId);
+    if (!agent) {
+      throw ApiError.notFound("Agent", { agentId });
+    }
+
+    // Fetch unread notifications with retry
+    const unread: any[] = await withRetry(
+      () =>
+        ctx.db
+          .query("notifications")
+          .withIndex("by_read", (q: any) => q.eq("recipientId", agentId).eq("read", false))
+          .take(500),
+      "fetch-unread",
+      RETRY_CONFIGS.STANDARD
+    );
+
+    // Mark all as read in parallel with individual error handling
+    const results = await Promise.allSettled(
+      unread.map((notif) =>
+        withRetry(
+          () =>
+            ctx.db.patch(notif._id, {
+              read: true,
+              readAt: Date.now(),
+            }),
+          `mark-read-${notif._id}`,
+          RETRY_CONFIGS.FAST
+        )
       )
     );
 
-    return { marked: unread.length };
-  },
+    // Count successes and failures for observability
+    const successes = results.filter((r) => r.status === "fulfilled").length;
+    const failures = results.filter((r) => r.status === "rejected").length;
+
+    if (failures > 0) {
+      console.warn(
+        `[Notifications] markAllRead: ${successes} succeeded, ${failures} failed for agent ${agentId}`
+      );
+    }
+
+    return {
+      marked: successes,
+      failed: failures,
+      total: (unread as any[]).length,
+    };
+  }),
 });
 
 // Count unread notifications for agent

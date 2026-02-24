@@ -1,6 +1,7 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
+import { checkRateLimitSilent } from "./utils/rateLimit";
 
 /**
  * Agent Management
@@ -80,6 +81,7 @@ export const updateStatus = mutation({
 });
 
 // Heartbeat ping from agent
+// PERF: Phase 5C - Silent rate limit: 6 heartbeats per minute per agent (no error if exceeded)
 export const heartbeat = mutation({
   args: {
     agentId: convexVal.id("agents"),
@@ -88,6 +90,19 @@ export const heartbeat = mutation({
   handler: wrapConvexHandler(async (ctx, { agentId, currentTaskId }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) throw ApiError.notFound("Agent", { agentId });
+
+    // Silent rate limit check: if exceeded, return early without error
+    const allowed = await checkRateLimitSilent(
+      ctx,
+      `ratelimit:heartbeat:${agentId}`,
+      6,
+      60000
+    );
+
+    if (!allowed) {
+      // Rate limit exceeded, return silently (no-op)
+      return { success: false, rateLimited: true, timestamp: Date.now() };
+    }
 
     await ctx.db.patch(agentId, {
       lastHeartbeat: Date.now(),
@@ -380,6 +395,7 @@ export const verifyKeyWithGrace = query({
 /**
  * Delete an agent and unassign from all tasks
  * Called by admin/dashboard operator
+ * PERF: Phase 5C - Query tasks by business instead of full table scan
  */
 export const deleteAgent = mutation({
   args: {
@@ -391,12 +407,20 @@ export const deleteAgent = mutation({
     if (!agent) throw ApiError.notFound("Agent", { agentId });
 
     // Remove agent from all task assigneeIds
-    const tasks = await ctx.db.query("tasks").collect();
-    for (const task of tasks) {
-      if (task.assigneeIds?.includes(agentId)) {
-        await ctx.db.patch(task._id, {
-          assigneeIds: task.assigneeIds.filter((id: string) => id !== agentId),
-        });
+    // PERF FIX: Query tasks by business (bounded) instead of full table scan
+    const businesses = await ctx.db.query("businesses").collect();
+    for (const business of businesses) {
+      const tasks = await ctx.db
+        .query("tasks")
+        .withIndex("by_business", (q: any) => q.eq("businessId", business._id))
+        .collect();
+
+      for (const task of tasks) {
+        if (task.assigneeIds?.includes(agentId)) {
+          await ctx.db.patch(task._id, {
+            assigneeIds: task.assigneeIds.filter((id: string) => id !== agentId),
+          });
+        }
       }
     }
 

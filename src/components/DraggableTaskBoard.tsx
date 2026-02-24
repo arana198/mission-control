@@ -7,6 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { getTaskIdRange } from "@/lib/rangeSelect";
 import { useNotification } from "@/hooks/useNotification";
 import { useSetState } from "@/hooks/useSetState";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
 import { Epic } from "@/types/epic";
@@ -56,6 +57,9 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
 
   // Quick filter state (mutually exclusive)
   const [quickFilter, setQuickFilter] = useState<string | null>(null);
+
+  // PERF: Phase 5C - Debounce search query (300ms) to avoid excessive re-filtering
+  const debouncedSearchQuery = useDebounce(filters.searchQuery, 300);
 
   // Selection state for bulk actions - using centralized hook
   const { set: selectedTasks, toggle: toggleTaskSelection, addAll, clear: clearSelection } = useSetState<string>();
@@ -164,11 +168,11 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     lastSelectedRef.current = { taskId, columnId };
   };
 
-  // Filter tasks
+  // Filter tasks (PERF: Phase 5C - Use debounced search query to reduce re-filtering)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (filters.searchQuery) {
-        const q = filters.searchQuery.toLowerCase();
+      if (debouncedSearchQuery) {
+        const q = debouncedSearchQuery.toLowerCase();
         if (!task.title.toLowerCase().includes(q) && !task.description?.toLowerCase().includes(q)) {
           return false;
         }
@@ -208,7 +212,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
 
       return true;
     });
-  }, [tasks, filters, quickFilter, agents]);
+  }, [tasks, debouncedSearchQuery, filters, quickFilter, agents]);
 
   const tasksByStatus = useMemo(() => {
     return kanbanColumns.reduce((acc, col) => {

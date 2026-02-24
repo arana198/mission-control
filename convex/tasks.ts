@@ -9,6 +9,7 @@ import { resolveActorName } from "./utils/activityLogger";
 import { canDeleteTask } from "../lib/auth/permissions";
 import { syncEpicTaskLink } from "./utils/epicTaskSync";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
+import { enforceRateLimit, checkRateLimitSilent } from "./utils/rateLimit";
 
 /**
  * Task Management
@@ -106,6 +107,17 @@ export const createTask = mutation({
         );
       }
       throw e;
+    }
+
+    // PERF: Phase 5C - Rate limit: 10 tasks per minute per creator
+    if (createdBy) {
+      await enforceRateLimit(
+        ctx,
+        `ratelimit:createTask:${createdBy}`,
+        10,
+        60000,
+        "Task creation rate limit exceeded (10 per minute)"
+      );
     }
 
     // Determine default assignees based on source
@@ -495,6 +507,17 @@ export const updateStatus = mutation({
   handler: wrapConvexHandler(async (ctx, { taskId, status, updatedBy, receipts }) => {
     const task = await ctx.db.get(taskId);
     if (!task) throw ApiError.notFound("Task", { taskId });
+
+    // PERF: Phase 5C - Rate limit: 30 status updates per minute per updater
+    if (updatedBy) {
+      await enforceRateLimit(
+        ctx,
+        `ratelimit:updateStatus:${updatedBy}`,
+        30,
+        60000,
+        "Status update rate limit exceeded (30 per minute)"
+      );
+    }
 
     const oldStatus = task.status;
 
@@ -1009,20 +1032,15 @@ export const smartAssign = mutation({
 // Jarvis auto-assign all unassigned backlog tasks
 // Helper function to find best agent for a task (H-03 fix: extracted to avoid mutation-calling-mutation)
 // AA-02: Added workload balancing
-async function findBestAgent(ctx: any, agents: any[], task: any) {
-  // Load all in-progress tasks once to calculate workload
-  const inProgressTasks = await ctx.db
-    .query("tasks")
-    .withIndex("by_status", (indexQuery: any) => indexQuery.eq("status", "in_progress"))
-    .collect();
-
-  // Count tasks per agent
+// PERF: Phase 5C - inProgressTasks passed as param to avoid N+1 query
+async function findBestAgent(ctx: any, agents: any[], task: any, inProgressTasks: any[] = []) {
+  // Count tasks per agent from provided inProgressTasks (no DB query)
   const agentTaskCounts = new Map<string, number>();
   for (const agent of agents) {
     agentTaskCounts.set(agent._id, 0);
   }
   for (const inProgressTask of inProgressTasks) {
-    for (const assigneeId of inProgressTask.assigneeIds) {
+    for (const assigneeId of inProgressTask.assigneeIds || []) {
       agentTaskCounts.set(
         assigneeId,
         (agentTaskCounts.get(assigneeId) ?? 0) + 1
@@ -1079,20 +1097,24 @@ export const autoAssignBacklog = mutation({
     limit: convexVal.optional(convexVal.number()),
   },
   handler: async (ctx, { jarvisId, limit = 10 }) => {
-    // Pre-load agents and tasks once (H-03 fix: avoid N+1 and mutation-in-loop)
-    const [tasks, agents] = await Promise.all([
+    // Pre-load agents, tasks, and inProgressTasks once (H-03 fix: avoid N+1 and mutation-in-loop)
+    // PERF: Phase 5C - Hoist inProgressTasks query before loop to fix N+1
+    const [tasks, agents, inProgressTasks] = await Promise.all([
       ctx.db.query("tasks")
         .withIndex("by_status", (q: any) => q.eq("status", "backlog"))
         .filter((q: any) => q.eq(q.field("assigneeIds"), []))
         .take(limit),
       ctx.db.query("agents").collect(),
+      ctx.db.query("tasks")
+        .withIndex("by_status", (q: any) => q.eq("status", "in_progress"))
+        .collect(),
     ]);
 
     const results: any[] = [];
 
     for (const task of tasks) {
       try {
-        const bestAgent = await findBestAgent(ctx, agents, task);
+        const bestAgent = await findBestAgent(ctx, agents, task, inProgressTasks);
         if (!bestAgent) throw new Error("No suitable agents found");
 
         await ctx.db.patch(task._id, {
@@ -1709,11 +1731,13 @@ export const getInboxForAgent = query({
     agentId: convexVal.id("agents"),
   },
   handler: async (ctx, { businessId, agentId }) => {
-    // Fetch all tasks for the business
+    // PERF: Phase 5C - Cap results at 200 to prevent unbounded queries
+    // Fetch tasks for the business with cap and descending order
     const allTasks = await ctx.db
       .query("tasks")
       .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
-      .collect();
+      .order("desc")
+      .take(200);
 
     // Filter tasks assigned to the agent
     const agentTasks = allTasks.filter((task) =>

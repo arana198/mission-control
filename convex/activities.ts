@@ -7,24 +7,30 @@ import { query, mutation } from "./_generated/server";
  */
 
 // Get recent activities (for the feed)
+// PERF: Phase 5C - Use index-based filtering instead of JS filtering when businessId provided
 export const getRecent = query({
   args: {
     limit: convexVal.optional(convexVal.number()),
     businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
   },
   handler: async (ctx, { limit, businessId }) => {
-    let activities = await ctx.db
+    const pageLimit = limit || 50;
+
+    if (businessId) {
+      // Use by_business_created_at index when businessId provided (no JS filtering needed)
+      return await ctx.db
+        .query("activities")
+        .withIndex("by_business_created_at", (q: any) => q.eq("businessId", businessId))
+        .order("desc")
+        .take(pageLimit);
+    }
+
+    // Fallback to by_created_at index when no businessId filter
+    return await ctx.db
       .query("activities")
       .withIndex("by_created_at")
       .order("desc")
-      .take((limit || 50) * 2);  // Load extra to account for filtering
-
-    // Filter by business if provided
-    if (businessId) {
-      activities = activities.filter((a: any) => a.businessId === businessId);
-    }
-
-    return activities.slice(0, limit || 50);
+      .take(pageLimit);
   },
 });
 

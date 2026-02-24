@@ -42,6 +42,7 @@ import type * as utils_activityLogger from "../utils/activityLogger.js";
 import type * as utils_batchDelete from "../utils/batchDelete.js";
 import type * as utils_epicTaskSync from "../utils/epicTaskSync.js";
 import type * as utils_graphValidation from "../utils/graphValidation.js";
+import type * as utils_rateLimit from "../utils/rateLimit.js";
 import type * as utils_roleKeywords from "../utils/roleKeywords.js";
 import type * as utils_ticketId from "../utils/ticketId.js";
 import type * as wake from "../wake.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   "utils/batchDelete": typeof utils_batchDelete;
   "utils/epicTaskSync": typeof utils_epicTaskSync;
   "utils/graphValidation": typeof utils_graphValidation;
+  "utils/rateLimit": typeof utils_rateLimit;
   "utils/roleKeywords": typeof utils_roleKeywords;
   "utils/ticketId": typeof utils_ticketId;
   wake: typeof wake;
