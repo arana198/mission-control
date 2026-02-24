@@ -364,10 +364,8 @@ describe("Phase 2: Businesses Cascade Delete", () => {
 
       // Assert: all deleted
       for (const table of tables) {
-        expect(db.getCountByBusinessId(businessId, table)).toBe(
-          0,
-          `${table} should be empty after cascade delete`
-        );
+        const count = db.getCountByBusinessId(businessId, table);
+        expect(count).toBe(0); // ${table} should be empty after cascade delete
       }
     });
 

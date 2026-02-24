@@ -9,7 +9,7 @@
  * - Error in one task doesn't stop processing remaining tasks
  */
 
-import { describe, it, expect, beforeEach, vi } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 
 describe("Phase 6: Reliability & Error Handling", () => {
   describe("Messages: Race condition safety (Convex serialization guarantee)", () => {
