@@ -1,10 +1,13 @@
 /**
  * Alert Rules Module
  * Define and manage alert rules that trigger notifications
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Create an alert rule
@@ -105,11 +108,11 @@ export const update = mutation({
     emailAddresses: v.optional(v.array(v.string())),
     enabled: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const { ruleId, ...updates } = args;
 
     const rule = await ctx.db.get(ruleId);
-    if (!rule) throw new Error("Alert rule not found");
+    if (!rule) throw ApiError.notFound('AlertRule', { ruleId });
 
     await ctx.db.patch(ruleId, {
       ...updates,
@@ -117,7 +120,7 @@ export const update = mutation({
     });
 
     return rule;
-  },
+  }),
 });
 
 /**
@@ -127,9 +130,9 @@ export const toggle = mutation({
   args: {
     ruleId: v.id("alertRules"),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const rule = await ctx.db.get(args.ruleId);
-    if (!rule) throw new Error("Alert rule not found");
+    if (!rule) throw ApiError.notFound('AlertRule', { ruleId: args.ruleId });
 
     await ctx.db.patch(args.ruleId, {
       enabled: !rule.enabled,
@@ -137,7 +140,7 @@ export const toggle = mutation({
     });
 
     return rule;
-  },
+  }),
 });
 
 /**

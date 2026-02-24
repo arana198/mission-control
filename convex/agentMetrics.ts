@@ -1,9 +1,12 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Agent Metrics & Leaderboard
  * Tracks per-agent performance on a monthly basis
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 // REP-01: Upsert metrics for an agent in a given period
@@ -15,9 +18,9 @@ export const upsertMetrics = mutation({
     tasksBlocked: convexVal.optional(convexVal.number()),
     commentsMade: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { agentId, tasksCreated, tasksCompleted, tasksBlocked, commentsMade }) => {
+  handler: wrapConvexHandler(async (ctx, { agentId, tasksCreated, tasksCompleted, tasksBlocked, commentsMade }) => {
     const agent = await ctx.db.get(agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw ApiError.notFound('Agent', { agentId });
 
     // Get current month as period (YYYY-MM format)
     const now = new Date();
@@ -64,7 +67,7 @@ export const upsertMetrics = mutation({
         updatedAt: Date.now(),
       } as any);
     }
-  },
+  }),
 });
 
 // Get metrics for an agent across all periods

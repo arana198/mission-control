@@ -1,17 +1,20 @@
 /**
  * Execution Log - Convex Functions
- * 
+ *
  * Track task execution history, retries, and outcomes
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from './_generated/server';
 import { v as convexVal } from "convex/values";
 import { Id } from './_generated/dataModel';
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * CREATE execution log entry
  */
-export const create = mutation(async (ctx, args: {
+export const create = mutation(wrapConvexHandler(async (ctx, args: {
   taskId: Id<'tasks'>;
   agentId?: string;
   status: 'started' | 'success' | 'failed' | 'incomplete';
@@ -24,7 +27,7 @@ export const create = mutation(async (ctx, args: {
   // Get task to retrieve businessId
   const task = await ctx.db.get(args.taskId);
   if (!task) {
-    throw new Error(`Task ${args.taskId} not found`);
+    throw ApiError.notFound('Task', { taskId: args.taskId });
   }
 
   return await ctx.db.insert('executionLog', {
@@ -44,7 +47,7 @@ export const create = mutation(async (ctx, args: {
     maxAttempts: 3,
     createdAt: Date.now(),
   });
-});
+}));
 
 /**
  * GET execution history for a task
@@ -105,7 +108,7 @@ export const getStats = query(async (ctx, args: {
 /**
  * UPDATE execution status (completion)
  */
-export const complete = mutation(async (ctx, args: {
+export const complete = mutation(wrapConvexHandler(async (ctx, args: {
   id: Id<'executionLog'>;
   status: 'success' | 'failed' | 'incomplete';
   output?: string;
@@ -113,7 +116,7 @@ export const complete = mutation(async (ctx, args: {
   timeSpent?: number;
 }) => {
   const entry = await ctx.db.get(args.id);
-  if (!entry) throw new Error('Log entry not found');
+  if (!entry) throw ApiError.notFound('ExecutionLog', { id: args.id });
 
   const elapsedMs = Date.now() - entry.startedAt;
   const elapsedMinutes = Math.round(elapsedMs / 1000 / 60);
@@ -125,4 +128,4 @@ export const complete = mutation(async (ctx, args: {
     timeSpent: args.timeSpent || elapsedMinutes,
     completedAt: Date.now(),
   });
-});
+}));

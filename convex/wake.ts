@@ -2,10 +2,13 @@ import { v as convexVal } from "convex/values";
 import { query, mutation, httpAction } from "./_generated/server";
 import { httpRouter } from "convex/server";
 import { api } from "./_generated/api";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Agent Wake System
  * Allows Mission Control to wake agents via HTTP actions
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 // Store wake requests for the daemon to process
@@ -15,9 +18,9 @@ export const requestWake = mutation({
     requestedBy: convexVal.string(),
     priority: convexVal.optional(convexVal.union(convexVal.literal("normal"), convexVal.literal("urgent"))),
   },
-  handler: async (ctx, { agentId, requestedBy, priority }) => {
+  handler: wrapConvexHandler(async (ctx, { agentId, requestedBy, priority }) => {
     const agent = await ctx.db.get(agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw ApiError.notFound('Agent', { agentId });
 
     // Create wake request (DM-04: add TTL)
     const wakeId = await ctx.db.insert("wakeRequests", {
@@ -41,7 +44,7 @@ export const requestWake = mutation({
     });
 
     return { wakeId, agentName: agent.name, sessionKey: agent.sessionKey };
-  },
+  }),
 });
 
 // Get pending wake requests (for daemon to poll)
