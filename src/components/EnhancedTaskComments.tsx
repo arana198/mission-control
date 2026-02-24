@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Agent } from "@/types/agent";
+import { useNotification } from "@/hooks/useNotification";
 import {
   MessageSquare,
   Send,
@@ -46,7 +47,10 @@ export function EnhancedTaskComments({
     new Set()
   );
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const notif = useNotification();
 
   const comments = useQuery(api.taskComments.getTaskComments, {
     taskId: taskId as any,
@@ -77,22 +81,27 @@ export function EnhancedTaskComments({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || isSubmitting) return;
 
     const { mentions } = parseMentions(commentText);
-
-    await createCommentMutation({
-      taskId: taskId as any,
-      agentId: agentId as any,
-      agentName,
-      businessId: businessId as any,
-      content: commentText.trim(),
-      parentCommentId: replyTo ? (replyTo.id as any) : undefined,
-      mentions: mentions.length > 0 ? (mentions as any) : undefined,
-    });
-
-    setCommentText("");
-    setReplyTo(null);
+    setIsSubmitting(true);
+    try {
+      await createCommentMutation({
+        taskId: taskId as any,
+        agentId: agentId as any,
+        agentName,
+        businessId: businessId as any,
+        content: commentText.trim(),
+        parentCommentId: replyTo ? (replyTo.id as any) : undefined,
+        mentions: mentions.length > 0 ? (mentions as any) : undefined,
+      });
+      setCommentText("");
+      setReplyTo(null);
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to post comment");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -327,7 +336,7 @@ export function EnhancedTaskComments({
           />
           <button
             type="submit"
-            disabled={!commentText.trim()}
+            disabled={!commentText.trim() || isSubmitting}
             className="absolute bottom-2 right-2 btn btn-primary p-2 disabled:opacity-50"
           >
             <Send className="w-4 h-4" />

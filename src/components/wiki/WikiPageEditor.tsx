@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WikiEditor } from "./WikiEditor";
 import { Check, AlertCircle } from "lucide-react";
 import type { WikiPage } from "@/convex/wiki";
+import { useNotification } from "@/hooks/useNotification";
 
 interface WikiPageEditorProps {
   page: WikiPage;
@@ -25,6 +26,8 @@ export function WikiPageEditor({ page, onSave, onCancel }: WikiPageEditorProps) 
   const [content, setContent] = useState(page.content);
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
+  const notif = useNotification();
+
   const hasChanges = title !== page.title || content !== page.content;
 
   const handleSave = async () => {
@@ -36,9 +39,9 @@ export function WikiPageEditor({ page, onSave, onCancel }: WikiPageEditorProps) 
       });
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
-    } catch (error) {
+    } catch (error: any) {
       setSaveState("error");
-      console.error("Failed to save page:", error);
+      notif.error(error?.message || "Failed to save page");
     }
   };
 

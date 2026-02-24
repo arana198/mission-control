@@ -9,6 +9,7 @@ import { WikiPageView } from "./WikiPageView";
 import { WikiPageEditor } from "./WikiPageEditor";
 import type { WikiPageWithChildren, WikiPage } from "@/convex/wiki";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useNotification } from "@/hooks/useNotification";
 
 interface WikiDocsProps {
   businessId: string;
@@ -24,6 +25,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
   // Router and URL
   const router = useRouter();
   const searchParams = useSearchParams();
+  const notif = useNotification();
 
   // State management
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
@@ -103,12 +105,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           setSelectedPageId(pageId);
           setViewMode("edit");
         }
-      } catch (error) {
-        console.error("Failed to create page:", error);
-        alert("Failed to create page. Please try again.");
+      } catch (error: any) {
+        notif.error(error?.message || "Failed to create page");
       }
     },
-    [businessId, createPageMutation, createDepartmentMutation]
+    [businessId, createPageMutation, createDepartmentMutation, notif]
   );
 
   const handleUpdatePage = useCallback(
@@ -117,7 +118,6 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
       content: string;
     }, isAutoSave?: boolean) => {
       if (!selectedPageId) {
-        console.error("No page selected for update");
         throw new Error("No page selected for update");
       }
 
@@ -133,15 +133,14 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
         if (!isAutoSave) {
           setViewMode("view");
         }
-      } catch (error) {
-        console.error("Failed to update page:", error);
+      } catch (error: any) {
         if (!isAutoSave) {
-          alert("Failed to save page. Please try again.");
+          notif.error(error?.message || "Failed to save page");
         }
         throw error;
       }
     },
-    [selectedPageId, updatePageMutation]
+    [selectedPageId, updatePageMutation, notif]
   );
 
   const handleDeletePage = useCallback(
@@ -152,11 +151,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           setSelectedPageId(null);
           setViewMode("tree");
         }
-      } catch (error) {
-        console.error("Failed to delete page:", error);
+      } catch (error: any) {
+        notif.error(error?.message || "Failed to delete page");
       }
     },
-    [selectedPageId, deletePageMutation]
+    [selectedPageId, deletePageMutation, notif]
   );
 
   const handleRenamePage = useCallback(
@@ -164,12 +163,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
       try {
         const page = allPages.find((p) => p._id === pageId);
         if (!page) {
-          console.error("Page not found for rename:", pageId);
-          alert("Page not found. Please refresh and try again.");
+          notif.error("Page not found. Please refresh and try again.");
           return;
         }
         if (!newTitle || newTitle.trim() === "") {
-          alert("Please enter a valid title.");
+          notif.warning("Please enter a valid title.");
           return;
         }
         await updatePageMutation({
@@ -179,12 +177,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           updatedBy: "user",
           updatedByName: "User",
         });
-      } catch (error) {
-        console.error("Failed to rename page:", error);
-        alert("Failed to rename page. Please try again.");
+      } catch (error: any) {
+        notif.error(error?.message || "Failed to rename page");
       }
     },
-    [allPages, updatePageMutation]
+    [allPages, updatePageMutation, notif]
   );
 
 
@@ -213,12 +210,11 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
           newParentId: newParentId as Id<"wikiPages">,
           position: Math.max(0, position),
         });
-      } catch (error) {
-        console.error("Failed to move page:", error);
-        alert("Failed to move page. Please try again.");
+      } catch (error: any) {
+        notif.error(error?.message || "Failed to move page");
       }
     },
-    [movePageMutation, tree]
+    [movePageMutation, tree, notif]
   );
 
 

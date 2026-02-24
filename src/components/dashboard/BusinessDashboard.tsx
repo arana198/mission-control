@@ -95,12 +95,15 @@ export function BusinessDashboard({
         );
 
       case "board":
+        if (tasks === undefined || agents === undefined) {
+          return <KanbanSkeleton />;
+        }
         return (
           <ErrorBoundary>
             <Suspense fallback={<KanbanSkeleton />}>
               <TaskBoard
-                tasks={tasks || []}
-                agents={agents || []}
+                tasks={tasks}
+                agents={agents}
                 epics={epics || []}
                 businessId={businessId}
               />
@@ -109,13 +112,16 @@ export function BusinessDashboard({
         );
 
       case "epics":
+        if (tasks === undefined || agents === undefined || epics === undefined) {
+          return <CardGridSkeleton />;
+        }
         return (
           <ErrorBoundary>
             <Suspense fallback={<CardGridSkeleton />}>
               <EpicBoard
-                tasks={tasks || []}
-                agents={agents || []}
-                epics={epics || []}
+                tasks={tasks}
+                agents={agents}
+                epics={epics}
               />
             </Suspense>
           </ErrorBoundary>

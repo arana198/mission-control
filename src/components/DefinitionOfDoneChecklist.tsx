@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { ChecklistItem } from "@/types/task";
 import { Plus, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import { useNotification } from "@/hooks/useNotification";
 
 interface DefinitionOfDoneChecklistProps {
   taskId: Id<"tasks">;
@@ -26,6 +27,8 @@ export function DefinitionOfDoneChecklist({
 }: DefinitionOfDoneChecklistProps) {
   const [newItemText, setNewItemText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  const notif = useNotification();
 
   // Mutations
   const addItem = useMutation(api.tasks.addChecklistItem);
@@ -50,8 +53,8 @@ export function DefinitionOfDoneChecklist({
       });
       setNewItemText("");
       setIsAdding(false);
-    } catch (error) {
-      console.error("Error adding checklist item:", error);
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to add checklist item");
     }
   };
 
@@ -64,8 +67,8 @@ export function DefinitionOfDoneChecklist({
         completed: !currentCompleted,
         updatedBy: currentUserId,
       });
-    } catch (error) {
-      console.error("Error updating checklist item:", error);
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to update checklist item");
     }
   };
 
@@ -77,8 +80,8 @@ export function DefinitionOfDoneChecklist({
         itemId,
         removedBy: currentUserId,
       });
-    } catch (error) {
-      console.error("Error removing checklist item:", error);
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to remove checklist item");
     }
   };
 

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Agent } from "@/types/agent";
 import { HelpCircle, Send, X, Loader2 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import { useNotification } from "@/hooks/useNotification";
 
 interface HelpRequestButtonProps {
   taskId: Id<"tasks">;
@@ -41,6 +42,7 @@ export function HelpRequestButton({
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const notif = useNotification();
   const createHelpRequest = useMutation(api.messages.createHelpRequest);
 
   // Find lead agent
@@ -77,8 +79,8 @@ export function HelpRequestButton({
       setTimeout(() => {
         setIsSuccess(false);
       }, 3000);
-    } catch (error) {
-      console.error("Error creating help request:", error);
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to create help request");
     } finally {
       setIsLoading(false);
     }

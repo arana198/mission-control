@@ -257,9 +257,13 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
     const promises = Array.from(selectedTasks).map(taskId =>
       updateTask({ id: taskId as any, status: newStatus as any })
     );
-    await Promise.all(promises);
-    clearSelection();
-    notif.success("Tasks moved");
+    try {
+      await Promise.all(promises);
+      clearSelection();
+      notif.success("Tasks moved");
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to move tasks");
+    }
   };
 
   const handleBulkAssign = async (agentId: string | null) => {
@@ -271,9 +275,13 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
         : [];
       return updateTask({ id: taskId as any, assigneeIds: newAssignees as any });
     });
-    await Promise.all(promises);
-    clearSelection();
-    notif.success("Tasks assigned");
+    try {
+      await Promise.all(promises);
+      clearSelection();
+      notif.success("Tasks assigned");
+    } catch (error: any) {
+      notif.error(error?.message || "Failed to assign tasks");
+    }
   };
 
   // Drag handlers

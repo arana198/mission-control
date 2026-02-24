@@ -17,7 +17,6 @@ import type * as alertRules from "../alertRules.js";
 import type * as anomalyDetection from "../anomalyDetection.js";
 import type * as businesses from "../businesses.js";
 import type * as calendarEvents from "../calendarEvents.js";
-import type * as cron from "../cron.js";
 import type * as debug from "../debug.js";
 import type * as decisions from "../decisions.js";
 import type * as documents from "../documents.js";
@@ -64,7 +63,6 @@ declare const fullApi: ApiFromModules<{
   anomalyDetection: typeof anomalyDetection;
   businesses: typeof businesses;
   calendarEvents: typeof calendarEvents;
-  cron: typeof cron;
   debug: typeof debug;
   decisions: typeof decisions;
   documents: typeof documents;
