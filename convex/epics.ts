@@ -1,10 +1,13 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Epic Management
  * Strategic initiatives and roadmap tracking
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 // Get all epics
@@ -33,7 +36,7 @@ export const getEpicWithDetails = query({
 
     // Verify epic belongs to the requested business
     if (epic.businessId !== businessId) {
-      throw new Error("Epic does not belong to this business");
+      throw ApiError.forbidden("Epic does not belong to this business", { epicId, businessId, actualBusinessId: epic.businessId });
     }
 
     const tasks = await ctx.db
@@ -60,7 +63,7 @@ export const createEpic = mutation({
     description: convexVal.string(),
     ownerId: convexVal.optional(convexVal.id("agents")),
   },
-  handler: async (ctx, { businessId, title, description, ownerId }) => {
+  handler: wrapConvexHandler(async (ctx, { businessId, title, description, ownerId }) => {
     const epicId = await ctx.db.insert("epics", {
       businessId,  // ADD: business scoping
       title,
@@ -87,7 +90,7 @@ export const createEpic = mutation({
     });
 
     return epicId;
-  },
+  }),
 });
 
 // Update epic
@@ -99,13 +102,13 @@ export const updateEpic = mutation({
     description: convexVal.optional(convexVal.string()),
     status: convexVal.optional(convexVal.union(convexVal.literal("planning"), convexVal.literal("active"), convexVal.literal("completed"))),
   },
-  handler: async (ctx, { businessId, epicId, ...updates }) => {
+  handler: wrapConvexHandler(async (ctx, { businessId, epicId, ...updates }) => {
     const epic = await ctx.db.get(epicId);
-    if (!epic) throw new Error("Epic not found");
+    if (!epic) throw ApiError.notFound("Epic", { epicId });
 
     // Verify epic belongs to the requested business
     if (epic.businessId !== businessId) {
-      throw new Error("Epic does not belong to this business");
+      throw ApiError.forbidden("Epic does not belong to this business", { epicId, businessId, actualBusinessId: epic.businessId });
     }
 
     await ctx.db.patch(epicId, {
@@ -128,15 +131,15 @@ export const updateEpic = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 // Delete epic
 export const deleteEpic = mutation({
   args: { epicId: convexVal.id("epics") },
-  handler: async (ctx, { epicId }) => {
+  handler: wrapConvexHandler(async (ctx, { epicId }) => {
     const epic = await ctx.db.get(epicId);
-    if (!epic) throw new Error("Epic not found");
+    if (!epic) throw ApiError.notFound("Epic", { epicId });
 
     // Clear epic references from tasks
     const tasks = await ctx.db
@@ -152,7 +155,7 @@ export const deleteEpic = mutation({
     await ctx.db.delete(epicId);
 
     return { success: true };
-  },
+  }),
 });
 
 // Internal: Recalculate epic progress (called when tasks change)

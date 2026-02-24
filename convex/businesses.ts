@@ -1,10 +1,13 @@
 import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { batchDelete } from "./utils/batchDelete";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Businesses Module
  * CRUD operations for multi-business support (2-5 businesses per workspace)
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 /**
@@ -78,12 +81,13 @@ export const create = mutation({
     description: convexVal.optional(convexVal.string()),
     missionStatement: convexVal.string(), // Required: business purpose/problem being solved
   },
-  handler: async (ctx, { name, slug, color, emoji, description, missionStatement }) => {
+  handler: wrapConvexHandler(async (ctx, { name, slug, color, emoji, description, missionStatement }) => {
     // Validate slug format: lowercase, alphanumeric, hyphens only
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
-      throw new Error(
-        "Invalid slug format. Use only lowercase letters, numbers, and hyphens."
+      throw ApiError.validationError(
+        "Invalid slug format. Use only lowercase letters, numbers, and hyphens.",
+        { field: "slug", value: slug, pattern: "[a-z0-9-]+" }
       );
     }
 
@@ -94,13 +98,19 @@ export const create = mutation({
       .collect();
 
     if (existing.length > 0) {
-      throw new Error(`Business with slug "${slug}" already exists.`);
+      throw ApiError.conflict(
+        `Business with slug "${slug}" already exists`,
+        { slug, existingBusinessId: existing[0]._id }
+      );
     }
 
     // Check max 5 businesses limit
     const allBusinesses = await ctx.db.query("businesses").collect();
     if (allBusinesses.length >= 5) {
-      throw new Error("Maximum 5 businesses allowed per workspace.");
+      throw ApiError.limitExceeded(
+        "Maximum 5 businesses allowed per workspace",
+        { limit: 5, current: allBusinesses.length }
+      );
     }
 
     // If first business, make it default
@@ -140,7 +150,7 @@ export const create = mutation({
     });
 
     return await ctx.db.get(businessId);
-  },
+  }),
 });
 
 /**
@@ -157,10 +167,10 @@ export const update = mutation({
     description: convexVal.optional(convexVal.string()),
     missionStatement: convexVal.optional(convexVal.string()),
   },
-  handler: async (ctx, { businessId, name, color, emoji, description, missionStatement }) => {
+  handler: wrapConvexHandler(async (ctx, { businessId, name, color, emoji, description, missionStatement }) => {
     const business = await ctx.db.get(businessId);
     if (!business) {
-      throw new Error("Business not found.");
+      throw ApiError.notFound("Business", { businessId });
     }
 
     const updates: Record<string, any> = { updatedAt: Date.now() };
@@ -173,7 +183,7 @@ export const update = mutation({
 
     await ctx.db.patch(businessId, updates);
     return await ctx.db.get(businessId);
-  },
+  }),
 });
 
 /**
@@ -183,10 +193,10 @@ export const update = mutation({
  */
 export const setDefault = mutation({
   args: { businessId: convexVal.id("businesses") },
-  handler: async (ctx, { businessId }) => {
+  handler: wrapConvexHandler(async (ctx, { businessId }) => {
     const business = await ctx.db.get(businessId);
     if (!business) {
-      throw new Error("Business not found.");
+      throw ApiError.notFound("Business", { businessId });
     }
 
     // If already default, return (idempotent)
@@ -208,7 +218,7 @@ export const setDefault = mutation({
     // Set new default
     await ctx.db.patch(businessId, { isDefault: true, updatedAt: Date.now() });
     return await ctx.db.get(businessId);
-  },
+  }),
 });
 
 /**
@@ -228,21 +238,27 @@ export const setDefault = mutation({
  */
 export const remove = mutation({
   args: { businessId: convexVal.id("businesses") },
-  handler: async (ctx, { businessId }) => {
+  handler: wrapConvexHandler(async (ctx, { businessId }) => {
     const business = await ctx.db.get(businessId);
     if (!business) {
-      throw new Error("Business not found.");
+      throw ApiError.notFound("Business", { businessId });
     }
 
     // Check if only business
     const allBusinesses = await ctx.db.query("businesses").collect();
     if (allBusinesses.length <= 1) {
-      throw new Error("Cannot delete the only business in workspace.");
+      throw ApiError.conflict(
+        "Cannot delete the only business in workspace",
+        { businessId, totalBusinesses: allBusinesses.length }
+      );
     }
 
     // Check if default
     if (business.isDefault) {
-      throw new Error("Cannot delete the default business. Set another as default first.");
+      throw ApiError.conflict(
+        "Cannot delete the default business. Set another as default first.",
+        { businessId, isDefault: true }
+      );
     }
 
     // === Cascade Delete: Remove all business-scoped data ===
@@ -307,5 +323,5 @@ export const remove = mutation({
       deletedData: deletedCounts,
       totalRecordsDeleted: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
     };
-  },
+  }),
 });

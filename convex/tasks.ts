@@ -8,10 +8,13 @@ import { isTransitionAllowed, ALLOWED_TRANSITIONS } from "../lib/constants/taskT
 import { resolveActorName } from "./utils/activityLogger";
 import { canDeleteTask } from "../lib/auth/permissions";
 import { syncEpicTaskLink } from "./utils/epicTaskSync";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Task Management
  * Kanban-style work queue
+ *
+ * Phase 1: Error standardization - critical mutations now use ApiError with request IDs
  */
 
 /**
@@ -67,7 +70,7 @@ export const createTask = mutation({
     dueDate: convexVal.optional(convexVal.number()),
     epicId: convexVal.id("epics"),  // REQUIRED: all tasks must belong to an epic
   },
-  handler: async (
+  handler: wrapConvexHandler(async (
     ctx,
     {
       businessId,
@@ -97,7 +100,10 @@ export const createTask = mutation({
       });
     } catch (e: any) {
       if (e.name === "ValidationError") {
-        throw new Error(`Validation failed: ${e.message} - ${JSON.stringify(e.errors)}`);
+        throw ApiError.validationError(
+          `Validation failed: ${e.message}`,
+          { errors: e.errors }
+        );
       }
       throw e;
     }
@@ -214,7 +220,7 @@ export const createTask = mutation({
     }
 
     return taskId;
-  },
+  }),
 });
 
 // Get all tasks (H-02 fix: removed message loading, reduces memory pressure)
@@ -284,12 +290,16 @@ export const moveStatus = mutation({
       convexVal.literal("done")
     ),
   },
-  handler: async (ctx, { taskId, fromStatus, toStatus }) => {
+  handler: wrapConvexHandler(async (ctx, { taskId, fromStatus, toStatus }) => {
     // TM-01: Validate state transition
     if (!isTransitionAllowed(fromStatus, toStatus)) {
-      throw new Error(
-        `Invalid transition: ${fromStatus} -> ${toStatus}. ` +
-        `Allowed: ${ALLOWED_TRANSITIONS[fromStatus]?.join(", ") || "none"}`
+      throw ApiError.conflict(
+        `Invalid state transition`,
+        {
+          from: fromStatus,
+          to: toStatus,
+          allowed: ALLOWED_TRANSITIONS[fromStatus] || []
+        }
       );
     }
 
@@ -300,7 +310,7 @@ export const moveStatus = mutation({
       ...(toStatus === "done" ? { completedAt: Date.now() } : {}),
     });
     return { success: true };
-  },
+  }),
 });
 
 // Get tasks by status (L-02 fix: added limit to prevent large collections)
@@ -482,17 +492,21 @@ export const updateStatus = mutation({
     updatedBy: convexVal.optional(convexVal.string()),
     receipts: convexVal.optional(convexVal.array(convexVal.string())),
   },
-  handler: async (ctx, { taskId, status, updatedBy, receipts }) => {
+  handler: wrapConvexHandler(async (ctx, { taskId, status, updatedBy, receipts }) => {
     const task = await ctx.db.get(taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound("Task", { taskId });
 
     const oldStatus = task.status;
 
     // TM-01: Validate state transition
     if (!isTransitionAllowed(oldStatus, status)) {
-      throw new Error(
-        `Invalid transition: ${oldStatus} -> ${status}. ` +
-        `Allowed: ${ALLOWED_TRANSITIONS[oldStatus]?.join(", ") || "none"}`
+      throw ApiError.conflict(
+        `Invalid state transition`,
+        {
+          from: oldStatus,
+          to: status,
+          allowed: ALLOWED_TRANSITIONS[oldStatus] || []
+        }
       );
     }
 
@@ -557,7 +571,7 @@ export const updateStatus = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 // Get task with all details
@@ -610,9 +624,9 @@ export const update = mutation({
     dueDate: convexVal.optional(convexVal.number()),
     epicId: convexVal.optional(convexVal.id("epics")),
   },
-  handler: async (ctx, { id, ...updates }) => {
+  handler: wrapConvexHandler(async (ctx, { id, ...updates }) => {
     const task = await ctx.db.get(id);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound("Task", { taskId: id });
 
     // Validate input (M-01 fix: wire validators into mutations)
     try {
@@ -622,7 +636,10 @@ export const update = mutation({
       });
     } catch (e: any) {
       if (e.name === "ValidationError") {
-        throw new Error(`Validation failed: ${e.message} - ${JSON.stringify(e.errors)}`);
+        throw ApiError.validationError(
+          `Validation failed: ${e.message}`,
+          { errors: e.errors }
+        );
       }
       throw e;
     }
@@ -676,7 +693,7 @@ export const update = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 // Get tasks in "ready" status with assignees (for auto-claim) (H-01 fix: pre-load agents)
