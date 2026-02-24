@@ -1,131 +1,91 @@
 /**
- * Execution Log - Convex Functions
- *
- * Track task execution history, retries, and outcomes
- *
- * Phase 1: Error standardization - all mutations now use ApiError with request IDs
+ * Execution Logging - Mutations
  */
 
-import { mutation, query } from './_generated/server';
+import { query, mutation } from './_generated/server';
 import { v as convexVal } from "convex/values";
-import { Id } from './_generated/dataModel';
-import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
- * CREATE execution log entry
+ * Log an agent execution
  */
-export const create = mutation(wrapConvexHandler(async (ctx, args: {
-  taskId: Id<'tasks'>;
-  agentId?: string;
-  status: 'started' | 'success' | 'failed' | 'incomplete';
-  output?: string;
-  error?: string;
-  timeSpent: number;  // minutes
-  attemptNumber: number;
-  nextAction?: string;
-}) => {
-  // Get task to retrieve businessId
-  const task = await ctx.db.get(args.taskId);
-  if (!task) {
-    throw ApiError.notFound('Task', { taskId: args.taskId });
-  }
-
-  return await ctx.db.insert('executionLog', {
-    businessId: task.businessId,
-    taskId: args.taskId,
-    agentId: args.agentId,
-    status: args.status,
-    output: args.output,
-    error: args.error,
-    timeSpent: args.timeSpent,
-    attemptNumber: args.attemptNumber,
-    nextAction: args.nextAction,
-    startedAt: Date.now(),
-    completedAt: ['success', 'failed', 'incomplete'].includes(args.status)
-      ? Date.now()
-      : undefined,
-    maxAttempts: 3,
-    createdAt: Date.now(),
-  });
-}));
-
-/**
- * GET execution history for a task
- */
-export const getByTask = query(async (ctx, args: {
-  taskId: Id<'tasks'>;
-  limit?: number;
-}) => {
-  return await ctx.db
-    .query('executionLog')
-    .filter(q => q.eq(q.field('taskId'), args.taskId))
-    .collect()
-    .then(logs => logs.sort((a, b) => b.createdAt - a.createdAt))
-    .then(logs => logs.slice(0, args.limit || 10));
+export const logExecution = mutation({
+  args: {
+    agentId: convexVal.id('agents'),
+    agentName: convexVal.string(),
+    taskTitle: convexVal.optional(convexVal.string()),
+    triggerType: convexVal.union(
+      convexVal.literal('manual'),
+      convexVal.literal('cron'),
+      convexVal.literal('autonomous'),
+      convexVal.literal('webhook')
+    ),
+    status: convexVal.union(
+      convexVal.literal('pending'),
+      convexVal.literal('running'),
+      convexVal.literal('success'),
+      convexVal.literal('failed'),
+      convexVal.literal('aborted')
+    ),
+    startTime: convexVal.number(),
+    endTime: convexVal.optional(convexVal.number()),
+    durationMs: convexVal.optional(convexVal.number()),
+    inputTokens: convexVal.optional(convexVal.number()),
+    outputTokens: convexVal.optional(convexVal.number()),
+    totalTokens: convexVal.optional(convexVal.number()),
+    model: convexVal.optional(convexVal.string()),
+    modelProvider: convexVal.optional(convexVal.string()),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert('executions', {
+      agentId: args.agentId,
+      agentName: args.agentName,
+      taskId: undefined,
+      taskTitle: args.taskTitle,
+      triggerType: args.triggerType,
+      status: args.status,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      durationMs: args.durationMs,
+      inputTokens: args.inputTokens || 0,
+      outputTokens: args.outputTokens || 0,
+      totalTokens: args.totalTokens || 0,
+      costCents: undefined,
+      model: args.model,
+      modelProvider: args.modelProvider,
+      error: undefined,
+      logs: undefined,
+      metadata: {},
+    });
+    return { executionId: id };
+  },
 });
 
 /**
- * GET executions by status
+ * Get execution stats
  */
-export const getByStatus = query(async (ctx, args: {
-  status: 'started' | 'success' | 'failed' | 'incomplete' | 'retry';
-}) => {
-  return await ctx.db
-    .query('executionLog')
-    .filter(q => q.eq(q.field('status'), args.status))
-    .collect();
+export const getExecutionStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const executions = await ctx.db.query('executions').collect();
+    
+    let totalTokens = 0;
+    let success = 0;
+    let failed = 0;
+    let running = 0;
+    
+    for (const ex of executions) {
+      totalTokens += ex.totalTokens || 0;
+      if (ex.status === 'success') success++;
+      else if (ex.status === 'failed') failed++;
+      else if (ex.status === 'running') running++;
+    }
+    
+    return {
+      total: executions.length,
+      success,
+      failed,
+      running,
+      totalTokens,
+    };
+  },
 });
-
-/**
- * GET execution stats for a time period
- */
-export const getStats = query(async (ctx, args: {
-  since: number;  // milliseconds ago
-}) => {
-  const cutoffTime = Date.now() - args.since;
-
-  const logs = await ctx.db
-    .query('executionLog')
-    .filter(q => q.gte(q.field('createdAt'), cutoffTime))
-    .collect();
-
-  const successful = logs.filter(l => l.status === 'success').length;
-  const failed = logs.filter(l => l.status === 'failed').length;
-  const incomplete = logs.filter(l => l.status === 'incomplete').length;
-  const totalTime = logs.reduce((sum, l) => sum + (l.timeSpent || 0), 0);
-
-  return {
-    total: logs.length,
-    successful,
-    failed,
-    incomplete,
-    successRate: logs.length > 0 ? Math.round((successful / logs.length) * 100) : 0,
-    avgTimePerTask: logs.length > 0 ? Math.round(totalTime / logs.length) : 0,
-    totalTimeSpent: totalTime,
-  };
-});
-
-/**
- * UPDATE execution status (completion)
- */
-export const complete = mutation(wrapConvexHandler(async (ctx, args: {
-  id: Id<'executionLog'>;
-  status: 'success' | 'failed' | 'incomplete';
-  output?: string;
-  error?: string;
-  timeSpent?: number;
-}) => {
-  const entry = await ctx.db.get(args.id);
-  if (!entry) throw ApiError.notFound('ExecutionLog', { id: args.id });
-
-  const elapsedMs = Date.now() - entry.startedAt;
-  const elapsedMinutes = Math.round(elapsedMs / 1000 / 60);
-
-  await ctx.db.patch(args.id, {
-    status: args.status,
-    output: args.output || entry.output,
-    error: args.error || entry.error,
-    timeSpent: args.timeSpent || elapsedMinutes,
-    completedAt: Date.now(),
-  });
-}));
