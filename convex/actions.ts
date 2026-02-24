@@ -1,10 +1,13 @@
 /**
  * Actions Module
  * Execute management actions (escalate, reassign, unblock tasks)
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Escalate a task to highest priority (P0)
@@ -15,12 +18,12 @@ export const escalateTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
     if (task.priority === "P0") {
-      throw new Error("Task is already highest priority");
+      throw ApiError.conflict('Task is already highest priority', { taskId: args.taskId, priority: task.priority });
     }
 
     // Update task priority to P0 (highest)
@@ -59,7 +62,7 @@ export const escalateTask = mutation({
       decisionId: decisionId,
       message: "Task escalated to high priority",
     };
-  },
+  }),
 });
 
 /**
@@ -73,13 +76,13 @@ export const reassignTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
     const fromAgent = task.ownerId || "unassigned";
     if (fromAgent === args.toAgent) {
-      throw new Error("Task is already owned by this agent");
+      throw ApiError.conflict('Task is already owned by this agent', { taskId: args.taskId, currentOwner: fromAgent });
     }
 
     // Update task assignment - set owner to new agent
@@ -123,7 +126,7 @@ export const reassignTask = mutation({
       toAgent: args.toAgent,
       message: `Task reassigned to ${args.toAgent}`,
     };
-  },
+  }),
 });
 
 /**
@@ -135,12 +138,12 @@ export const unblockTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
     if (!task.blockedBy || task.blockedBy.length === 0) {
-      throw new Error("Task is not blocked");
+      throw ApiError.conflict('Task is not blocked', { taskId: args.taskId, blockedBy: task.blockedBy });
     }
 
     // Clear blocked status
@@ -179,7 +182,7 @@ export const unblockTask = mutation({
       decisionId: decisionId,
       message: "Task unblocked and ready to execute",
     };
-  },
+  }),
 });
 
 /**
@@ -191,12 +194,12 @@ export const markExecuted = mutation({
     outcome: v.string(),
     decidedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
     if (task.status === "done") {
-      throw new Error("Task is already completed");
+      throw ApiError.conflict('Task is already completed', { taskId: args.taskId, status: task.status });
     }
 
     // Mark as done
@@ -236,7 +239,7 @@ export const markExecuted = mutation({
       decisionId: decisionId,
       message: "Task marked as completed",
     };
-  },
+  }),
 });
 
 /**
@@ -248,12 +251,12 @@ export const deprioritizeTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: wrapConvexHandler(async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
-    if (!task) throw new Error("Task not found");
+    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
 
     if (task.priority === "P3") {
-      throw new Error("Task is already lowest priority");
+      throw ApiError.conflict('Task is already lowest priority', { taskId: args.taskId, priority: task.priority });
     }
 
     // Update task priority to P3 (lowest)
@@ -292,7 +295,7 @@ export const deprioritizeTask = mutation({
       decisionId: decisionId,
       message: "Task deprioritized to P3 (lowest priority)",
     };
-  },
+  }),
 });
 
 /**

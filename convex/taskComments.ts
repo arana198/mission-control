@@ -1,9 +1,12 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Task Comments System (Phase 5A)
  * Threaded discussions on tasks with reactions, mentions, and notifications
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 /**
@@ -150,9 +153,9 @@ export const addReaction = mutation({
     emoji: v.string(),
     agentId: v.id("agents"),
   },
-  handler: async (ctx, { commentId, emoji, agentId }) => {
+  handler: wrapConvexHandler(async (ctx, { commentId, emoji, agentId }) => {
     const comment = await ctx.db.get(commentId);
-    if (!comment) throw new Error("Comment not found");
+    if (!comment) throw ApiError.notFound('TaskComment', { commentId });
 
     const reactions = comment.reactions || {};
     const emojiReactions = reactions[emoji] || [];
@@ -172,7 +175,7 @@ export const addReaction = mutation({
     });
 
     return reactions;
-  },
+  }),
 });
 
 /**
@@ -182,9 +185,9 @@ export const deleteComment = mutation({
   args: {
     commentId: v.id("taskComments"),
   },
-  handler: async (ctx, { commentId }) => {
+  handler: wrapConvexHandler(async (ctx, { commentId }) => {
     const comment = await ctx.db.get(commentId);
-    if (!comment) throw new Error("Comment not found");
+    if (!comment) throw ApiError.notFound('TaskComment', { commentId });
 
     // Replace content with deletion marker
     await ctx.db.patch(commentId, {
@@ -193,7 +196,7 @@ export const deleteComment = mutation({
     });
 
     return commentId;
-  },
+  }),
 });
 
 /**
@@ -205,9 +208,9 @@ export const editComment = mutation({
     content: v.string(),
     mentions: v.optional(v.array(v.id("agents"))),
   },
-  handler: async (ctx, { commentId, content, mentions }) => {
+  handler: wrapConvexHandler(async (ctx, { commentId, content, mentions }) => {
     const comment = await ctx.db.get(commentId);
-    if (!comment) throw new Error("Comment not found");
+    if (!comment) throw ApiError.notFound('TaskComment', { commentId });
 
     const now = Date.now();
 
@@ -218,7 +221,7 @@ export const editComment = mutation({
     });
 
     return commentId;
-  },
+  }),
 });
 
 /**
@@ -314,9 +317,9 @@ export const markMentionAsRead = mutation({
   args: {
     mentionId: v.id("mentions"),
   },
-  handler: async (ctx, { mentionId }) => {
+  handler: wrapConvexHandler(async (ctx, { mentionId }) => {
     const mention = await ctx.db.get(mentionId);
-    if (!mention) throw new Error("Mention not found");
+    if (!mention) throw ApiError.notFound('Mention', { mentionId });
 
     await ctx.db.patch(mentionId, {
       read: true,
@@ -324,7 +327,7 @@ export const markMentionAsRead = mutation({
     });
 
     return mentionId;
-  },
+  }),
 });
 
 /**

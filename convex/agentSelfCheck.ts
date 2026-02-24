@@ -1,10 +1,13 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
 import { api } from "./_generated/api";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Agent Self-Check System
  * Agents query for notifications on wake and auto-claim tasks
+ *
+ * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
 
 /**
@@ -16,7 +19,7 @@ export const getWorkQueue = query({
   args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
     const agent = await ctx.db.get(agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw ApiError.notFound('Agent', { agentId });
 
     // Get unread notifications
     const notifications = await ctx.db
@@ -58,9 +61,9 @@ export const getWorkQueue = query({
  */
 export const claimNextTask = mutation({
   args: { agentId: convexVal.id("agents") },
-  handler: async (ctx, { agentId }) => {
+  handler: wrapConvexHandler(async (ctx, { agentId }) => {
     const agent = await ctx.db.get(agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) throw ApiError.notFound('Agent', { agentId });
 
     // PERF-02: Get ready tasks assigned to agent using by_status index
     const allTasks = await ctx.db
@@ -127,7 +130,7 @@ export const claimNextTask = mutation({
       taskTitle: taskToClaim.title,
       priority: taskToClaim.priority,
     };
-  },
+  }),
 });
 
 /**
