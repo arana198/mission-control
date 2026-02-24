@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Agent } from "@/types/agent";
@@ -14,7 +14,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { DefinitionOfDoneChecklist } from "./DefinitionOfDoneChecklist";
 import { HelpRequestButton } from "./HelpRequestButton";
 import { DependencyGraph } from "./DependencyGraph";
-import { AlertTriangle, Calendar, Target, X, Loader2, ChevronDown } from "lucide-react";
+import { ModalWrapper } from "./Modal";
+import { AlertTriangle, Calendar, Target, Loader2, ChevronDown, X } from "lucide-react";
 import { getPriorityBadgeClass, getStatusLabel } from "./Badge";
 
 /**
@@ -47,15 +48,6 @@ export function TaskDetailModal({
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState(task.description || "");
   const [isUpdatingDescription, setIsUpdatingDescription] = useState(false);
-
-  // Close modal on Escape key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   const updateTask = useMutation(api.tasks.update);
 
@@ -174,44 +166,15 @@ export function TaskDetailModal({
   const currentEpic = epics.find((e) => e._id === task.epicId);
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="task-detail-title"
+    <ModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={task.title}
+      subtitle={task.ticketNumber ? `#${task.ticketNumber}` : undefined}
+      className="w-full max-w-3xl sm:max-h-[90vh] overflow-y-auto"
     >
-      <div
-        className="modal-content w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Clean Header */}
-        <div className="p-6 border-b bg-gradient-to-br from-background to-muted/20">
-          <div className="flex items-start justify-between mb-3">
-            {/* Ticket number - prominent and small */}
-            {task.ticketNumber && (
-              <span className="font-mono font-bold text-xs tracking-wider text-muted-foreground uppercase">
-                {task.ticketNumber}
-              </span>
-            )}
-            {/* Right: Close button */}
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted/50 rounded-lg transition-colors -mr-2"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-
-          {/* Title - main focus */}
-          <h1 id="task-detail-title" className="text-2xl font-semibold tracking-tight">
-            {task.title}
-          </h1>
-        </div>
-
-        {/* Two-column layout like Jira */}
-        <div className="grid grid-cols-3 gap-6 p-6">
+      {/* Two-column layout like Jira */}
+      <div className="grid grid-cols-3 gap-6 p-6">
           {/* Left column (2/3): Description, Comments, Dependencies */}
           <div className="col-span-2 space-y-6">
             {/* Description */}
@@ -608,7 +571,6 @@ export function TaskDetailModal({
             </div>
           </div>
         </div>
-      </div>
 
       {/* Confirmation dialog for removing blocker */}
       {blockerToRemove && (
@@ -623,6 +585,6 @@ export function TaskDetailModal({
           onCancel={() => setBlockerToRemove(null)}
         />
       )}
-    </div>
+    </ModalWrapper>
   );
 }

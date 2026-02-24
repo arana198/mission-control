@@ -1,11 +1,12 @@
 "use client";
 import { useNotification } from "@/hooks/useNotification";
+import { ModalWrapper } from "./Modal";
 
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
-import { 
-  Shield, X, Briefcase, ExternalLink, History, Calendar,
+import {
+  Shield, Briefcase, ExternalLink, History, Calendar,
   MessageSquare, PlusCircle, CheckCircle2, UserPlus, Clock,
   Target, AlertCircle, PenTool
 } from "lucide-react";
@@ -83,49 +84,34 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      onClick={onClose}
+    <ModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title={agent.name}
+      subtitle={agent.role}
+      className="w-full max-w-3xl sm:max-h-[90vh] overflow-y-auto"
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div 
-        className="relative card w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="p-6 border-b border-[var(--border)] flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white">
-              <Icon className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>{agent.name}</h2>
-                <span className={`badge ${levelBadge.bg} ${levelBadge.text}`}>
-                  {levelBadge.label}
-                </span>
-                <span className={`badge ${
-                  agent.status === "active" ? "badge-status-active" :
-                  agent.status === "blocked" ? "badge-status-blocked" :
-                  "badge-status-idle"
-                }`}>
-                  {agent.status}
-                </span>
-              </div>
-              <p style={{ color: "var(--muted-foreground)" }}>{agent.role}</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
-            aria-label="Close agent detail modal"
-          >
-            <X className="w-5 h-5" style={{ color: "var(--foreground)" }} />
-          </button>
+      {/* Agent Icon and Badges - Custom Header Content */}
+      <div className="px-6 pt-0 pb-2 flex items-start gap-4">
+        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white flex-shrink-0">
+          <Icon className="w-7 h-7" />
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`badge ${levelBadge.bg} ${levelBadge.text}`}>
+            {levelBadge.label}
+          </span>
+          <span className={`badge ${
+            agent.status === "active" ? "badge-status-active" :
+            agent.status === "blocked" ? "badge-status-blocked" :
+            "badge-status-idle"
+          }`}>
+            {agent.status}
+          </span>
+        </div>
+      </div>
 
-        {/* Modal Content */}
-        <div className="p-6 space-y-6" style={{ background: "var(--background)" }}>
+      {/* Modal Content */}
+      <div className="p-6 space-y-6">
           {/* Status Row - Dark Mode Compatible */}
           <div className="flex gap-4">
             <div className="flex-1 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
@@ -250,8 +236,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }
 

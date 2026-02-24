@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useBusiness } from "./BusinessProvider";
 import { ChevronDown, AlertCircle } from "lucide-react";
@@ -11,9 +11,19 @@ import { ChevronDown, AlertCircle } from "lucide-react";
  * Dropdown for switching between businesses in the sidebar.
  * Displays current business with emoji and name.
  * On selection, navigates to that business's current tab.
+ *
+ * Keyboard Navigation (WCAG 2.1):
+ * - Space/Enter: Open dropdown
+ * - Arrow Up/Down: Navigate options
+ * - Home/End: Jump to first/last option
+ * - Enter: Select highlighted option
+ * - Escape: Close dropdown
  */
 function BusinessSelectorContent() {
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -44,6 +54,82 @@ function BusinessSelectorContent() {
   const globalTabs = ["agents", "workload", "activity", "calendar", "brain", "bottlenecks", "analytics", "api-docs"];
   const isCurrentTabGlobal = globalTabs.includes(currentTab);
 
+  // Reset highlighted index when opening
+  useEffect(() => {
+    if (isOpen) {
+      const currentIndex = businesses?.findIndex(
+        (b: any) => b._id === currentBusiness?._id
+      ) ?? 0;
+      setHighlightedIndex(Math.max(0, currentIndex));
+    }
+  }, [isOpen, businesses, currentBusiness]);
+
+  // Handle Escape key globally
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleGlobalEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalEscape);
+    return () => window.removeEventListener("keydown", handleGlobalEscape);
+  }, [isOpen]);
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!businesses || businesses.length === 0) return;
+
+    if (!isOpen && (e.key === " " || e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      setIsOpen(true);
+      return;
+    }
+
+    if (!isOpen) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1) % businesses.length);
+        break;
+
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 + businesses.length) % businesses.length);
+        break;
+
+      case "Home":
+        e.preventDefault();
+        setHighlightedIndex(0);
+        break;
+
+      case "End":
+        e.preventDefault();
+        setHighlightedIndex(businesses.length - 1);
+        break;
+
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        handleSelectBusiness(businesses[highlightedIndex]);
+        break;
+
+      case "Escape":
+        e.preventDefault();
+        setIsOpen(false);
+        buttonRef.current?.focus();
+        break;
+
+      default:
+        break;
+    }
+  };
+
   const handleSelectBusiness = (business: any) => {
     if (business._id === currentBusiness?._id) {
       // No-op if selecting same business
@@ -69,9 +155,15 @@ function BusinessSelectorContent() {
     <div className="relative">
       {/* Selector Button */}
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-input bg-background hover:bg-accent/5 transition-colors"
+        onKeyDown={handleKeyDown}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-input bg-background hover:bg-accent/5 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
         disabled={isLoading || !currentBusiness}
+        role="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={`Select business, current selection: ${currentBusiness?.name || "None"}`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {currentBusiness ? (
@@ -99,23 +191,36 @@ function BusinessSelectorContent() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 border border-input rounded-lg bg-popover shadow-md">
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-2 z-50 border border-input rounded-lg bg-popover shadow-md"
+          role="listbox"
+          aria-label="Business options"
+        >
           <div className="max-h-60 overflow-y-auto">
             {businesses && businesses.length > 0 ? (
-              businesses.map((business: any) => (
+              businesses.map((business: any, index: number) => (
                 <button
                   key={business._id}
                   onClick={() => handleSelectBusiness(business)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                  onKeyDown={handleKeyDown}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
+                    highlightedIndex === index
+                      ? "bg-blue-100 dark:bg-blue-900/30"
+                      : "hover:bg-muted text-foreground"
+                  } ${
                     business._id === currentBusiness?._id
                       ? "bg-accent text-accent-foreground font-medium"
-                      : "hover:bg-muted text-foreground"
+                      : "text-foreground"
                   }`}
                   style={
                     business._id === currentBusiness?._id
                       ? {}
                       : { borderLeftColor: business.color }
                   }
+                  role="option"
+                  aria-selected={business._id === currentBusiness?._id}
+                  tabIndex={highlightedIndex === index ? 0 : -1}
                 >
                   <span className="text-lg">{business.emoji}</span>
                   <div className="flex-1 text-left">

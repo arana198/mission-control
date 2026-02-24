@@ -5,6 +5,7 @@ import { useMutationWithNotification } from "@/hooks/useMutationWithNotification
 import { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { ModalWrapper, ModalOverlay, ModalContent } from "./Modal";
 import {
   extractPriorityFromText,
   detectEpicFromTitle,
@@ -12,7 +13,7 @@ import {
   estimateTimeFromDescription,
 } from "@/lib/smartDefaults";
 import {
-  X, AlertCircle, CheckCircle, FileText, Bug, Sparkles, Lightbulb,
+  AlertCircle, CheckCircle, FileText, Bug, Sparkles, Lightbulb,
   Plus, Target, Loader2
 } from "lucide-react";
 
@@ -287,18 +288,14 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
   // Show epic creation form if explicitly requested
   if (showCreateEpicForm) {
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content w-full max-w-lg" onClick={e => e.stopPropagation()}>
-          <div className="p-6 border-b flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Create New Epic</h2>
-              <p className="text-sm text-muted-foreground">All tasks must belong to an epic</p>
-            </div>
-            <button onClick={() => setShowCreateEpicForm(false)} className="btn btn-ghost p-2">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <form onSubmit={handleManualCreateEpic} className="p-6 space-y-4">
+      <ModalWrapper
+        isOpen={true}
+        onClose={() => setShowCreateEpicForm(false)}
+        title="Create New Epic"
+        subtitle="All tasks must belong to an epic"
+        className="w-full max-w-lg"
+      >
+        <form onSubmit={handleManualCreateEpic} className="p-6 space-y-4">
             <div>
               <label className="label">Epic Title *</label>
               <input
@@ -341,41 +338,36 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
               </button>
             </div>
           </form>
-        </div>
-      </div>
+      </ModalWrapper>
     );
   }
 
   // Show loading while auto-creating epic
   if (epics.length === 0 && !createdEpicId && isCreatingEpic) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-content w-full max-w-lg p-8 text-center">
+      <ModalWrapper
+        isOpen={true}
+        onClose={onClose}
+        title="Creating Default Epic..."
+        className="w-full max-w-lg p-8 text-center"
+      >
+        <div className="p-8 text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-accent" />
-          <h2 className="text-xl font-semibold mb-2">Creating Default Epic...</h2>
           <p className="text-muted-foreground">Setting up your first epic to organize tasks</p>
         </div>
-      </div>
+      </ModalWrapper>
     );
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-6 border-b flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Create Task</h2>
-            <p className="text-sm text-muted-foreground">
-              Tasks must be associated with an epic • Subtasks inherit epic from parent
-            </p>
-          </div>
-          <button onClick={onClose} className="btn btn-ghost p-2">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+    <ModalWrapper
+      isOpen={true}
+      onClose={onClose}
+      title="Create Task"
+      subtitle="Tasks must be associated with an epic • Subtasks inherit epic from parent"
+      className="w-full max-w-2xl sm:max-h-[90vh] overflow-y-auto"
+    >
+      <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600">
               <AlertCircle className="w-4 h-4" />
@@ -609,7 +601,6 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

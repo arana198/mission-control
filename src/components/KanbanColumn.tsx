@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
 import { Epic } from "@/types/epic";
@@ -16,7 +16,7 @@ import {
   getPriorityBadgeClass,
   getTimeEstimateBadgeClass,
 } from "./Badge";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 
 interface KanbanColumnProps {
   column: {
@@ -58,6 +58,49 @@ function KanbanColumnComponent({
   presenceMap,
 }: KanbanColumnProps) {
   const Icon = column.icon;
+  const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Keyboard navigation handler for Arrow Up/Down between tasks
+  const handleTaskKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+      if (tasks.length === 0) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          const nextIndex = Math.min(index + 1, tasks.length - 1);
+          taskRefs.current[nextIndex]?.focus();
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          const prevIndex = Math.max(index - 1, 0);
+          taskRefs.current[prevIndex]?.focus();
+          break;
+
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          if (!bulkMode) {
+            onTaskClick(tasks[index]);
+          } else {
+            // In bulk mode, Space toggles checkbox
+            const checkboxEvent = new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+            });
+            const checkbox = (e.target as HTMLDivElement).querySelector("input[type='checkbox']");
+            checkbox?.dispatchEvent(checkboxEvent);
+          }
+          break;
+
+        default:
+          break;
+      }
+    },
+    [tasks, bulkMode, onTaskClick]
+  );
 
   return (
     <div className="flex flex-col min-h-[600px]">
@@ -84,24 +127,22 @@ function KanbanColumnComponent({
             No tasks
           </div>
         ) : (
-          tasks.map((task) => (
+          tasks.map((task, index) => (
             <div
               key={task._id}
+              ref={(el) => {
+                if (el) taskRefs.current[index] = el;
+              }}
               draggable={!bulkMode}
               onDragStart={() => !bulkMode && onDragStart(task)}
               onClick={() => !bulkMode && onTaskClick(task)}
-              className={`card p-3 cursor-pointer hover:shadow-md transition-all relative ${
+              onKeyDown={(e) => handleTaskKeyDown(e, index)}
+              className={`card p-3 cursor-pointer hover:shadow-md transition-all relative focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
                 task._id === draggedTaskId ? "opacity-50 scale-95" : ""
               }`}
               role="button"
               tabIndex={0}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  if (!bulkMode) onTaskClick(task);
-                }
-              }}
-              aria-label={`Task: ${task.title}. Priority: ${task.priority}. Status: ${task.status}`}
+              aria-label={`Task: ${task.title}. Priority: ${task.priority}. Status: ${task.status}. ${bulkMode ? "Press Space to select or Enter to open." : "Press Enter to open or arrow keys to navigate."}`}
               aria-describedby={task.blockedBy && task.blockedBy.length > 0 ? `blocked-${task._id}` : undefined}
             >
               {bulkMode && (

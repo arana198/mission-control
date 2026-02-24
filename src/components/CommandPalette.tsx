@@ -319,6 +319,12 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="command-results"
+                aria-expanded={results.length > 0}
+                aria-label="Search palette"
+                aria-haspopup="listbox"
               />
               {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
               <button
@@ -330,17 +336,17 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
             </div>
 
             {/* Results */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto" id="command-results">
               {loading ? (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-8 text-center text-muted-foreground" role="status" aria-live="polite">
                   Searching...
                 </div>
               ) : results.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-8 text-center text-muted-foreground" role="status" aria-live="polite">
                   {query ? "No results found" : "Start typing to search"}
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border" role="listbox" aria-label="Search results">
                   {results.map((result, index) => (
                     <button
                       key={result.id}
@@ -350,11 +356,13 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                       }}
                       onMouseMove={() => setSelected(index)}
                       className={clsx(
-                        "w-full px-4 py-3 flex items-start gap-3 text-left transition-colors",
+                        "w-full px-4 py-3 flex items-start gap-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
                         index === selected
                           ? "bg-secondary text-foreground"
                           : "hover:bg-secondary/50 text-foreground"
                       )}
+                      role="option"
+                      aria-selected={index === selected}
                     >
                       {/* Icon */}
                       <div className="pt-0.5">

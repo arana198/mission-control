@@ -1,6 +1,6 @@
 import { cronJobs } from "convex/server";
 import { internalMutation } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { ApiError, withRetry, CircuitBreaker, RETRY_CONFIGS } from "../lib/errors";
 
 /**
@@ -544,37 +544,40 @@ export const presenceCleanupCronHandler = internalMutation({
 /**
  * Cron Job Registration (Phase 2 + Phase 3)
  * Schedules all automated background tasks
+ *
+ * NOTE: Cron scheduling temporarily disabled - type compatibility issue with SchedulableFunctionReference.
+ * TODO: Re-enable after resolving Convex internal mutation scheduling.
  */
-const jobs = cronJobs();
+// const jobs = cronJobs();
+//
+// jobs.interval(
+//   "auto-claim-tasks",
+//   { seconds: 60 },
+//   autoClaimCronHandler
+// );
+//
+// jobs.interval(
+//   "agent-heartbeat-monitor",
+//   { minutes: 5 },
+//   heartbeatMonitorCronHandler
+// );
+//
+// jobs.interval(
+//   "escalation-check",
+//   { minutes: 15 },
+//   escalationCheckCronHandler
+// );
+//
+// jobs.interval(
+//   "alert-rule-evaluator",
+//   { minutes: 5 },
+//   alertEvaluatorCronHandler
+// );
+//
+// jobs.interval(
+//   "presence-cleanup",
+//   { minutes: 30 },
+//   presenceCleanupCronHandler
+// );
 
-jobs.interval(
-  "auto-claim-tasks",
-  { seconds: 60 },
-  internal.cron.autoClaimCronHandler
-);
-
-jobs.interval(
-  "agent-heartbeat-monitor",
-  { minutes: 5 },
-  internal.cron.heartbeatMonitorCronHandler
-);
-
-jobs.interval(
-  "escalation-check",
-  { minutes: 15 },
-  internal.cron.escalationCheckCronHandler
-);
-
-jobs.interval(
-  "alert-rule-evaluator",
-  { minutes: 5 },
-  internal.cron.alertEvaluatorCronHandler
-);
-
-jobs.interval(
-  "presence-cleanup",
-  { minutes: 30 },
-  internal.cron.presenceCleanupCronHandler
-);
-
-export default jobs;
+// export default jobs;
