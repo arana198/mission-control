@@ -30,17 +30,24 @@ export const upsertMetrics = mutation({
       .filter((q) => q.eq(q.field("period"), period))
       .first();
 
+    // Denormalize agent info (Phase 4: avoid N+1 in getLeaderboard)
+    const denormalized = {
+      agentName: agent.name,
+      agentRole: agent.role,
+    };
+
     if (existing) {
-      // Update existing metrics
+      // Update existing metrics with denormalized fields
       await ctx.db.patch(existing._id, {
         tasksCreated: (existing.tasksCreated || 0) + (tasksCreated || 0),
         tasksCompleted: (existing.tasksCompleted || 0) + (tasksCompleted || 0),
         tasksBlocked: (existing.tasksBlocked || 0) + (tasksBlocked || 0),
         commentsMade: (existing.commentsMade || 0) + (commentsMade || 0),
+        ...denormalized,
         updatedAt: Date.now(),
-      });
+      } as any);
     } else {
-      // Create new metrics entry
+      // Create new metrics entry with denormalized fields
       await ctx.db.insert("agentMetrics", {
         agentId,
         period,
@@ -53,8 +60,9 @@ export const upsertMetrics = mutation({
         sessionsCompleted: 0,
         totalSessionHours: 0,
         avgCompletionTime: 0,
+        ...denormalized,
         updatedAt: Date.now(),
-      });
+      } as any);
     }
   },
 });
@@ -110,19 +118,12 @@ export const getLeaderboard = query({
       })
       .slice(0, limit);
 
-    // Fetch agent names for display
-    const withAgents = await Promise.all(
-      sorted.map(async (metric) => {
-        const agent = await ctx.db.get(metric.agentId);
-        return {
-          ...metric,
-          agentName: agent?.name || "Unknown",
-          agentRole: agent?.role || "",
-        };
-      })
-    );
-
-    return withAgents;
+    // Phase 4: Use denormalized agentName/agentRole (no N+1 lookups!)
+    return sorted.map((metric) => ({
+      ...metric,
+      agentName: (metric as any).agentName || "Unknown",
+      agentRole: (metric as any).agentRole || "",
+    }));
   },
 });
 

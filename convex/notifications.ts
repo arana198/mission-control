@@ -106,18 +106,21 @@ export const markRead = mutation({
 export const markAllRead = mutation({
   args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
+    // Use by_read index for efficient querying
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
-      .collect();
+      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
+      .take(500); // Reasonable cap for batch marking
 
-    for (const notif of unread) {
-      await ctx.db.patch(notif._id, {
-        read: true,
-        readAt: Date.now(),
-      });
-    }
+    // Mark all as read in parallel to avoid sequential patch timeout
+    await Promise.all(
+      unread.map((notif) =>
+        ctx.db.patch(notif._id, {
+          read: true,
+          readAt: Date.now(),
+        })
+      )
+    );
 
     return { marked: unread.length };
   },
@@ -127,11 +130,12 @@ export const markAllRead = mutation({
 export const countUnread = query({
   args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
+    // Use by_read index + take (not collect) to avoid loading all unread into memory
+    // Take 101 to detect "100+" threshold without loading potentially large result set
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
-      .collect();
+      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
+      .take(101);
 
     return unread.length;
   },
@@ -141,25 +145,27 @@ export const countUnread = query({
 export const getNextActionable = query({
   args: { agentId: convexVal.id("agents") },
   handler: async (ctx, { agentId }) => {
+    // Use by_read index for efficient unread query
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
+      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
       .order("desc")
       .take(10);
 
-    // Get task details for each notification
+    // Filter to assignment type notifications with taskIds (minimize point reads)
+    const assignmentNotifs = unread.filter(
+      (n) => n.type === "assignment" && n.taskId
+    ) as (typeof unread[0] & { taskId: NonNullable<(typeof unread[0])["taskId"]> })[];
+
+    // Only fetch tasks for actionable notifications
     const enriched = await Promise.all(
-      unread.map(async (notif) => {
-        if (notif.taskId) {
-          const task = await ctx.db.get(notif.taskId);
-          return { ...notif, task };
-        }
-        return { ...notif, task: null };
+      assignmentNotifs.map(async (notif) => {
+        const task = await ctx.db.get(notif.taskId);
+        return { ...notif, task };
       })
     );
 
-    // Return first actionable one (assignment notification with task in ready status)
-    return enriched.find((n) => n.type === "assignment" && n.task?.status === "ready") || null;
+    // Return first one with ready status
+    return enriched.find((n) => n.task?.status === "ready") || null;
   },
 });

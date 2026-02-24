@@ -1102,6 +1102,116 @@ export const migrationWikiSimplify = mutation({
 });
 
 /**
+ * MIG-10: Schema Optimizations — Ticket Index + CalendarEvents BusinessId (2026-02-23)
+ *
+ * Schema changes:
+ * - tasks: new "by_ticket_number" index (["businessId", "ticketNumber"]) for fast ticket lookups
+ * - calendarEvents: add optional businessId field + "by_business" index for multi-tenant isolation
+ * - taskSubscriptions: new "by_business" index for cascade delete compliance
+ *
+ * Reason: Phase 1 of comprehensive Convex backend refactor
+ * - Ticket index: eliminates full table scan in getTaskByTicketNumber
+ * - CalendarEvents.businessId: enables business-scoped cascade delete
+ * - TaskSubscriptions.by_business: required for businesses.remove() cascade
+ *
+ * Migration action:
+ * - Backfill calendarEvents.businessId from related taskId → task.businessId
+ * - All other changes are schema-only (no data mutation needed)
+ *
+ * Idempotent: Skips already-backfilled records; safe to run multiple times
+ *
+ * Used by: Phase 1 of backend refactor (businesses.remove, getTaskByTicketNumber)
+ */
+export const migrationSchemaOptimizations = mutation({
+  args: { batchSize: convexVal.optional(convexVal.number()) },
+  handler: async (ctx, { batchSize = 100 }) => {
+    // Backfill calendarEvents.businessId from related tasks
+    const events = await ctx.db.query("calendarEvents").collect();
+    let backfilled = 0;
+
+    for (const event of events) {
+      // Idempotent: skip if already backfilled
+      if ((event as any).businessId) {
+        continue;
+      }
+
+      // Only backfill if event has a taskId
+      if (event.taskId) {
+        const task = await ctx.db.get(event.taskId);
+        if (task && (task as any).businessId) {
+          await ctx.db.patch(event._id, {
+            businessId: (task as any).businessId,
+          } as any);
+          backfilled++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      backfilled,
+      total: events.length,
+      message: `MIG-10: Schema optimizations applied. Backfilled ${backfilled}/${events.length} calendar events with businessId.`,
+    };
+  },
+});
+
+/**
+ * MIG-11: Agent Metrics Denormalization - Phase 4A (2026-02-23)
+ *
+ * Schema changes:
+ * - agentMetrics: Added optional agentName and agentRole fields (denormalized from agents table)
+ *
+ * Reason: Phase 4A eliminates N+1 queries in getLeaderboard. Previously, getLeaderboard
+ * would query all agentMetrics (1 query) then fetch agent details for each metric (N queries).
+ * By denormalizing agentName and agentRole into agentMetrics at write time, getLeaderboard
+ * can now return complete data in a single indexed query without any follow-up lookups.
+ *
+ * Migration action:
+ * - Backfill existing agentMetrics with agentName and agentRole by joining to agents table
+ * - For each metric, look up the agent and copy name + role
+ * - Skip records where agent not found (agent was deleted)
+ * - Idempotent: skips records that already have agentName/agentRole set
+ *
+ * Performance impact: getLeaderboard() changes from 1+N queries to 1 query
+ *
+ * Used by: convex/agentMetrics.ts getLeaderboard (Phase 4A)
+ */
+export const migrationDenormalizeAgentMetrics = mutation({
+  args: { batchSize: convexVal.optional(convexVal.number()) },
+  handler: async (ctx, { batchSize = 100 }) => {
+    const metrics = await ctx.db.query("agentMetrics").collect();
+    let backfilled = 0;
+
+    for (const metric of metrics) {
+      // Skip if already denormalized
+      if ((metric as any).agentName || (metric as any).agentRole) {
+        continue;
+      }
+
+      // Look up agent
+      const agent = await ctx.db.get((metric as any).agentId);
+      if (!agent) continue; // agent was deleted, skip
+
+      // Backfill denormalized fields
+      await ctx.db.patch(metric._id, {
+        agentName: (agent as any).name,
+        agentRole: (agent as any).role,
+      } as any);
+
+      backfilled++;
+    }
+
+    return {
+      success: true,
+      backfilled,
+      total: metrics.length,
+      message: `MIG-11: Denormalized agentName/agentRole into ${backfilled}/${metrics.length} metrics. Eliminates N+1 in getLeaderboard.`,
+    };
+  },
+});
+
+/**
  * MIG-12: Activities Schema - Optional BusinessId (2026-02-23)
  *
  * Schema change:

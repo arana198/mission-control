@@ -29,10 +29,13 @@ export const detectPatterns = mutation({
     // Create pattern signature: "task1→task2→task3"
     const patternSignature = args.taskSequence.join("→");
 
-    // Find existing pattern
-    const patterns = await ctx.db.query("taskPatterns" as any).collect();
-    const existing = (patterns as any[]).find(
-      (p) => p.businessId === args.businessId && p.pattern === patternSignature
+    // Find existing pattern using by_business index
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
+    const existing = patterns.find(
+      (p) => p.pattern === patternSignature
     );
 
     if (existing) {
@@ -82,10 +85,11 @@ export const getPatternsByBusiness = query({
     businessId: v.id("businesses"),
   },
   handler: async (ctx, args) => {
-    const patterns = await ctx.db.query("taskPatterns" as any).collect();
-    return ((patterns as any[])
-      .filter((p) => p.businessId === args.businessId)
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
+    return patterns.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 });
 
@@ -98,8 +102,10 @@ export const getCommonPatterns = query({
     limit: v.number(),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     // Sort by occurrences desc, then success rate desc
     return patterns
@@ -125,8 +131,10 @@ export const suggestPatternsForEpic = query({
     taskTypes: v.array(v.string()), // task types user wants to include
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     // Find patterns that match the task types
     const suggestions = patterns.filter((p) => {
@@ -159,8 +167,10 @@ export const getAntiPatterns = query({
     successThreshold: v.number(),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     // Filter to low-success patterns with minimum occurrences
     return patterns
@@ -182,8 +192,10 @@ export const estimateDuration = query({
     taskTypes: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     // Find matching patterns
     const matchingPatterns = patterns.filter((p) => {
@@ -220,8 +232,10 @@ export const getDormantPatterns = query({
     daysSinceLastSeen: v.number(),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     const thresholdMs = args.daysSinceLastSeen * 24 * 60 * 60 * 1000;
 
@@ -239,8 +253,10 @@ export const getPatternAnalytics = query({
     businessId: v.id("businesses"),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("taskPatterns" as any).collect();
-    const patterns = (all as any[]).filter((p) => p.businessId === args.businessId);
+    const patterns = await ctx.db
+      .query("taskPatterns")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
     const totalPatterns = patterns.length;
     const totalOccurrences = patterns.reduce((sum, p) => sum + (p.occurrences || 0), 0);

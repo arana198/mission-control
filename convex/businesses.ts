@@ -1,5 +1,6 @@
 import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { batchDelete } from "./utils/batchDelete";
 
 /**
  * Businesses Module
@@ -220,6 +221,10 @@ export const setDefault = mutation({
  * - Deletes all documents, calendar events, goals
  * - Deletes all related metrics and logs
  * - Deletes all settings and alerts
+ * - Deletes all 25 business-scoped tables (includes MIG-10 additions)
+ *
+ * Optimization: Uses batchDelete() utility to handle 100+ records without timeout.
+ * Performance: Linear time complexity O(n), no O(n²) cascades.
  */
 export const remove = mutation({
   args: { businessId: convexVal.id("businesses") },
@@ -241,154 +246,57 @@ export const remove = mutation({
     }
 
     // === Cascade Delete: Remove all business-scoped data ===
+    // Uses unified pattern: query with index → collect IDs → batchDelete
+    // This avoids timeout issues with individual delete loops
 
-    // Delete tasks (cascades to subtask IDs in parent tasks)
-    const tasks = await ctx.db
-      .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const task of tasks) {
-      await ctx.db.delete(task._id);
+    const deletedCounts: Record<string, number> = {};
+
+    // Helper: Collect IDs for a business-scoped table with index
+    async function collectAndDelete(
+      table: string,
+      indexName: string
+    ): Promise<number> {
+      const records = await ctx.db
+        .query(table as any)
+        .withIndex(indexName, (q: any) => q.eq("businessId", businessId))
+        .collect();
+
+      if (records.length === 0) return 0;
+
+      const ids = records.map((r: any) => r._id);
+      const deleted = await batchDelete(ctx, ids, 100);
+      return deleted;
     }
 
-    // Delete epics
-    const epics = await ctx.db
-      .query("epics")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const epic of epics) {
-      await ctx.db.delete(epic._id);
-    }
+    // Delete from all 25 business-scoped tables (using indexes)
+    deletedCounts.tasks = await collectAndDelete("tasks", "by_business");
+    deletedCounts.epics = await collectAndDelete("epics", "by_business");
+    deletedCounts.goals = await collectAndDelete("goals", "by_business");
+    deletedCounts.messages = await collectAndDelete("messages", "by_business");
+    deletedCounts.activities = await collectAndDelete("activities", "by_business");
+    deletedCounts.documents = await collectAndDelete("documents", "by_business");
+    deletedCounts.threadSubscriptions = await collectAndDelete("threadSubscriptions", "by_business");
+    deletedCounts.executionLog = await collectAndDelete("executionLog", "by_business");
+    deletedCounts.alerts = await collectAndDelete("alerts", "by_business");
+    deletedCounts.alertRules = await collectAndDelete("alertRules", "by_business");
+    deletedCounts.alertEvents = await collectAndDelete("alertEvents", "by_business");
+    deletedCounts.decisions = await collectAndDelete("decisions", "by_business");
+    deletedCounts.strategicReports = await collectAndDelete("strategicReports", "by_business");
+    deletedCounts.settings = await collectAndDelete("settings", "by_business_key");
 
-    // Delete messages
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const message of messages) {
-      await ctx.db.delete(message._id);
-    }
+    // Delete calendar events using by_business index (MIG-10 backfill provides businessId)
+    deletedCounts.calendarEvents = await collectAndDelete("calendarEvents", "by_business");
 
-    // Delete activities
-    const activities = await ctx.db
-      .query("activities")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const activity of activities) {
-      await ctx.db.delete(activity._id);
-    }
-
-    // Delete documents
-    const documents = await ctx.db
-      .query("documents")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const document of documents) {
-      await ctx.db.delete(document._id);
-    }
-
-    // Delete calendar events (business-scoped)
-    const calendarEvents = await ctx.db
-      .query("calendarEvents")
-      .collect();
-    for (const event of calendarEvents) {
-      // Filter by business context from task
-      if (event.taskId) {
-        const task = await ctx.db.get(event.taskId as any);
-        if (task && (task as any).businessId === businessId) {
-          await ctx.db.delete(event._id);
-        }
-      }
-    }
-
-    // Delete goals
-    const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const goal of goals) {
-      await ctx.db.delete(goal._id);
-    }
-
-    // Delete thread subscriptions
-    const subscriptions = await ctx.db
-      .query("threadSubscriptions")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const sub of subscriptions) {
-      await ctx.db.delete(sub._id);
-    }
-
-    // Delete agent metrics
-    const metrics = await ctx.db
-      .query("agentMetrics")
-      .collect();
-    for (const metric of metrics) {
-      // Can't directly filter, so we'll skip (metrics are agent-scoped, not business-scoped)
-    }
-
-    // Delete execution logs
-    const execLogs = await ctx.db
-      .query("executionLog")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const log of execLogs) {
-      await ctx.db.delete(log._id);
-    }
-
-    // Delete alerts
-    const alerts = await ctx.db
-      .query("alerts")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const alert of alerts) {
-      await ctx.db.delete(alert._id);
-    }
-
-    // Delete alert rules
-    const alertRules = await ctx.db
-      .query("alertRules")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const rule of alertRules) {
-      await ctx.db.delete(rule._id);
-    }
-
-    // Delete alert events
-    const alertEvents = await ctx.db
-      .query("alertEvents")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const event of alertEvents) {
-      await ctx.db.delete(event._id);
-    }
-
-    // Delete decisions
-    const decisions = await ctx.db
-      .query("decisions")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const decision of decisions) {
-      await ctx.db.delete(decision._id);
-    }
-
-    // Delete strategic reports
-    const reports = await ctx.db
-      .query("strategicReports")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const report of reports) {
-      await ctx.db.delete(report._id);
-    }
-
-    // Delete settings
-    const settings = await ctx.db
-      .query("settings")
-      .withIndex("by_business_key", (q) => q.eq("businessId", businessId))
-      .collect();
-    for (const setting of settings) {
-      await ctx.db.delete(setting._id);
-    }
+    // Delete task-scoped tables added in Phase 2
+    deletedCounts.taskComments = await collectAndDelete("taskComments", "by_business");
+    deletedCounts.mentions = await collectAndDelete("mentions", "by_business");
+    deletedCounts.taskSubscriptions = await collectAndDelete("taskSubscriptions", "by_business");
+    deletedCounts.presenceIndicators = await collectAndDelete("presenceIndicators", "by_business");
+    deletedCounts.taskPatterns = await collectAndDelete("taskPatterns", "by_business");
+    deletedCounts.anomalies = await collectAndDelete("anomalies", "by_business");
+    deletedCounts.wikiPages = await collectAndDelete("wikiPages", "by_business");
+    deletedCounts.wikiComments = await collectAndDelete("wikiComments", "by_business");
+    deletedCounts.notifications = await collectAndDelete("notifications", "by_business");
 
     // Delete the business itself
     await ctx.db.delete(businessId);
@@ -396,22 +304,8 @@ export const remove = mutation({
     return {
       success: true,
       deletedBusinessId: businessId,
-      deletedData: {
-        tasks: tasks.length,
-        epics: epics.length,
-        messages: messages.length,
-        activities: activities.length,
-        documents: documents.length,
-        goals: goals.length,
-        subscriptions: subscriptions.length,
-        execLogs: execLogs.length,
-        alerts: alerts.length,
-        alertRules: alertRules.length,
-        alertEvents: alertEvents.length,
-        decisions: decisions.length,
-        reports: reports.length,
-        settings: settings.length,
-      },
+      deletedData: deletedCounts,
+      totalRecordsDeleted: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
     };
   },
 });

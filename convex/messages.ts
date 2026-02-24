@@ -1,10 +1,32 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
+import type { MessageSenderId } from "./types";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Message / Comment System
  * Threaded discussions with @mentions
+ *
+ * PHASE 6: Race Condition Safety
+ * ─────────────────────────────────────────────────────────────────────────────
+ * The pattern of appending to replyIds (lines 42-43) is SAFE despite appearing
+ * to have a race condition. Convex mutations are serialized at the transaction
+ * level on a per-document basis. This means:
+ *
+ * 1. Multiple mutations modifying the same document cannot run concurrently
+ * 2. Reads and writes within a single mutation are atomic
+ * 3. No explicit locking or CAS (compare-and-swap) needed
+ *
+ * Example: Two concurrent messages replying to parent MSG_123
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Mutation 1 (reply_1): read replyIds=[A,B] → patch [A,B,reply_1]
+ * Mutation 2 (reply_2): BLOCKED until Mutation 1 commits
+ * Mutation 2 (reply_2): read replyIds=[A,B,reply_1] → patch [A,B,reply_1,reply_2]
+ *
+ * The SECOND mutation reads the UPDATED state from the first, ensuring no lost
+ * updates. This is Convex's core guarantee: no two mutations touch the same
+ * document concurrently.
  */
 
 // Create message with optional @mentions and thread subscriptions
@@ -58,17 +80,17 @@ export const create = mutation({
 
     // Auto-subscribe sender to thread (only if sender is an agent, not "user")
     if (senderId !== "user") {
-      const agent = await ctx.db.get(senderId as any);
+      const agent = await ctx.db.get(senderId as Id<"agents">);
       if (agent) {
         const existingSub = await ctx.db
           .query("threadSubscriptions")
-          .withIndex("by_agent_task", (q) => q.eq("agentId", senderId as any).eq("taskId", taskId))
+          .withIndex("by_agent_task", (q) => q.eq("agentId", senderId as Id<"agents">).eq("taskId", taskId))
           .first();
-        
+
         if (!existingSub) {
           await ctx.db.insert("threadSubscriptions", {
             businessId: task.businessId,
-            agentId: senderId as any,
+            agentId: senderId as Id<"agents">,
             taskId,
             level: "all",
             createdAt: Date.now(),
@@ -206,7 +228,7 @@ export const create = mutation({
     // REP-01: Track comments by agents
     if (senderId !== "user") {
       await ctx.runMutation(api.agentMetrics.upsertMetrics, {
-        agentId: senderId as any,
+        agentId: senderId as Id<"agents">,
         commentsMade: 1,
       });
     }
@@ -260,7 +282,7 @@ export const getThread = query({
 
     // Fetch all replies
     const replies = parent.replyIds
-      ? await Promise.all(parent.replyIds.map((id: any) => ctx.db.get(id)))
+      ? await Promise.all(parent.replyIds.map((id: Id<"messages">) => ctx.db.get(id)))
       : [];
 
     return {

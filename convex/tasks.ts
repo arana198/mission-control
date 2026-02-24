@@ -260,12 +260,13 @@ export const getTaskByTicketNumber = query({
     ticketNumber: convexVal.string(),
   },
   handler: async (ctx, { businessId, ticketNumber }) => {
-    const tasks = await ctx.db
+    // Use by_ticket_number index (added in MIG-10) for fast lookup
+    return await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .collect();
-
-    return tasks.find((t) => t.ticketNumber === ticketNumber) || null;
+      .withIndex("by_ticket_number", (q) =>
+        q.eq("businessId", businessId).eq("ticketNumber", ticketNumber)
+      )
+      .first();
   },
 });
 
@@ -362,9 +363,20 @@ export const getFiltered = query({
     ctx,
     { businessId, agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
   ) => {
+    // Safety cap: hard limit of 200 records to prevent OOM
+    const cap = Math.min(limit || 50, 200);
+
     let tasks = await (status
-      ? ctx.db.query("tasks").withIndex("by_business_status", (indexQuery) => indexQuery.eq("businessId", businessId).eq("status", status as any)).collect()
-      : ctx.db.query("tasks").withIndex("by_business", (q) => q.eq("businessId", businessId)).collect());
+      ? ctx.db
+          .query("tasks")
+          .withIndex("by_business_status", (q) =>
+            q.eq("businessId", businessId).eq("status", status as any)
+          )
+          .take(cap)
+      : ctx.db
+          .query("tasks")
+          .withIndex("by_business", (q) => q.eq("businessId", businessId))
+          .take(cap));
 
     // Apply priority filter
     if (priority) {
@@ -377,7 +389,7 @@ export const getFiltered = query({
     }
 
     // Apply pagination and return enriched shape
-    return tasks.slice(offset, offset + limit).map((task: any) => ({
+    return tasks.slice(offset, offset + cap).map((task: any) => ({
       _id: task._id,
       ticketNumber: task.ticketNumber ?? null,
       title: task.title,
@@ -716,6 +728,7 @@ export const autoClaim = internalAction({
 
     const notifiedAgents = new Set();
     const results: any[] = [];
+    const notifiedCount: Record<string, number> = {}; // Track per business
 
     for (const task of readyTasks) {
       for (const assignee of task.assignees) {
@@ -751,6 +764,9 @@ export const autoClaim = internalAction({
             });
 
             notifiedAgents.add(assignee.id);
+            const bId = task.businessId as string;
+            notifiedCount[bId] = (notifiedCount[bId] ?? 0) + 1;
+
             results.push({
               taskId: task._id,
               taskTitle: task.title,
@@ -760,30 +776,45 @@ export const autoClaim = internalAction({
             });
           }
         } catch (err) {
-          // Note: Notification failed - agent may not be reachable
-          // Error details stored in results for audit trail
+          // PHASE 6: Log assignment errors to activities table for audit trail
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const bId = task.businessId as string;
+
+          await ctx.runMutation(api.activities.create, {
+            businessId: bId as any,
+            type: "task_assigned",
+            agentId: "system",
+            agentName: "Mission Control",
+            message: `Auto-claim failed for "${task.title}": ${errMsg}`,
+            taskId: task._id,
+            taskTitle: task.title,
+          });
+
           results.push({
             taskId: task._id,
             taskTitle: task.title,
             agentId: assignee.id,
             agentName: assignee.name,
             status: "error",
-            error: err instanceof Error ? err.message : String(err),
+            error: errMsg,
           });
         }
       }
     }
 
-    // Log activity if any agents were notified
-    // Note: Use businessId from first task (system action spans multiple businesses)
-    if (notifiedAgents.size > 0 && readyTasks.length > 0) {
-      await ctx.runMutation(api.activities.create, {
-        businessId: readyTasks[0].businessId,
-        type: "task_assigned",
-        agentId: "system",
-        agentName: "Mission Control",
-        message: `Auto-claim: Notified ${notifiedAgents.size} agent(s) about ${readyTasks.length} ready task(s)`,
-      });
+    // PHASE 6: Log per-business activity logs instead of single cross-business log
+    const businessIds = Object.keys(notifiedCount);
+    for (const bId of businessIds) {
+      const count = notifiedCount[bId];
+      if (count > 0) {
+        await ctx.runMutation(api.activities.create, {
+          businessId: bId as any,
+          type: "task_assigned",
+          agentId: "system",
+          agentName: "Mission Control",
+          message: `Auto-claimed ${count} task(s) for qualified agents`,
+        });
+      }
     }
 
     return {

@@ -316,8 +316,7 @@ export const alertEvaluatorCronHandler = internalMutation({
   },
 });
 
-// TEMPORARILY DISABLED - broken
-/*
+// Register crons with Convex
 const jobs = cronJobs();
 
 jobs.interval(
@@ -343,4 +342,3 @@ jobs.interval(
   { minutes: 5 },
   alertEvaluatorCronHandler as any
 );
-*/

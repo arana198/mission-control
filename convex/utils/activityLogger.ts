@@ -4,6 +4,8 @@
  */
 
 import { MutationCtx } from "../_generated/server";
+import { Id } from "../_generated/dataModel";
+import type { ResolvedActor } from "../types";
 
 /**
  * LOG-01: Resolve actor name from ID
@@ -19,8 +21,8 @@ export async function resolveActorName(
 
   // Try to resolve as agent ID
   try {
-    const agent = await ctx.db.get(actorId as any);
-    if (agent && (agent as any).name) return (agent as any).name;
+    const agent = await ctx.db.get(actorId as Id<"agents">);
+    if (agent?.name) return agent.name;
   } catch {
     // Not a valid Convex ID, fall through
   }

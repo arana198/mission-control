@@ -9,7 +9,8 @@ import { query, mutation } from "./_generated/server";
 // Get all agents with their current status
 export const getAllAgents = query({
   handler: async (ctx) => {
-    const agents = await ctx.db.query("agents").collect();
+    // Limit to 200 agents to prevent OOM on full table scan
+    const agents = await ctx.db.query("agents").take(200);
     return agents;
   },
 });

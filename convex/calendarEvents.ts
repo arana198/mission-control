@@ -11,23 +11,30 @@ import { Id } from './_generated/dataModel';
 
 /**
  * GET events in time range (human + AI merged)
+ * Note: Optionally business-scoped via businessId (uses by_business index if provided)
  */
 export const getTimelineRange = query(async (ctx, args: {
   startTime: number;
   endTime: number;
+  businessId?: Id<'businesses'>;
 }) => {
-  const events = await ctx.db
-    .query('calendarEvents')
-    .filter((filterQuery) =>
-      filterQuery.and(
-        filterQuery.gte(filterQuery.field('startTime'), args.startTime),
-        filterQuery.lte(filterQuery.field('endTime'), args.endTime)
-      )
-    )
-    .collect();
+  // Use by_business index if businessId provided (from MIG-10 backfill), otherwise full query
+  const events = args.businessId
+    ? await ctx.db
+        .query('calendarEvents')
+        .withIndex('by_business', (q) => q.eq('businessId', args.businessId!))
+        .take(500)
+    : await ctx.db
+        .query('calendarEvents')
+        .take(500);
+
+  // Filter by time range in JS (time range queries still require filtering)
+  const filtered = events.filter((e) =>
+    e.startTime <= args.endTime && e.endTime >= args.startTime
+  );
 
   // Sort by start time and type (human first, then AI)
-  return events.sort((a, b) => {
+  return filtered.sort((a, b) => {
     if (a.startTime !== b.startTime) {
       return a.startTime - b.startTime;
     }
@@ -40,15 +47,23 @@ export const getTimelineRange = query(async (ctx, args: {
 
 /**
  * GET all events for a goal
+ * Note: Optionally business-scoped via businessId (uses by_business index if provided)
  */
 export const getByGoal = query(async (ctx, args: {
   goalId: Id<'goals'>;
+  businessId?: Id<'businesses'>;
 }) => {
-  const events = await ctx.db
-    .query('calendarEvents')
-    .collect();
+  // Use by_business index if businessId provided, otherwise full query
+  const events = args.businessId
+    ? await ctx.db
+        .query('calendarEvents')
+        .withIndex('by_business', (q) => q.eq('businessId', args.businessId!))
+        .take(500)
+    : await ctx.db
+        .query('calendarEvents')
+        .take(500);
 
-  return events.filter(e => e.goalIds?.includes(args.goalId));
+  return events.filter((e) => e.goalIds?.includes(args.goalId));
 });
 
 /**

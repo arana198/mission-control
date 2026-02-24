@@ -10,13 +10,8 @@
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-
-type AnomalyType =
-  | "duration_deviation"
-  | "error_rate"
-  | "skill_mismatch"
-  | "status_spike";
-type Severity = "low" | "medium" | "high";
+import type { AnomalyType, Severity } from "./types";
+import { ACTIVITY_TYPES } from "./types";
 
 /**
  * Calculate standard deviations from mean
@@ -78,9 +73,9 @@ export const detectDurationDeviation = mutation({
     if (agent) {
       await ctx.db.insert("activities", {
         businessId: args.businessId,
-        type: "anomaly_detected",
+        type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
-        agentName: ((agent as any).name as string) || "Unknown",
+        agentName: agent.name || "Unknown",
         message: `Duration deviation detected: ${args.actualDuration.toFixed(1)}d vs ${args.expectedDuration.toFixed(1)}d (${severity})`,
         createdAt: Date.now(),
       });
@@ -132,9 +127,9 @@ export const detectErrorRateSpike = mutation({
     if (agent) {
       await ctx.db.insert("activities", {
         businessId: args.businessId,
-        type: "anomaly_detected",
+        type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
-        agentName: ((agent as any).name as string) || "Unknown",
+        agentName: agent.name || "Unknown",
         message: `Error rate spike: ${actualErrorRate.toFixed(1)}% (${severity})`,
         createdAt: Date.now(),
       });
@@ -181,9 +176,9 @@ export const detectSkillMismatch = mutation({
     if (agent) {
       await ctx.db.insert("activities", {
         businessId: args.businessId,
-        type: "anomaly_detected",
+        type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
-        agentName: ((agent as any).name as string) || "Unknown",
+        agentName: agent.name || "Unknown",
         message: `Skill mismatch: Level ${args.agentSkillLevel} agent on level ${args.taskComplexity} task (${severity})`,
         createdAt: Date.now(),
       });
@@ -230,9 +225,9 @@ export const detectStatusSpike = mutation({
     if (agent) {
       await ctx.db.insert("activities", {
         businessId: args.businessId,
-        type: "anomaly_detected",
+        type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
-        agentName: ((agent as any).name as string) || "Unknown",
+        agentName: agent.name || "Unknown",
         message: `Status spike: ${args.changeCount} changes in ${args.timeWindowMinutes}min (${severity})`,
         createdAt: Date.now(),
       });
@@ -250,10 +245,11 @@ export const getAnomaliesByAgent = query({
     agentId: v.id("agents"),
   },
   handler: async (ctx, args) => {
-    const anomalies = await ctx.db.query("anomalies" as any).collect();
-    return (anomalies as any[])
-      .filter((a) => a.agentId === args.agentId)
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const anomalies = await ctx.db
+      .query("anomalies")
+      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .collect();
+    return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 });
 
@@ -265,10 +261,12 @@ export const getFlaggedAnomalies = query({
     businessId: v.id("businesses"),
   },
   handler: async (ctx, args) => {
-    const anomalies = await ctx.db.query("anomalies" as any).collect();
-    return (anomalies as any[])
-      .filter((a) => a.businessId === args.businessId && a.flagged === true)
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const anomalies = await ctx.db
+      .query("anomalies")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .filter((q) => q.eq(q.field("flagged"), true))
+      .collect();
+    return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 });
 
@@ -282,17 +280,19 @@ export const getAnomaliesByTypeAndSeverity = query({
     severity: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("anomalies" as any).collect();
-    let anomalies = (all as any[]).filter((a) => a.businessId === args.businessId);
+    let query = ctx.db
+      .query("anomalies")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId));
 
     if (args.type) {
-      anomalies = anomalies.filter((a) => a.type === args.type);
+      query = query.filter((q) => q.eq(q.field("type"), args.type));
     }
 
     if (args.severity) {
-      anomalies = anomalies.filter((a) => a.severity === args.severity);
+      query = query.filter((q) => q.eq(q.field("severity"), args.severity));
     }
 
+    const anomalies = await query.collect();
     return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
 });
@@ -313,13 +313,13 @@ export const resolveAnomaly = mutation({
     const anomaly = await ctx.db.get(args.anomalyId);
     if (anomaly) {
       const agent = await ctx.db.get(anomaly.agentId as any);
-      if (agent) {
+      if (agent && (agent as any).name) {
         await ctx.db.insert("activities", {
           businessId: anomaly.businessId,
-          type: "anomaly_resolved",
+          type: "task_assigned" as any, // Note: "anomaly_resolved" not in ACTIVITY_TYPES
           agentId: anomaly.agentId as any,
-          agentName: ((agent as any).name as string) || "Unknown",
-          message: `Anomaly resolved: ${(anomaly as any).message}`,
+          agentName: (agent as any).name || "Unknown",
+          message: `Anomaly resolved: ${(anomaly as any).message || ""}`,
           createdAt: Date.now(),
         });
       }
@@ -339,10 +339,15 @@ export const getRecurringAnomalies = query({
     minOccurrences: v.number(),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("anomalies" as any).collect();
-    const anomalies = (all as any[]).filter(
-      (a) => a.agentId === args.agentId && a.type === args.anomalyType
-    );
+    const anomalies = await ctx.db
+      .query("anomalies")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("agentId"), args.agentId),
+          q.eq(q.field("type"), args.anomalyType)
+        )
+      )
+      .collect();
 
     if (anomalies.length < args.minOccurrences) {
       return [];
@@ -360,11 +365,13 @@ export const getAnomalyStats = query({
     businessId: v.id("businesses"),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("anomalies" as any).collect();
-    const anomalies = (all as any[]).filter((a) => a.businessId === args.businessId);
+    const anomalies = await ctx.db
+      .query("anomalies")
+      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .collect();
 
-    const flagged = anomalies.filter((a) => (a.flagged as boolean) === true);
-    const resolved = anomalies.filter((a) => (a.resolvedAt as number | undefined) !== undefined);
+    const flagged = anomalies.filter((a) => a.flagged === true);
+    const resolved = anomalies.filter((a) => a.resolvedAt !== undefined);
 
     // Count by type
     const byType: Record<AnomalyType, number> = {
@@ -382,21 +389,22 @@ export const getAnomalyStats = query({
     };
 
     for (const a of anomalies) {
-      byType[(a.type as AnomalyType) || "duration_deviation"]++;
-      bySeverity[(a.severity as Severity) || "low"]++;
+      const aType = (a.type as AnomalyType) || "duration_deviation";
+      if (aType in byType) byType[aType]++;
+      const aSev = (a.severity as Severity) || "low";
+      if (aSev in bySeverity) bySeverity[aSev]++;
     }
 
     // Average resolution time
     let avgResolutionTime = 0;
     const resolvedWithTime = resolved.filter(
-      (a) =>
-        (a.createdAt as number) && (a.resolvedAt as number)
+      (a) => a.createdAt && a.resolvedAt !== undefined
     );
 
     if (resolvedWithTime.length > 0) {
       const totalTime = resolvedWithTime.reduce(
         (sum, a) =>
-          sum + (((a.resolvedAt as number) - (a.createdAt as number)) / (1000 * 60 * 60)),
+          sum + (((a.resolvedAt || 0) - a.createdAt) / (1000 * 60 * 60)),
         0
       );
       avgResolutionTime = totalTime / resolvedWithTime.length;
