@@ -38,7 +38,7 @@ class TaskMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -46,7 +46,7 @@ class TaskMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -57,7 +57,7 @@ class TaskMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -85,7 +85,7 @@ class TaskMockDatabase {
   }
 
   getTasksByStatus(status: string) {
-    return (this.data.get("tasks") || []).filter((t) => t.status === status);
+    return (this.data.get("tasks") || []).filter((t: any) => t.status === status);
   }
 
   getTasksByAssignee(agentId: string) {
@@ -164,7 +164,7 @@ describe("Tasks (convex/tasks.ts)", () => {
 
       const backlogTasks = db.getTasksByStatus("backlog");
       expect(backlogTasks).toHaveLength(2);
-      expect(backlogTasks.every((t) => t.status === "backlog")).toBe(true);
+      expect(backlogTasks.every((t: any) => t.status === "backlog")).toBe(true);
     });
 
     it("returns empty array for unknown status", async () => {
@@ -192,7 +192,7 @@ describe("Tasks (convex/tasks.ts)", () => {
 
       const tasks = db.getTasksByAssignee(agentId);
       expect(tasks).toHaveLength(2);
-      expect(tasks.every((t) => t.assigneeIds.includes(agentId))).toBe(true);
+      expect(tasks.every((t: any) => t.assigneeIds.includes(agentId))).toBe(true);
     });
 
     it("returns empty array when agent has no tasks", async () => {
@@ -822,11 +822,11 @@ describe("Tasks (convex/tasks.ts)", () => {
       const allTasks = db.getTasksByAssignee(agentId);
       expect(allTasks).toHaveLength(5);
 
-      const inProgress = allTasks.filter((t) => t.status === "in_progress");
-      const ready = allTasks.filter((t) => t.status === "ready");
-      const blocked = allTasks.filter((t) => t.status === "blocked");
-      const inReview = allTasks.filter((t) => t.status === "review");
-      const done = allTasks.filter((t) => t.status === "done");
+      const inProgress = allTasks.filter((t: any) => t.status === "in_progress");
+      const ready = allTasks.filter((t: any) => t.status === "ready");
+      const blocked = allTasks.filter((t: any) => t.status === "blocked");
+      const inReview = allTasks.filter((t: any) => t.status === "review");
+      const done = allTasks.filter((t: any) => t.status === "done");
 
       expect(inProgress).toHaveLength(1);
       expect(ready).toHaveLength(1);

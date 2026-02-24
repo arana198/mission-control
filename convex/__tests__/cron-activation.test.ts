@@ -43,7 +43,7 @@ class CronMockDatabase {
   }
 
   getBlockedTasks() {
-    return Array.from(this.tasks.values()).filter((t) => t.status === "blocked");
+    return Array.from(this.tasks.values()).filter((t: any) => t.status === "blocked");
   }
 
   // Activity logging
@@ -71,7 +71,7 @@ class CronMockDatabase {
     const now = Date.now();
     const cutoff = now - staleThresholdMs;
     const staleAgents = this.getAllAgents().filter(
-      (a) => a.lastHeartbeat < cutoff && a.status === "active"
+      (a: any) => a.lastHeartbeat < cutoff && a.status === "active"
     );
 
     const result = { checked: this.getAllAgents().length, stale: 0 };
@@ -100,10 +100,10 @@ class CronMockDatabase {
     const now = Date.now();
     const cutoff = now - escalationThresholdMs;
 
-    const blockedTasks = this.getBlockedTasks().filter((t) => t.updatedAt < cutoff);
+    const blockedTasks = this.getBlockedTasks().filter((t: any) => t.updatedAt < cutoff);
     const escalatedTasks = blockedTasks.slice(0, 10);
 
-    const leadAgents = this.getAllAgents().filter((a) => a.level === "lead");
+    const leadAgents = this.getAllAgents().filter((a: any) => a.level === "lead");
     let notificationCount = 0;
 
     for (const task of escalatedTasks) {
@@ -321,7 +321,7 @@ describe("Cron Activation (Phase 4A)", () => {
 
       expect(result.notificationsSent).toBe(2);
       const notifications = db.getNotifications();
-      expect(notifications.map((n) => n.recipientId)).toEqual(["lead-1", "lead-2"]);
+      expect(notifications.map((n: any) => n.recipientId)).toEqual(["lead-1", "lead-2"]);
     });
 
     it("logs escalation activity with businessId from task", () => {

@@ -49,7 +49,7 @@ export const getLatest = query({
   async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
       .order("desc")
       .take(1);
     return reports[0] || null;
@@ -65,8 +65,8 @@ export const getByWeek = query({
   async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
-      .filter((q) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
+      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
+      .filter((q: any) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
       .take(1);
     return reports[0] || null;
   },
@@ -80,7 +80,7 @@ export const getAll = query({
   async handler(ctx, args) {
     return await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
       .order("desc")
       .take(args.limit || 10);
   },
@@ -94,7 +94,7 @@ export const deleteByWeek = mutation({
   async handler(ctx, args) {
     const report = await ctx.db
       .query("strategicReports")
-      .filter((q) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
+      .filter((q: any) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
       .unique();
 
     if (report) {

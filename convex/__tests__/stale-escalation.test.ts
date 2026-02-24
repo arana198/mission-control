@@ -41,7 +41,7 @@ class StaleBugMockDatabase {
 
     return {
       count: staleTasks.length,
-      taskIds: staleTasks.map((t) => t._id),
+      taskIds: staleTasks.map((t: any) => t._id),
     };
   }
 }

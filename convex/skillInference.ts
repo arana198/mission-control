@@ -57,12 +57,12 @@ export const inferAgentSkills = mutation({
     // Get all completed tasks for this agent with good ratings
     const allTasks = await ctx.db.query("tasks" as any).collect();
     const tasks = (allTasks as any[]).filter(
-      (t) => t.agentId === args.agentId && t.status === "completed"
+      (t: any) => t.agentId === args.agentId && t.status === "completed"
     );
 
     // Filter to high-quality completions (rating >= 3)
     const goodTasks = tasks.filter(
-      (t) => t.rating === undefined || (t.rating as number) >= 3
+      (t: any) => t.rating === undefined || (t.rating as number) >= 3
     );
 
     if (goodTasks.length === 0) {
@@ -103,7 +103,7 @@ export const inferAgentSkills = mutation({
       // Check if skill already exists
       const allSkills = await ctx.db.query("agentSkills" as any).collect();
       const existing = (allSkills as any[]).find(
-        (s) => s.agentId === args.agentId && s.skill === skillName
+        (s: any) => s.agentId === args.agentId && s.skill === skillName
       );
 
       if (existing) {
@@ -143,7 +143,7 @@ export const getAgentSkills = query({
   handler: async (ctx, args) => {
     const all = await ctx.db.query("agentSkills" as any).collect();
     return ((all as any[])
-      .filter((s) => s.agentId === args.agentId)
+      .filter((s: any) => s.agentId === args.agentId)
       .sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0)));
   },
 });
@@ -204,7 +204,7 @@ export const updateSkillManually = mutation({
     // Check if skill exists
     const allSkills = await ctx.db.query("agentSkills" as any).collect();
     const existing = (allSkills as any[]).find(
-      (s) => s.agentId === args.agentId && s.skill === args.skill
+      (s: any) => s.agentId === args.agentId && s.skill === args.skill
     );
 
     if (existing) {
@@ -263,7 +263,7 @@ export const detectDegradedSkills = query({
   },
   handler: async (ctx, args) => {
     const all = await ctx.db.query("agentSkills" as any).collect();
-    const skills = (all as any[]).filter((s) => s.agentId === args.agentId);
+    const skills = (all as any[]).filter((s: any) => s.agentId === args.agentId);
 
     const degradedThresholdMs = args.daysThreshold * 24 * 60 * 60 * 1000;
 

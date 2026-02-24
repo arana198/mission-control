@@ -40,7 +40,7 @@ class MockDatabase {
 
   get(id: string) {
     for (const [_, docs] of this.data) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -48,7 +48,7 @@ class MockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -70,7 +70,7 @@ class MockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -169,7 +169,7 @@ describe("Agents (convex/agents.ts)", () => {
 
       // Query implementation uses lowercase lookup
       const agents = await mockDb.query("agents").collect();
-      const found = agents.find((a) => a.name === "jarvis");
+      const found = agents.find((a: any) => a.name === "jarvis");
       expect(found).toBeDefined();
       expect(found.name).toBe("jarvis");
     });
@@ -184,14 +184,14 @@ describe("Agents (convex/agents.ts)", () => {
       const agents = await mockDb.query("agents").collect();
       // Should find agent regardless of case
       const found = agents.find(
-        (a) => a.name.toLowerCase() === "JARVIS".toLowerCase()
+        (a: any) => a.name.toLowerCase() === "JARVIS".toLowerCase()
       );
       expect(found).toBeDefined();
     });
 
     it("returns null when agent not found", async () => {
       const agents = await mockDb.query("agents").collect();
-      const found = agents.find((a) => a.name === "nonexistent");
+      const found = agents.find((a: any) => a.name === "nonexistent");
       expect(found).toBeUndefined();
     });
   });

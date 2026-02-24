@@ -239,7 +239,7 @@ describe("Phase 5: Type Safety & Shared Domain Types", () => {
       };
 
       // TypeScript would error on invalid field, but we test at runtime
-      expect(Object.keys(validPatch).every((k) => k in validPatch)).toBe(true);
+      expect(Object.keys(validPatch).every((k: any) => k in validPatch)).toBe(true);
     });
   });
 

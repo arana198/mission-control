@@ -47,7 +47,7 @@ class SchemaMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -55,7 +55,7 @@ class SchemaMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -120,7 +120,7 @@ class SchemaMockDatabase {
           },
         };
         filterFn(mockQ);
-        return docs.filter((d) => d.businessId === mockQ._businessId);
+        return docs.filter((d: any) => d.businessId === mockQ._businessId);
       }
       return docs;
     }
@@ -489,7 +489,7 @@ describe("MIG-10: Schema Optimizations", () => {
       // Act: query by_business index
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .collect();
 
       // Assert: found exactly one subscription
@@ -557,7 +557,7 @@ describe("MIG-10: Schema Optimizations", () => {
       // Act: query for business1 subscriptions
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q) => q.eq("businessId", business1))
+        .withIndex("by_business", (q: any) => q.eq("businessId", business1))
         .collect();
 
       // Assert: only business1 subscription returned
@@ -579,7 +579,7 @@ describe("MIG-10: Schema Optimizations", () => {
       // Act: query by_business index for empty business
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .collect();
 
       // Assert: empty array
@@ -647,7 +647,7 @@ describe("MIG-10: Schema Optimizations", () => {
       // Act 3: Find subscriptions by business
       const subs = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .collect();
 
       // Assert: all three operations work

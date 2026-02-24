@@ -157,7 +157,7 @@ export const getTimeSeries = query({
     // Get all activities in the time range
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_business_created_at", (q) =>
+      .withIndex("by_business_created_at", (q: any) =>
         q.eq("businessId", args.businessId).gt("createdAt", sinceTime)
       )
       .collect();

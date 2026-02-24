@@ -64,14 +64,14 @@ export const getAll = query({
     if (type) {
       docs = await ctx.db
         .query("documents")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
-        .filter((q) => q.eq(q.field("type"), type))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .filter((q: any) => q.eq(q.field("type"), type))
         .order("desc")
         .take(limit || 50);
     } else {
       docs = await ctx.db
         .query("documents")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .order("desc")
         .take(limit || 50);
     }
@@ -119,7 +119,7 @@ export const getForTask = query({
   handler: async (ctx, { taskId }) => {
     return await ctx.db
       .query("documents")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .order("desc")
       .collect();
   },

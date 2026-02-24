@@ -247,7 +247,7 @@ export const getAnomaliesByAgent = query({
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .filter((q: any) => q.eq(q.field("agentId"), args.agentId))
       .collect();
     return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
@@ -263,8 +263,8 @@ export const getFlaggedAnomalies = query({
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
-      .filter((q) => q.eq(q.field("flagged"), true))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .filter((q: any) => q.eq(q.field("flagged"), true))
       .collect();
     return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
@@ -282,14 +282,14 @@ export const getAnomaliesByTypeAndSeverity = query({
   handler: async (ctx, args) => {
     let query = ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId));
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId));
 
     if (args.type) {
-      query = query.filter((q) => q.eq(q.field("type"), args.type));
+      query = query.filter((q: any) => q.eq(q.field("type"), args.type));
     }
 
     if (args.severity) {
-      query = query.filter((q) => q.eq(q.field("severity"), args.severity));
+      query = query.filter((q: any) => q.eq(q.field("severity"), args.severity));
     }
 
     const anomalies = await query.collect();
@@ -341,7 +341,7 @@ export const getRecurringAnomalies = query({
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .filter((q) =>
+      .filter((q: any) =>
         q.and(
           q.eq(q.field("agentId"), args.agentId),
           q.eq(q.field("type"), args.anomalyType)
@@ -367,11 +367,11 @@ export const getAnomalyStats = query({
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
-    const flagged = anomalies.filter((a) => a.flagged === true);
-    const resolved = anomalies.filter((a) => a.resolvedAt !== undefined);
+    const flagged = anomalies.filter((a: any) => a.flagged === true);
+    const resolved = anomalies.filter((a: any) => a.resolvedAt !== undefined);
 
     // Count by type
     const byType: Record<AnomalyType, number> = {
@@ -398,7 +398,7 @@ export const getAnomalyStats = query({
     // Average resolution time
     let avgResolutionTime = 0;
     const resolvedWithTime = resolved.filter(
-      (a) => a.createdAt && a.resolvedAt !== undefined
+      (a: any) => a.createdAt && a.resolvedAt !== undefined
     );
 
     if (resolvedWithTime.length > 0) {

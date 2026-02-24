@@ -55,7 +55,7 @@ export const getUndelivered = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("notifications")
-      .filter((q) => q.eq(q.field("read"), false))
+      .filter((q: any) => q.eq(q.field("read"), false))
       .order("desc")
       .take(100);
   },
@@ -74,14 +74,14 @@ export const getForAgent = query({
     if (includeRead) {
       notifications = await ctx.db
         .query("notifications")
-        .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
+        .withIndex("by_recipient", (q: any) => q.eq("recipientId", agentId))
         .order("desc")
         .take(limit || 50);
     } else {
       notifications = await ctx.db
         .query("notifications")
-        .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-        .filter((q) => q.eq(q.field("read"), false))
+        .withIndex("by_recipient", (q: any) => q.eq("recipientId", agentId))
+        .filter((q: any) => q.eq(q.field("read"), false))
         .order("desc")
         .take(limit || 50);
     }
@@ -109,7 +109,7 @@ export const markAllRead = mutation({
     // Use by_read index for efficient querying
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
+      .withIndex("by_read", (q: any) => q.eq("recipientId", agentId).eq("read", false))
       .take(500); // Reasonable cap for batch marking
 
     // Mark all as read in parallel to avoid sequential patch timeout
@@ -134,7 +134,7 @@ export const countUnread = query({
     // Take 101 to detect "100+" threshold without loading potentially large result set
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
+      .withIndex("by_read", (q: any) => q.eq("recipientId", agentId).eq("read", false))
       .take(101);
 
     return unread.length;
@@ -148,13 +148,13 @@ export const getNextActionable = query({
     // Use by_read index for efficient unread query
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_read", (q) => q.eq("recipientId", agentId).eq("read", false))
+      .withIndex("by_read", (q: any) => q.eq("recipientId", agentId).eq("read", false))
       .order("desc")
       .take(10);
 
     // Filter to assignment type notifications with taskIds (minimize point reads)
     const assignmentNotifs = unread.filter(
-      (n) => n.type === "assignment" && n.taskId
+      (n: any) => n.type === "assignment" && n.taskId
     ) as (typeof unread[0] & { taskId: NonNullable<(typeof unread[0])["taskId"]> })[];
 
     // Only fetch tasks for actionable notifications
@@ -166,6 +166,6 @@ export const getNextActionable = query({
     );
 
     // Return first one with ready status
-    return enriched.find((n) => n.task?.status === "ready") || null;
+    return enriched.find((n: any) => n.task?.status === "ready") || null;
   },
 });

@@ -36,12 +36,12 @@ export async function detectCycle(
   // Phase 4: Preload entire graph for this business in ONE query
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
     .take(500); // Reasonable cap for single business
 
   // Build in-memory map of task ID -> blockedBy array
   const depMap = new Map<string, string[]>(
-    allTasks.map((t) => [t._id as string, ((t as any).blockedBy || []) as string[]])
+    allTasks.map((t: any) => [t._id as string, ((t as any).blockedBy || []) as string[]])
   );
 
   // Pure in-memory DFS - no further DB calls
@@ -98,12 +98,12 @@ export async function getTransitiveDependencies(
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
     .take(500);
 
   // Build in-memory map of task ID -> blockedBy array
   const depMap = new Map<string, string[]>(
-    allTasks.map((t) => [t._id as string, ((t as any).blockedBy || []) as string[]])
+    allTasks.map((t: any) => [t._id as string, ((t as any).blockedBy || []) as string[]])
   );
 
   // Pure in-memory DFS
@@ -155,12 +155,12 @@ export async function getTransitiveDependents(
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
     .take(500);
 
   // Build in-memory map of task ID -> blocks array
   const depMap = new Map<string, string[]>(
-    allTasks.map((t) => [t._id as string, ((t as any).blocks || []) as string[]])
+    allTasks.map((t: any) => [t._id as string, ((t as any).blocks || []) as string[]])
   );
 
   // Pure in-memory DFS
@@ -212,12 +212,12 @@ export async function getCriticalPath(
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
     .take(500);
 
   // Build in-memory map of task ID -> blockedBy array
   const depMap = new Map<string, string[]>(
-    allTasks.map((t) => [t._id as string, ((t as any).blockedBy || []) as string[]])
+    allTasks.map((t: any) => [t._id as string, ((t as any).blockedBy || []) as string[]])
   );
 
   const memo = new Map<string, Id<"tasks">[]>();

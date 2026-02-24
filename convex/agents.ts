@@ -34,14 +34,14 @@ export const getByName = query({
     const lowerName = name.toLowerCase();
     const agent = await ctx.db
       .query("agents")
-      .withIndex("by_name", (q) => q.eq("name", lowerName))
+      .withIndex("by_name", (q: any) => q.eq("name", lowerName))
       .first();
     if (agent) return agent;
     
     // Fallback: try exact match (for legacy capitalized names)
     return await ctx.db
       .query("agents")
-      .withIndex("by_name", (q) => q.eq("name", name))
+      .withIndex("by_name", (q: any) => q.eq("name", name))
       .first();
   },
 });
@@ -166,7 +166,7 @@ export const register = mutation({
     // Check if agent already exists
     const existing = await ctx.db
       .query("agents")
-      .withIndex("by_name", (q) => q.eq("name", lowerName))
+      .withIndex("by_name", (q: any) => q.eq("name", lowerName))
       .first();
 
     if (existing) {
@@ -404,5 +404,5 @@ export const deleteAgent = mutation({
     await ctx.db.delete(agentId);
 
     return { success: true, deletedAgent: agent.name };
-  },
+  }),
 });

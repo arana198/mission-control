@@ -83,7 +83,7 @@ export const getTree = query({
     // Get all root-level pages (no parent) for this business
     const allPages = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_parent", (q) =>
+      .withIndex("by_business_parent", (q: any) =>
         q.eq("businessId", businessId).eq("parentId", undefined as any)
       )
       .collect();
@@ -92,17 +92,17 @@ export const getTree = query({
     const buildTree = async (parentId: Id<"wikiPages">): Promise<any[]> => {
       const children = await ctx.db
         .query("wikiPages")
-        .withIndex("by_business_parent", (q) =>
+        .withIndex("by_business_parent", (q: any) =>
           q.eq("businessId", businessId).eq("parentId", parentId)
         )
         .collect();
 
       // Sort by position
-      children.sort((a, b) => a.position - b.position);
+      children.sort((a: any, b: any) => a.position - b.position);
 
       // Recursively add grandchildren
       return Promise.all(
-        children.map(async (child) => ({
+        children.map(async (child: any) => ({
           ...child,
           children: await buildTree(child._id),
         }))
@@ -110,11 +110,11 @@ export const getTree = query({
     };
 
     // Sort root pages by position
-    const rootPages = allPages.sort((a, b) => a.position - b.position);
+    const rootPages = allPages.sort((a: any, b: any) => a.position - b.position);
 
     // Build tree for each root page
     return Promise.all(
-      rootPages.map(async (page) => ({
+      rootPages.map(async (page: any) => ({
         ...page,
         children: await buildTree(page._id as Id<"wikiPages">),
       }))
@@ -141,13 +141,13 @@ export const getComments = query({
   handler: async (ctx, { pageId }) => {
     const comments = await ctx.db
       .query("wikiComments")
-      .withIndex("by_page", (q) => q.eq("pageId", pageId))
+      .withIndex("by_page", (q: any) => q.eq("pageId", pageId))
       .collect();
 
     // Filter to root comments only (parentId is null)
     return comments
-      .filter((c) => c.parentId === null)
-      .sort((a, b) => a.createdAt - b.createdAt);
+      .filter((c: any) => c.parentId === null)
+      .sort((a: any, b: any) => a.createdAt - b.createdAt);
   },
 });
 
@@ -171,7 +171,7 @@ export const createDepartment = mutation({
     // Get current department count (for position)
     const departments = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_type", (q) =>
+      .withIndex("by_business_type", (q: any) =>
         q.eq("businessId", businessId).eq("type", "department")
       )
       .collect();
@@ -235,7 +235,7 @@ export const createPage = mutation({
     // Get current child count (for position)
     const children = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_parent", (q) =>
+      .withIndex("by_business_parent", (q: any) =>
         q.eq("businessId", businessId).eq("parentId", parentId)
       )
       .collect();
@@ -391,13 +391,13 @@ export const movePage = mutation({
       const oldParent = await ctx.db.get(page.parentId);
       if (oldParent) {
         await ctx.db.patch(page.parentId, {
-          childIds: oldParent.childIds.filter((id) => id !== pageId),
+          childIds: oldParent.childIds.filter((id: any) => id !== pageId),
         });
       }
     }
 
     // Add to new parent at specified position (ensure not already present)
-    const newChildIds = newParent.childIds.filter((id) => id !== pageId);
+    const newChildIds = newParent.childIds.filter((id: any) => id !== pageId);
     newChildIds.splice(position, 0, pageId);
 
     await ctx.db.patch(newParentId, {

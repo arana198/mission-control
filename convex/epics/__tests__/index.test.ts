@@ -176,7 +176,7 @@ describe("Epic Management", () => {
         { status: "backlog" },
       ];
 
-      const doneCount = tasks.filter((t) => t.status === "done").length;
+      const doneCount = tasks.filter((t: any) => t.status === "done").length;
       const progress = Math.round((doneCount / tasks.length) * 100);
 
       expect(progress).toBe(33); // 1 of 3 done
@@ -405,7 +405,7 @@ describe("Epic Management", () => {
         { status: "backlog" },
       ];
 
-      const doneCount = tasks.filter((t) => t.status === "done").length;
+      const doneCount = tasks.filter((t: any) => t.status === "done").length;
       const progress = Math.round((doneCount / tasks.length) * 100);
 
       expect(progress).toBe(50); // 2 of 4 done

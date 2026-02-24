@@ -214,11 +214,11 @@ export const unlinkTask = mutation(wrapConvexHandler(async (ctx, args: {
 
   // Remove task from goal
   await ctx.db.patch(args.goalId, {
-    relatedTaskIds: goal.relatedTaskIds.filter(id => id !== args.taskId),
+    relatedTaskIds: goal.relatedTaskIds.filter((id: any) => id !== args.taskId),
   });
 
   // Remove goal from task
-  const updatedGoals = (task.goalIds || []).filter(id => id !== args.goalId);
+  const updatedGoals = (task.goalIds || []).filter((id: any) => id !== args.goalId);
   await ctx.db.patch(args.taskId, {
     goalIds: updatedGoals,
   });
@@ -425,14 +425,14 @@ export const getPatternInsights = query(async (ctx, args: {
 
   const activitiesThisWeek = await ctx.db
     .query('activities')
-    .withIndex('by_business_created_at', (q) =>
+    .withIndex('by_business_created_at', (q: any) =>
       q.eq('businessId', args.businessId).gte('createdAt', thisWeekStart)
     )
     .collect();
 
   const activitiesLastWeek = await ctx.db
     .query('activities')
-    .withIndex('by_business_created_at', (q) =>
+    .withIndex('by_business_created_at', (q: any) =>
       q.eq('businessId', args.businessId)
         .gte('createdAt', lastWeekStart)
         .lt('createdAt', thisWeekStart)

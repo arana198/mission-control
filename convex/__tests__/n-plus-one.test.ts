@@ -46,7 +46,7 @@ class N1MockDatabase {
   get(id: string) {
     this.stats.dbGetCalls++;
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -54,7 +54,7 @@ class N1MockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -127,7 +127,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
       const metrics = await db.query("agentMetrics").collect();
       const leaderboard = metrics
         .sort((a, b) => b.tasksCompleted - a.tasksCompleted)
-        .map((m) => ({
+        .map((m: any) => ({
           agentId: m.agentId,
           agentName: m.agentName, // uses denormalized value
           agentRole: m.agentRole, // uses denormalized value
@@ -193,7 +193,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
       // Preload entire graph first
       const allTasks = await db.query("tasks").collect();
       const graphMap = new Map(
-        allTasks.map((t) => [t._id as string, (t.blockedBy || []) as string[]])
+        allTasks.map((t: any) => [t._id as string, (t.blockedBy || []) as string[]])
       );
 
       // Pure in-memory DFS on preloaded graph
@@ -256,7 +256,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
       // Preload graph
       const allTasks = await db.query("tasks").collect();
       const depMap = new Map(
-        allTasks.map((t) => [t._id as string, (t.blockedBy || []) as string[]])
+        allTasks.map((t: any) => [t._id as string, (t.blockedBy || []) as string[]])
       );
 
       // Get all transitive dependencies (in-memory traversal)
@@ -328,7 +328,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
       // Preload graph
       const allTasks = await db.query("tasks").collect();
       const taskMap = new Map(
-        allTasks.map((t) => [t._id as string, t])
+        allTasks.map((t: any) => [t._id as string, t])
       );
 
       // Calculate critical path in-memory
@@ -391,7 +391,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
       // Perform multiple analyses on preloaded graph
       for (let i = 0; i < 5; i++) {
         const graphMap = new Map(
-          allTasks.map((t) => [t._id as string, (t.blockedBy || []) as string[]])
+          allTasks.map((t: any) => [t._id as string, (t.blockedBy || []) as string[]])
         );
         // Would perform various graph analyses here
       }
@@ -421,7 +421,7 @@ describe("Phase 4: N+1 Query Patterns", () => {
 
       // Naive implementation: query metrics, then fetch agent for each
       const metrics = await db.query("agentMetrics").collect();
-      const naive = metrics.map((m) => {
+      const naive = metrics.map((m: any) => {
         const agent = db.get(m.agentId); // N+1 calls!
         return { ...m, agentName: agent?.name };
       });

@@ -36,7 +36,7 @@ class TaskBusinessMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -44,7 +44,7 @@ class TaskBusinessMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -59,19 +59,19 @@ class TaskBusinessMockDatabase {
 
   getTasksByBusiness(businessId: string) {
     return (this.data.get("tasks") || []).filter(
-      (t) => t.businessId === businessId
+      (t: any) => t.businessId === businessId
     );
   }
 
   getTasksByBusinessAndStatus(businessId: string, status: string) {
     return (this.data.get("tasks") || []).filter(
-      (t) => t.businessId === businessId && t.status === status
+      (t: any) => t.businessId === businessId && t.status === status
     );
   }
 
   getTasksByBusinessAndPriority(businessId: string, priority: string) {
     return (this.data.get("tasks") || []).filter(
-      (t) => t.businessId === businessId && t.priority === priority
+      (t: any) => t.businessId === businessId && t.priority === priority
     );
   }
 
@@ -87,7 +87,7 @@ class TaskBusinessMockDatabase {
   getCounterForBusiness(businessId: string) {
     const settings = this.data.get("settings") || [];
     const counterSetting = settings.find(
-      (s) => s.businessId === businessId && s.key === "taskCounter"
+      (s: any) => s.businessId === businessId && s.key === "taskCounter"
     );
     return counterSetting ? parseInt(counterSetting.value) : 0;
   }
@@ -95,7 +95,7 @@ class TaskBusinessMockDatabase {
   setCounterForBusiness(businessId: string, counter: number) {
     const settings = this.data.get("settings") || [];
     const existing = settings.find(
-      (s) => s.businessId === businessId && s.key === "taskCounter"
+      (s: any) => s.businessId === businessId && s.key === "taskCounter"
     );
     if (existing) {
       existing.value = String(counter);
@@ -163,7 +163,7 @@ describe("Tasks with Business Scoping", () => {
 
       // Expected: returns 3 tasks (only Business A's)
       expect(tasksA).toHaveLength(3);
-      expect(tasksA.every((t) => t.businessId === "bizA")).toBe(true);
+      expect(tasksA.every((t: any) => t.businessId === "bizA")).toBe(true);
     });
 
     it("should return empty array if business has no tasks", async () => {
@@ -307,8 +307,8 @@ describe("Tasks with Business Scoping", () => {
 
       // Expected: returns 2 tasks (only Business A's backlog tasks)
       expect(backlogTasksA).toHaveLength(2);
-      expect(backlogTasksA.every((t) => t.businessId === "bizA")).toBe(true);
-      expect(backlogTasksA.every((t) => t.status === "backlog")).toBe(true);
+      expect(backlogTasksA.every((t: any) => t.businessId === "bizA")).toBe(true);
+      expect(backlogTasksA.every((t: any) => t.status === "backlog")).toBe(true);
     });
   });
 
@@ -408,7 +408,7 @@ describe("Tasks with Business Scoping", () => {
 
       // Expected: returns only Business A tasks for that agent
       expect(tasksA).toHaveLength(2);
-      expect(tasksA.every((t) => t.businessId === "bizA")).toBe(true);
+      expect(tasksA.every((t: any) => t.businessId === "bizA")).toBe(true);
     });
 
     it("should return empty array if agent has no tasks in business", async () => {
@@ -464,7 +464,7 @@ describe("Tasks with Business Scoping", () => {
 
       // Act: try to create subtask with Business A context (parent not visible)
       const tasksInBizA = db.getTasksByBusiness("bizA");
-      const parentInBizA = tasksInBizA.find((t) => t._id === parentId);
+      const parentInBizA = tasksInBizA.find((t: any) => t._id === parentId);
 
       // Expected: parent not visible in Business A
       expect(parentInBizA).toBeUndefined();
@@ -526,8 +526,8 @@ describe("Tasks with Business Scoping", () => {
       // Expected: no cross-contamination
       expect(tasksA).toHaveLength(10);
       expect(tasksB).toHaveLength(10);
-      expect(tasksA.every((t) => t.businessId === "bizA")).toBe(true);
-      expect(tasksB.every((t) => t.businessId === "bizB")).toBe(true);
+      expect(tasksA.every((t: any) => t.businessId === "bizA")).toBe(true);
+      expect(tasksB.every((t: any) => t.businessId === "bizB")).toBe(true);
     });
 
     it("should prevent querying non-existent businessId", async () => {

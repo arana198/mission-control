@@ -32,10 +32,10 @@ export const detectPatterns = mutation({
     // Find existing pattern using by_business index
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
     const existing = patterns.find(
-      (p) => p.pattern === patternSignature
+      (p: any) => p.pattern === patternSignature
     );
 
     if (existing) {
@@ -87,7 +87,7 @@ export const getPatternsByBusiness = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
     return patterns.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
@@ -104,7 +104,7 @@ export const getCommonPatterns = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     // Sort by occurrences desc, then success rate desc
@@ -133,11 +133,11 @@ export const suggestPatternsForEpic = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     // Find patterns that match the task types
-    const suggestions = patterns.filter((p) => {
+    const suggestions = patterns.filter((p: any) => {
       const patternTypes = p.taskTypeSequence || [];
       // Pattern matches if all its types are in the requested types
       return patternTypes.every((t: string) => args.taskTypes.includes(t));
@@ -169,7 +169,7 @@ export const getAntiPatterns = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     // Filter to low-success patterns with minimum occurrences
@@ -194,11 +194,11 @@ export const estimateDuration = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     // Find matching patterns
-    const matchingPatterns = patterns.filter((p) => {
+    const matchingPatterns = patterns.filter((p: any) => {
       const patternTypes = p.taskTypeSequence || [];
       return patternTypes.every((t: string) => args.taskTypes.includes(t));
     });
@@ -210,11 +210,11 @@ export const estimateDuration = query({
 
     // Average duration of matching patterns, weighted by success rate
     const weighted = matchingPatterns
-      .filter((p) => (p.successRate || 0) >= 50)
+      .filter((p: any) => (p.successRate || 0) >= 50)
       .reduce((sum, p) => sum + (p.avgDurationDays || 0), 0);
 
     const highSuccessCount = matchingPatterns.filter(
-      (p) => (p.successRate || 0) >= 50
+      (p: any) => (p.successRate || 0) >= 50
     ).length;
 
     return highSuccessCount > 0
@@ -234,13 +234,13 @@ export const getDormantPatterns = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     const thresholdMs = args.daysSinceLastSeen * 24 * 60 * 60 * 1000;
 
     return patterns.filter(
-      (p) => Date.now() - (p.lastSeen || 0) > thresholdMs
+      (p: any) => Date.now() - (p.lastSeen || 0) > thresholdMs
     );
   },
 });
@@ -255,7 +255,7 @@ export const getPatternAnalytics = query({
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     const totalPatterns = patterns.length;
@@ -269,14 +269,14 @@ export const getPatternAnalytics = query({
 
     // Patterns by success rate (high, medium, low)
     const highSuccess = patterns.filter(
-      (p) => (p.successRate || 0) >= 80
+      (p: any) => (p.successRate || 0) >= 80
     ).length;
     const mediumSuccess = patterns.filter(
       (p) =>
         (p.successRate || 0) >= 50 && (p.successRate || 0) < 80
     ).length;
     const lowSuccess = patterns.filter(
-      (p) => (p.successRate || 0) < 50
+      (p: any) => (p.successRate || 0) < 50
     ).length;
 
     return {

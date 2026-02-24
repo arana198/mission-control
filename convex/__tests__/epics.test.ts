@@ -32,7 +32,7 @@ class EpicMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -40,7 +40,7 @@ class EpicMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -51,7 +51,7 @@ class EpicMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -71,13 +71,13 @@ class EpicMockDatabase {
   }
 
   getTasksForEpic(epicId: string) {
-    return (this.data.get("tasks") || []).filter((t) => t.epicId === epicId);
+    return (this.data.get("tasks") || []).filter((t: any) => t.epicId === epicId);
   }
 
   calculateEpicProgress(epicId: string): number {
     const tasks = this.getTasksForEpic(epicId);
     if (tasks.length === 0) return 0;
-    const completed = tasks.filter((t) => t.status === "done").length;
+    const completed = tasks.filter((t: any) => t.status === "done").length;
     return Math.round((completed / tasks.length) * 100);
   }
 }
@@ -340,8 +340,8 @@ describe("Epics (convex/epics.ts)", () => {
 
       const tasks = db.getTasksForEpic(epicId);
       expect(tasks).toHaveLength(2);
-      expect(tasks.map((t) => t._id)).toContain(task1);
-      expect(tasks.map((t) => t._id)).toContain(task2);
+      expect(tasks.map((t: any) => t._id)).toContain(task1);
+      expect(tasks.map((t: any) => t._id)).toContain(task2);
     });
 
     it("can unlink tasks from epic", async () => {

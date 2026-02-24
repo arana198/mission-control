@@ -79,7 +79,7 @@ class CascadeMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -87,7 +87,7 @@ class CascadeMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -98,7 +98,7 @@ class CascadeMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -132,7 +132,7 @@ class CascadeMockDatabase {
         },
       };
       filterFn(mockQ);
-      return docs.filter((d) => d.businessId === mockQ._businessId);
+      return docs.filter((d: any) => d.businessId === mockQ._businessId);
     }
 
     if (indexName === "by_business_key") {
@@ -147,7 +147,7 @@ class CascadeMockDatabase {
       };
       filterFn(mockQ);
       return docs.filter(
-        (d) => d.businessId === mockQ._businessId && d.key === mockQ._key
+        (d: any) => d.businessId === mockQ._businessId && d.key === mockQ._key
       );
     }
 
@@ -156,12 +156,12 @@ class CascadeMockDatabase {
 
   getCountByBusinessId(businessId: string, table: string): number {
     const docs = this.data.get(table) || [];
-    return docs.filter((d) => d.businessId === businessId).length;
+    return docs.filter((d: any) => d.businessId === businessId).length;
   }
 
   getAllByBusinessId(businessId: string, table: string): any[] {
     const docs = this.data.get(table) || [];
-    return docs.filter((d) => d.businessId === businessId);
+    return docs.filter((d: any) => d.businessId === businessId);
   }
 
   getTableCount(table: string): number {
@@ -255,7 +255,7 @@ class CascadeMockDatabase {
     let totalDeleted = 0;
     for (const table of tables) {
       const ids = await this.query(table)
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .collect()
         .then((docs) => docs.map((d: any) => d._id));
 

@@ -24,18 +24,18 @@ export const getWorkQueue = query({
     // Get unread notifications
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
+      .withIndex("by_recipient", (q: any) => q.eq("recipientId", agentId))
+      .filter((q: any) => q.eq(q.field("read"), false))
       .order("desc")
       .take(20);
 
     // PERF-02: Get ready tasks assigned to agent using by_status index
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "ready"))
+      .withIndex("by_status", (q: any) => q.eq("status", "ready"))
       .take(100);
     const readyTasks = allTasks.filter(
-      (t) => t.assigneeIds.includes(agentId)
+      (t: any) => t.assigneeIds.includes(agentId)
     );
 
     return {
@@ -68,10 +68,10 @@ export const claimNextTask = mutation({
     // PERF-02: Get ready tasks assigned to agent using by_status index
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "ready"))
+      .withIndex("by_status", (q: any) => q.eq("status", "ready"))
       .take(100);
     const readyTasks = allTasks.filter(
-      (t) => t.assigneeIds.includes(agentId)
+      (t: any) => t.assigneeIds.includes(agentId)
     );
 
     if (readyTasks.length === 0) {
@@ -80,10 +80,10 @@ export const claimNextTask = mutation({
 
     // Priority order: P0 > P1 > P2 > P3, then by creation date
     const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
-    const taskToClaim = readyTasks.sort((a, b) => {
-      const prioDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+    const taskToClaim = readyTasks.sort((a: any, b: any) => {
+      const prioDiff = (priorityOrder[(a as any).priority as keyof typeof priorityOrder] || 2) - (priorityOrder[(b as any).priority as keyof typeof priorityOrder] || 2);
       if (prioDiff !== 0) return prioDiff;
-      return a.createdAt - b.createdAt;
+      return (a as any).createdAt - (b as any).createdAt;
     })[0];
 
     // Claim the task (set to in_progress)
@@ -95,12 +95,12 @@ export const claimNextTask = mutation({
     // Find and mark assignment notifications as read
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
+      .withIndex("by_recipient", (q: any) => q.eq("recipientId", agentId))
+      .filter((q: any) => q.eq(q.field("read"), false))
       .collect();
 
     const taskNotifications = notifications.filter(
-      (n) => n.taskId === taskToClaim._id && n.type === "assignment"
+      (n: any) => n.taskId === taskToClaim._id && n.type === "assignment"
     );
 
     for (const notif of taskNotifications) {
@@ -195,18 +195,18 @@ export const getWorkQueueByName = query({
     // Get unread notifications
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agent._id))
-      .filter((q) => q.eq(q.field("read"), false))
+      .withIndex("by_recipient", (q: any) => q.eq("recipientId", agent._id))
+      .filter((q: any) => q.eq(q.field("read"), false))
       .order("desc")
       .take(20);
 
     // PERF-02: Get ready tasks assigned to agent using by_status index
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "ready"))
+      .withIndex("by_status", (q: any) => q.eq("status", "ready"))
       .take(100);
     const readyTasks = allTasks.filter(
-      (t) => t.assigneeIds.includes(agent._id)
+      (t: any) => t.assigneeIds.includes(agent._id)
     );
 
     return {
@@ -244,10 +244,10 @@ export const claimNextTaskByName = mutation({
     // PERF-02: Get ready tasks assigned to agent using by_status index
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "ready"))
+      .withIndex("by_status", (q: any) => q.eq("status", "ready"))
       .take(100);
     const readyTasks = allTasks.filter(
-      (t) => t.assigneeIds.includes(agentId)
+      (t: any) => t.assigneeIds.includes(agentId)
     );
 
     if (readyTasks.length === 0) {
@@ -256,10 +256,10 @@ export const claimNextTaskByName = mutation({
 
     // Priority order: P0 > P1 > P2 > P3, then by creation date
     const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
-    const taskToClaim = readyTasks.sort((a, b) => {
-      const prioDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+    const taskToClaim = readyTasks.sort((a: any, b: any) => {
+      const prioDiff = (priorityOrder[(a as any).priority as keyof typeof priorityOrder] || 2) - (priorityOrder[(b as any).priority as keyof typeof priorityOrder] || 2);
       if (prioDiff !== 0) return prioDiff;
-      return a.createdAt - b.createdAt;
+      return (a as any).createdAt - (b as any).createdAt;
     })[0];
 
     // Claim the task (set to in_progress)
@@ -271,12 +271,12 @@ export const claimNextTaskByName = mutation({
     // Find and mark assignment notifications as read
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_recipient", (q) => q.eq("recipientId", agentId))
-      .filter((q) => q.eq(q.field("read"), false))
+      .withIndex("by_recipient", (q: any) => q.eq("recipientId", agentId))
+      .filter((q: any) => q.eq(q.field("read"), false))
       .collect();
 
     const taskNotifications = notifications.filter(
-      (n) => n.taskId === taskToClaim._id && n.type === "assignment"
+      (n: any) => n.taskId === taskToClaim._id && n.type === "assignment"
     );
 
     for (const notif of taskNotifications) {

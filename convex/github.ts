@@ -67,7 +67,7 @@ export const setSetting = mutation({
         .query("settings")
         .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
         .collect();
-      existing = allMatching.find((s) => !s.businessId);
+      existing = allMatching.find((s: any) => !s.businessId);
     }
 
     if (existing) {
@@ -110,7 +110,7 @@ export const getSetting = query({
         .query("settings")
         .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
         .collect();
-      setting = allMatching.find((s) => !s.businessId);
+      setting = allMatching.find((s: any) => !s.businessId);
     }
 
     return setting?.value || null;

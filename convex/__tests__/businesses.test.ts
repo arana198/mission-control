@@ -48,7 +48,7 @@ class BusinessMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -56,7 +56,7 @@ class BusinessMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -67,7 +67,7 @@ class BusinessMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -86,13 +86,13 @@ class BusinessMockDatabase {
             return docs;
           }
           if (indexName === "by_default") {
-            return docs.filter((d) => d.isDefault === true);
+            return docs.filter((d: any) => d.isDefault === true);
           }
           if (indexName === "by_business") {
-            return docs.filter((d) => d.businessId);
+            return docs.filter((d: any) => d.businessId);
           }
           if (indexName === "by_business_key") {
-            return docs.filter((d) => d.businessId);
+            return docs.filter((d: any) => d.businessId);
           }
           return docs;
         },
@@ -114,13 +114,13 @@ class BusinessMockDatabase {
 
   getDataByBusinessId(businessId: string, table: string) {
     const docs = this.data.get(table) || [];
-    return docs.filter((d) => d.businessId === businessId);
+    return docs.filter((d: any) => d.businessId === businessId);
   }
 
   deleteByBusinessId(businessId: string, table: string) {
     const docs = this.data.get(table) || [];
-    const count = docs.filter((d) => d.businessId === businessId).length;
-    const filtered = docs.filter((d) => d.businessId !== businessId);
+    const count = docs.filter((d: any) => d.businessId === businessId).length;
+    const filtered = docs.filter((d: any) => d.businessId !== businessId);
     this.data.set(table, filtered);
     return count;
   }
@@ -219,7 +219,7 @@ describe("Businesses Module", () => {
 
       // Act & Assert: attempt to create another with same slug should fail
       const businesses = db.getBusinesses();
-      const isDuplicate = businesses.some((b) => b.slug === "business-a");
+      const isDuplicate = businesses.some((b: any) => b.slug === "business-a");
       expect(isDuplicate).toBe(true);
     });
 
@@ -305,7 +305,7 @@ describe("Businesses Module", () => {
 
       // Act: call getBySlug(slug)
       const businesses = db.getBusinesses();
-      const business = businesses.find((b) => b.slug === "mission-control");
+      const business = businesses.find((b: any) => b.slug === "mission-control");
 
       // Expected: business object returned
       expect(business).toBeDefined();
@@ -316,7 +316,7 @@ describe("Businesses Module", () => {
       // Arrange: no business with slug
       // Act: call getBySlug("nonexistent")
       const businesses = db.getBusinesses();
-      const business = businesses.find((b) => b.slug === "nonexistent");
+      const business = businesses.find((b: any) => b.slug === "nonexistent");
 
       // Expected: null
       expect(business).toBeUndefined();
@@ -348,7 +348,7 @@ describe("Businesses Module", () => {
 
       // Act: call getDefault()
       const businesses = db.getBusinesses();
-      const defaultBusiness = businesses.find((b) => b.isDefault === true);
+      const defaultBusiness = businesses.find((b: any) => b.isDefault === true);
 
       // Expected: the default business returned
       expect(defaultBusiness).toBeDefined();
@@ -378,7 +378,7 @@ describe("Businesses Module", () => {
       });
 
       const businesses = db.getBusinesses();
-      const defaultCount = businesses.filter((b) => b.isDefault === true)
+      const defaultCount = businesses.filter((b: any) => b.isDefault === true)
         .length;
       expect(defaultCount).toBe(1);
     });
@@ -482,7 +482,7 @@ describe("Businesses Module", () => {
 
       // Expected: exactly one default
       const businesses = db.getBusinesses();
-      const defaultCount = businesses.filter((b) => b.isDefault).length;
+      const defaultCount = businesses.filter((b: any) => b.isDefault).length;
       expect(defaultCount).toBe(1);
     });
 

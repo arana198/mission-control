@@ -29,8 +29,8 @@ export const upsertMetrics = mutation({
     // Find existing metrics for this agent + period
     const existing = await ctx.db
       .query("agentMetrics")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
-      .filter((q) => q.eq(q.field("period"), period))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
+      .filter((q: any) => q.eq(q.field("period"), period))
       .first();
 
     // Denormalize agent info (Phase 4: avoid N+1 in getLeaderboard)
@@ -76,7 +76,7 @@ export const getByAgent = query({
   handler: async (ctx, { agentId }) => {
     const metrics = await ctx.db
       .query("agentMetrics")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
       .order("desc")
       .collect();
 
@@ -90,7 +90,7 @@ export const getByPeriod = query({
   handler: async (ctx, { period }) => {
     const metrics = await ctx.db
       .query("agentMetrics")
-      .withIndex("by_period", (q) => q.eq("period", period))
+      .withIndex("by_period", (q: any) => q.eq("period", period))
       .order("desc")
       .take(50);
 
@@ -109,7 +109,7 @@ export const getLeaderboard = query({
 
     const allMetrics = await ctx.db
       .query("agentMetrics")
-      .withIndex("by_period", (q) => q.eq("period", queryPeriod))
+      .withIndex("by_period", (q: any) => q.eq("period", queryPeriod))
       .take(100);
 
     // Sort by tasksCompleted descending, then by commentsMade
@@ -139,8 +139,8 @@ export const getCurrentMonth = query({
 
     const metric = await ctx.db
       .query("agentMetrics")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
-      .filter((q) => q.eq(q.field("period"), period))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
+      .filter((q: any) => q.eq(q.field("period"), period))
       .first();
 
     return metric || null;

@@ -44,7 +44,7 @@ export const getBySlug = query({
   handler: async (ctx, { slug }) => {
     const businesses = await ctx.db
       .query("businesses")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .collect();
 
     return businesses.length > 0 ? businesses[0] : null;
@@ -60,7 +60,7 @@ export const getDefault = query({
   handler: async (ctx) => {
     const businesses = await ctx.db
       .query("businesses")
-      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
       .collect();
 
     return businesses.length > 0 ? businesses[0] : null;
@@ -94,7 +94,7 @@ export const create = mutation({
     // Check slug uniqueness
     const existing = await ctx.db
       .query("businesses")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .collect();
 
     if (existing.length > 0) {
@@ -120,7 +120,7 @@ export const create = mutation({
     if (isDefault) {
       const previousDefault = await ctx.db
         .query("businesses")
-        .withIndex("by_default", (q) => q.eq("isDefault", true))
+        .withIndex("by_default", (q: any) => q.eq("isDefault", true))
         .collect();
 
       if (previousDefault.length > 0) {
@@ -207,7 +207,7 @@ export const setDefault = mutation({
     // Find current default
     const currentDefault = await ctx.db
       .query("businesses")
-      .withIndex("by_default", (q) => q.eq("isDefault", true))
+      .withIndex("by_default", (q: any) => q.eq("isDefault", true))
       .collect();
 
     // Unset previous default

@@ -7,9 +7,9 @@
  */
 
 import { v as convexVal } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { ApiError, ErrorCode, wrapConvexHandler } from "../lib/errors";
-import { generateRequestId } from "../lib/utils/requestId";
+import { mutation, query } from "../_generated/server";
+import { ApiError, ErrorCode, wrapConvexHandler } from "../../lib/errors";
+import { generateRequestId } from "../../lib/utils/requestId";
 
 // ─── EXAMPLE 1: Basic Mutation with Error Handling ────────────────────────
 
@@ -86,7 +86,7 @@ export const exampleCreateBusiness = mutation({
     // Check slug uniqueness
     const existing = await ctx.db
       .query("businesses")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .first();
 
     if (existing) {

@@ -39,7 +39,7 @@ class ComprehensiveTestDB {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -47,7 +47,7 @@ class ComprehensiveTestDB {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -58,7 +58,7 @@ class ComprehensiveTestDB {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -103,7 +103,7 @@ class ComprehensiveTestDB {
   calculateTaskProgress(taskIds: string[]): number {
     const tasks = taskIds.map((id: any) => this.get(id)).filter(Boolean);
     if (tasks.length === 0) return 0;
-    const completed = tasks.filter((t) => t.status === "done").length;
+    const completed = tasks.filter((t: any) => t.status === "done").length;
     return Math.round((completed / tasks.length) * 100);
   }
 

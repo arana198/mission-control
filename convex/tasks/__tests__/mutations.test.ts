@@ -521,7 +521,7 @@ describe('Convex Tasks Mutations', () => {
         priority: 'P0',
       };
 
-      const leadAgent = agents.find((a) => a.level === 'lead' && a.role === 'backend');
+      const leadAgent = agents.find((a: any) => a.level === 'lead' && a.role === 'backend');
       expect(leadAgent?._id).toBe('agent-2');
     });
   });

@@ -35,7 +35,7 @@ class MessageMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -56,7 +56,7 @@ class MessageMockDatabase {
 
   getMessagesByTask(taskId: string) {
     return (this.data.get("messages") || []).filter(
-      (m) => m.taskId === taskId
+      (m: any) => m.taskId === taskId
     );
   }
 
@@ -66,7 +66,7 @@ class MessageMockDatabase {
 
   getNotificationsByRecipient(recipientId: string) {
     return (this.data.get("notifications") || []).filter(
-      (n) => n.recipientId === recipientId
+      (n: any) => n.recipientId === recipientId
     );
   }
 }
@@ -303,7 +303,7 @@ describe("Messages System (convex/messages.ts)", () => {
 
       const leadNotifications = db.getNotificationsByRecipient(leadAgentId);
       const helpRequests = leadNotifications.filter(
-        (n) => n.type === "help_request"
+        (n: any) => n.type === "help_request"
       );
 
       expect(helpRequests).toHaveLength(1);
@@ -328,7 +328,7 @@ describe("Messages System (convex/messages.ts)", () => {
       // Mark as read
       const notifications = db.getNotificationsByRecipient(leadAgentId);
       expect(
-        notifications.filter((n) => !n.read && n.type === "help_request")
+        notifications.filter((n: any) => !n.read && n.type === "help_request")
       ).toHaveLength(1);
     });
   });

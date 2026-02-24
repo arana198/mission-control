@@ -53,7 +53,7 @@ export const getPending = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("wakeRequests")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .withIndex("by_status", (q: any) => q.eq("status", "pending"))
       .order("asc")
       .take(50);
   },

@@ -30,7 +30,7 @@ class PatternInsightsMockDatabase {
     const lastWeekStart = now - fourteenDaysMs;
 
     const activitiesThisWeek = this.activities.filter(
-      (a) => a.createdAt >= thisWeekStart && a.createdAt < now
+      (a: any) => a.createdAt >= thisWeekStart && a.createdAt < now
     );
 
     const activitiesLastWeek = this.activities.filter(
@@ -40,11 +40,11 @@ class PatternInsightsMockDatabase {
 
     // Count task completions
     const completedThisWeek = activitiesThisWeek.filter(
-      (a) => a.type === "task_completed"
+      (a: any) => a.type === "task_completed"
     ).length;
 
     const completedLastWeek = activitiesLastWeek.filter(
-      (a) => a.type === "task_completed"
+      (a: any) => a.type === "task_completed"
     ).length;
 
     // Determine velocity trend
@@ -73,7 +73,7 @@ class PatternInsightsMockDatabase {
 
     // Count blocked events
     const blockedEventsCount = activitiesThisWeek.filter(
-      (a) => a.type === "task_blocked"
+      (a: any) => a.type === "task_blocked"
     ).length;
 
     // Generate human-readable patterns
@@ -94,7 +94,7 @@ class PatternInsightsMockDatabase {
     }
 
     if (topAgents.length > 0) {
-      const topAgentNames = topAgents.map((a) => a.name).join(", ");
+      const topAgentNames = topAgents.map((a: any) => a.name).join(", ");
       patterns.push(`Top contributors this week: ${topAgentNames}`);
     }
 

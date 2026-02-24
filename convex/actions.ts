@@ -18,16 +18,16 @@ export const escalateTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: wrapConvexHandler(async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
+  handler: wrapConvexHandler(async (ctx, { taskId, reason, decidedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound('Task', { taskId });
 
     if (task.priority === "P0") {
-      throw ApiError.conflict('Task is already highest priority', { taskId: args.taskId, priority: task.priority });
+      throw ApiError.conflict('Task is already highest priority', { taskId, priority: task.priority });
     }
 
     // Update task priority to P0 (highest)
-    await ctx.db.patch(args.taskId, {
+    await ctx.db.patch(taskId, {
       priority: "P0",
       updatedAt: Date.now(),
     });
@@ -36,10 +36,10 @@ export const escalateTask = mutation({
     const decisionId = await ctx.db.insert("decisions", {
       businessId: task.businessId,
       action: "escalated",
-      taskId: args.taskId,
-      reason: args.reason,
+      taskId,
+      reason,
       result: "success",
-      decidedBy: args.decidedBy,
+      decidedBy,
       decidedAt: Date.now(),
       createdAt: Date.now(),
     });
@@ -48,17 +48,17 @@ export const escalateTask = mutation({
     await ctx.db.insert("activities", {
       businessId: task.businessId,
       type: "task_updated",
-      agentId: args.decidedBy,
-      agentName: args.decidedBy,
-      taskId: args.taskId,
+      agentId: decidedBy,
+      agentName: decidedBy,
+      taskId,
       taskTitle: task.title,
-      message: `Task escalated to P0. Reason: ${args.reason}`,
+      message: `Task escalated to P0. Reason: ${reason}`,
       createdAt: Date.now(),
     } as any);
 
     return {
       success: true,
-      taskId: args.taskId,
+      taskId,
       decisionId: decisionId,
       message: "Task escalated to high priority",
     };
@@ -76,18 +76,18 @@ export const reassignTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: wrapConvexHandler(async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
+  handler: wrapConvexHandler(async (ctx, { taskId, toAgent, reason, decidedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound('Task', { taskId });
 
     const fromAgent = task.ownerId || "unassigned";
-    if (fromAgent === args.toAgent) {
-      throw ApiError.conflict('Task is already owned by this agent', { taskId: args.taskId, currentOwner: fromAgent });
+    if (fromAgent === toAgent) {
+      throw ApiError.conflict('Task is already owned by this agent', { taskId, currentOwner: fromAgent });
     }
 
     // Update task assignment - set owner to new agent
-    await ctx.db.patch(args.taskId, {
-      ownerId: args.toAgent,
+    await ctx.db.patch(taskId, {
+      ownerId: toAgent,
       status: "backlog", // Reset to backlog for new agent
       updatedAt: Date.now(),
     });
@@ -96,12 +96,12 @@ export const reassignTask = mutation({
     const decisionId = await ctx.db.insert("decisions", {
       businessId: task.businessId,
       action: "reassigned",
-      taskId: args.taskId,
+      taskId,
       fromAgent: fromAgent,
-      toAgent: args.toAgent,
-      reason: args.reason,
+      toAgent,
+      reason,
       result: "success",
-      decidedBy: args.decidedBy,
+      decidedBy,
       decidedAt: Date.now(),
       createdAt: Date.now(),
     });
@@ -110,21 +110,21 @@ export const reassignTask = mutation({
     await ctx.db.insert("activities", {
       businessId: task.businessId,
       type: "task_assigned",
-      agentId: args.decidedBy,
-      agentName: args.decidedBy,
-      taskId: args.taskId,
+      agentId: decidedBy,
+      agentName: decidedBy,
+      taskId,
       taskTitle: task.title,
-      message: `Task reassigned from ${fromAgent} to ${args.toAgent}. Reason: ${args.reason}`,
+      message: `Task reassigned from ${fromAgent} to ${toAgent}. Reason: ${reason}`,
       createdAt: Date.now(),
     } as any);
 
     return {
       success: true,
-      taskId: args.taskId,
+      taskId,
       decisionId: decisionId,
       fromAgent: fromAgent,
-      toAgent: args.toAgent,
-      message: `Task reassigned to ${args.toAgent}`,
+      toAgent,
+      message: `Task reassigned to ${toAgent}`,
     };
   }),
 });
@@ -138,16 +138,16 @@ export const unblockTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: wrapConvexHandler(async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
+  handler: wrapConvexHandler(async (ctx, { taskId, reason, decidedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound('Task', { taskId });
 
     if (!task.blockedBy || task.blockedBy.length === 0) {
-      throw ApiError.conflict('Task is not blocked', { taskId: args.taskId, blockedBy: task.blockedBy });
+      throw ApiError.conflict('Task is not blocked', { taskId, blockedBy: task.blockedBy });
     }
 
     // Clear blocked status
-    await ctx.db.patch(args.taskId, {
+    await ctx.db.patch(taskId, {
       blockedBy: [],
       updatedAt: Date.now(),
     });
@@ -156,10 +156,10 @@ export const unblockTask = mutation({
     const decisionId = await ctx.db.insert("decisions", {
       businessId: task.businessId,
       action: "unblocked",
-      taskId: args.taskId,
-      reason: args.reason,
+      taskId,
+      reason,
       result: "success",
-      decidedBy: args.decidedBy,
+      decidedBy,
       decidedAt: Date.now(),
       createdAt: Date.now(),
     });
@@ -168,17 +168,17 @@ export const unblockTask = mutation({
     await ctx.db.insert("activities", {
       businessId: task.businessId,
       type: "task_updated",
-      agentId: args.decidedBy,
-      agentName: args.decidedBy,
-      taskId: args.taskId,
+      agentId: decidedBy,
+      agentName: decidedBy,
+      taskId,
       taskTitle: task.title,
-      message: `Task unblocked. Reason: ${args.reason}`,
+      message: `Task unblocked. Reason: ${reason}`,
       createdAt: Date.now(),
     } as any);
 
     return {
       success: true,
-      taskId: args.taskId,
+      taskId,
       decisionId: decisionId,
       message: "Task unblocked and ready to execute",
     };
@@ -194,16 +194,16 @@ export const markExecuted = mutation({
     outcome: v.string(),
     decidedBy: v.string(),
   },
-  handler: wrapConvexHandler(async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
+  handler: wrapConvexHandler(async (ctx, { taskId, outcome, decidedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound('Task', { taskId });
 
     if (task.status === "done") {
-      throw ApiError.conflict('Task is already completed', { taskId: args.taskId, status: task.status });
+      throw ApiError.conflict('Task is already completed', { taskId, status: task.status });
     }
 
     // Mark as done
-    await ctx.db.patch(args.taskId, {
+    await ctx.db.patch(taskId, {
       status: "done",
       completedAt: Date.now(),
       updatedAt: Date.now(),
@@ -213,10 +213,10 @@ export const markExecuted = mutation({
     const decisionId = await ctx.db.insert("decisions", {
       businessId: task.businessId,
       action: "marked_executed",
-      taskId: args.taskId,
-      reason: args.outcome,
+      taskId,
+      reason: outcome,
       result: "success",
-      decidedBy: args.decidedBy,
+      decidedBy,
       decidedAt: Date.now(),
       createdAt: Date.now(),
     });
@@ -225,17 +225,17 @@ export const markExecuted = mutation({
     await ctx.db.insert("activities", {
       businessId: task.businessId,
       type: "task_completed",
-      agentId: args.decidedBy,
-      agentName: args.decidedBy,
-      taskId: args.taskId,
+      agentId: decidedBy,
+      agentName: decidedBy,
+      taskId,
       taskTitle: task.title,
-      message: `Task marked as executed. Outcome: ${args.outcome}`,
+      message: `Task marked as executed. Outcome: ${outcome}`,
       createdAt: Date.now(),
     } as any);
 
     return {
       success: true,
-      taskId: args.taskId,
+      taskId,
       decisionId: decisionId,
       message: "Task marked as completed",
     };
@@ -251,16 +251,16 @@ export const deprioritizeTask = mutation({
     reason: v.string(),
     decidedBy: v.string(),
   },
-  handler: wrapConvexHandler(async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
+  handler: wrapConvexHandler(async (ctx, { taskId, reason, decidedBy }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound('Task', { taskId });
 
     if (task.priority === "P3") {
-      throw ApiError.conflict('Task is already lowest priority', { taskId: args.taskId, priority: task.priority });
+      throw ApiError.conflict('Task is already lowest priority', { taskId, priority: task.priority });
     }
 
     // Update task priority to P3 (lowest)
-    await ctx.db.patch(args.taskId, {
+    await ctx.db.patch(taskId, {
       priority: "P3",
       updatedAt: Date.now(),
     });
@@ -269,10 +269,10 @@ export const deprioritizeTask = mutation({
     const decisionId = await ctx.db.insert("decisions", {
       businessId: task.businessId,
       action: "deprioritized",
-      taskId: args.taskId,
-      reason: args.reason,
+      taskId,
+      reason,
       result: "success",
-      decidedBy: args.decidedBy,
+      decidedBy,
       decidedAt: Date.now(),
       createdAt: Date.now(),
     });
@@ -281,17 +281,17 @@ export const deprioritizeTask = mutation({
     await ctx.db.insert("activities", {
       businessId: task.businessId,
       type: "task_updated",
-      agentId: args.decidedBy,
-      agentName: args.decidedBy,
-      taskId: args.taskId,
+      agentId: decidedBy,
+      agentName: decidedBy,
+      taskId,
       taskTitle: task.title,
-      message: `Task deprioritized to P3. Reason: ${args.reason}`,
+      message: `Task deprioritized to P3. Reason: ${reason}`,
       createdAt: Date.now(),
     } as any);
 
     return {
       success: true,
-      taskId: args.taskId,
+      taskId,
       decisionId: decisionId,
       message: "Task deprioritized to P3 (lowest priority)",
     };
@@ -308,12 +308,12 @@ export const getTaskHistory = query({
   handler: async (ctx, args) => {
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
       .collect();
 
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
       .collect();
 
     return {

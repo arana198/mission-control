@@ -40,7 +40,7 @@ class PresenceMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -48,7 +48,7 @@ class PresenceMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) {
         Object.assign(found, updates);
         return true;
@@ -76,13 +76,13 @@ class PresenceMockDatabase {
 
   getPresenceByBusiness(businessId: string) {
     return (this.data.get("presenceIndicators") || []).filter(
-      (p) => p.businessId === businessId
+      (p: any) => p.businessId === businessId
     );
   }
 
   getPresenceByAgent(agentId: string) {
     return (this.data.get("presenceIndicators") || []).filter(
-      (p) => p.agentId === agentId
+      (p: any) => p.agentId === agentId
     );
   }
 
@@ -168,7 +168,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
       const allPresence = db.getAllPresence();
       expect(allPresence).toHaveLength(4);
-      expect(allPresence.map((p) => p.status).sort()).toEqual([
+      expect(allPresence.map((p: any) => p.status).sort()).toEqual([
         "away",
         "do_not_disturb",
         "offline",
@@ -239,7 +239,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
       const businessPresence = db.getPresenceByBusiness(businessId);
       expect(businessPresence).toHaveLength(2);
-      expect(businessPresence.map((p) => p.agentId).sort()).toEqual(
+      expect(businessPresence.map((p: any) => p.agentId).sort()).toEqual(
         [agentId1, agentId2].sort()
       );
     });
@@ -296,7 +296,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       const allPresence = db.getPresenceByBusiness(businessId);
-      const onlineOnly = allPresence.filter((p) => p.status === "online");
+      const onlineOnly = allPresence.filter((p: any) => p.status === "online");
       expect(onlineOnly).toHaveLength(1);
       expect(onlineOnly[0].agentId).toBe(agentId1);
     });
@@ -516,7 +516,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
       expect(cleaned).toBe(2);
       const updated = db.getPresenceByBusiness(businessId);
-      const offlineCount = updated.filter((p) => p.status === "offline").length;
+      const offlineCount = updated.filter((p: any) => p.status === "offline").length;
       expect(offlineCount).toBe(2);
     });
 
@@ -653,7 +653,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
       const allPresence = db.getPresenceByBusiness(businessId);
       expect(allPresence).toHaveLength(2);
-      expect(allPresence.every((p) => p.businessId === businessId)).toBe(true);
+      expect(allPresence.every((p: any) => p.businessId === businessId)).toBe(true);
     });
 
     it("filters out agents with null agent data", () => {

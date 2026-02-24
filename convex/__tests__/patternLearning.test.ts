@@ -36,7 +36,7 @@ class PatternLearningMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -57,7 +57,7 @@ class PatternLearningMockDatabase {
 
   getPatternsByBusiness(businessId: string) {
     return (this.data.get("taskPatterns") || []).filter(
-      (p) => p.businessId === businessId
+      (p: any) => p.businessId === businessId
     );
   }
 }
@@ -377,7 +377,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
     it("ignores patterns with missing task types", () => {
       const patterns = db.getPatternsByBusiness(businessId);
       const validPatterns = patterns.filter(
-        (p) => p.taskTypeSequence && p.taskTypeSequence.length >= 2
+        (p: any) => p.taskTypeSequence && p.taskTypeSequence.length >= 2
       );
 
       expect(validPatterns).toHaveLength(0);

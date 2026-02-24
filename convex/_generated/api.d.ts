@@ -22,6 +22,7 @@ import type * as debug from "../debug.js";
 import type * as decisions from "../decisions.js";
 import type * as documents from "../documents.js";
 import type * as epics from "../epics.js";
+import type * as examples_errorHandlingPattern from "../examples/errorHandlingPattern.js";
 import type * as executionLog from "../executionLog.js";
 import type * as github from "../github.js";
 import type * as goals from "../goals.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   decisions: typeof decisions;
   documents: typeof documents;
   epics: typeof epics;
+  "examples/errorHandlingPattern": typeof examples_errorHandlingPattern;
   executionLog: typeof executionLog;
   github: typeof github;
   goals: typeof goals;

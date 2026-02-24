@@ -192,7 +192,7 @@ export const createTask = mutation({
     for (const agentId of finalAssignees) {
       const existing = await ctx.db
         .query("threadSubscriptions")
-        .withIndex("by_agent_task", (q) => q.eq("agentId", agentId).eq("taskId", taskId))
+        .withIndex("by_agent_task", (q: any) => q.eq("agentId", agentId).eq("taskId", taskId))
         .first();
 
       if (!existing) {
@@ -232,7 +232,7 @@ export const getAllTasks = query({
   handler: async (ctx, { businessId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .order("desc")
       .take(500);
     return allTasks;
@@ -245,7 +245,7 @@ export const getMessageCount = query({
   handler: async (ctx, { taskId }) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
     return messages.length;
   },
@@ -269,7 +269,7 @@ export const getTaskByTicketNumber = query({
     // Use by_ticket_number index (added in MIG-10) for fast lookup
     return await ctx.db
       .query("tasks")
-      .withIndex("by_ticket_number", (q) =>
+      .withIndex("by_ticket_number", (q: any) =>
         q.eq("businessId", businessId).eq("ticketNumber", ticketNumber)
       )
       .first();
@@ -330,7 +330,7 @@ export const getByStatus = query({
   handler: async (ctx, { businessId, status, limit = 200 }) => {
     return await ctx.db
       .query("tasks")
-      .withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", status))
+      .withIndex("by_business_status", (q: any) => q.eq("businessId", businessId).eq("status", status))
       .order("desc")
       .take(limit);
   },
@@ -349,7 +349,7 @@ export const getForAgent = query({
     // This is a known limitation - full scan is necessary here
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", "in_progress"))
+      .withIndex("by_business_status", (q: any) => q.eq("businessId", businessId).eq("status", "in_progress"))
       .take(limit * 2); // Load more than limit to account for filtering
 
     // Filter to assigned tasks
@@ -379,13 +379,13 @@ export const getFiltered = query({
     let tasks = await (status
       ? ctx.db
           .query("tasks")
-          .withIndex("by_business_status", (q) =>
+          .withIndex("by_business_status", (q: any) =>
             q.eq("businessId", businessId).eq("status", status as any)
           )
           .take(cap)
       : ctx.db
           .query("tasks")
-          .withIndex("by_business", (q) => q.eq("businessId", businessId))
+          .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
           .take(cap));
 
     // Apply priority filter
@@ -459,7 +459,7 @@ export const assign = mutation({
     for (const agentId of assigneeIds) {
       const existing = await ctx.db
         .query("threadSubscriptions")
-        .withIndex("by_agent_task", (q) => q.eq("agentId", agentId).eq("taskId", taskId))
+        .withIndex("by_agent_task", (q: any) => q.eq("agentId", agentId).eq("taskId", taskId))
         .first();
 
       if (!existing) {
@@ -587,7 +587,7 @@ export const getWithDetails = query({
 
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .order("desc")
       .take(50);
 
@@ -702,23 +702,23 @@ export const getReadyWithAssignees = query({
     const [tasks, allAgents] = await Promise.all([
       ctx.db
         .query("tasks")
-        .withIndex("by_status", (q) => q.eq("status", "ready"))
+        .withIndex("by_status", (q: any) => q.eq("status", "ready"))
         .collect(),
       ctx.db.query("agents").collect(), // Load all agents once, not N times
     ]);
 
     // Create agent map for O(1) lookup
     const agentMap = new Map(
-      allAgents.map((a) => [a._id, { id: a._id, name: a.name, sessionKey: a.sessionKey }])
+      allAgents.map((a: any) => [a._id, { id: a._id, name: a.name, sessionKey: a.sessionKey }])
     );
 
     // Filter to only tasks with assignees and enrich with agent details
     const enriched = tasks
-      .filter((t) => t.assigneeIds && t.assigneeIds.length > 0)
+      .filter((t: any) => t.assigneeIds && t.assigneeIds.length > 0)
       .map((task) => {
         const assignees = task.assigneeIds
           .map((agentId) => agentMap.get(agentId))
-          .filter((a) => a !== undefined) as any[];
+          .filter((a: any) => a !== undefined) as any[];
         return {
           ...task,
           assignees,
@@ -863,7 +863,7 @@ export const unassign = mutation({
     for (const agentId of previousAssignees) {
       const sub = await ctx.db
         .query("threadSubscriptions")
-        .withIndex("by_agent_task", (q) => q.eq("agentId", agentId).eq("taskId", taskId))
+        .withIndex("by_agent_task", (q: any) => q.eq("agentId", agentId).eq("taskId", taskId))
         .first();
       
       if (sub) {
@@ -965,7 +965,7 @@ export const smartAssign = mutation({
     for (const agentId of selectedAssignees) {
       const existing = await ctx.db
         .query("threadSubscriptions")
-        .withIndex("by_agent_task", (q) => q.eq("agentId", agentId as any).eq("taskId", taskId))
+        .withIndex("by_agent_task", (q: any) => q.eq("agentId", agentId as any).eq("taskId", taskId))
         .first();
 
       if (!existing) {
@@ -1069,7 +1069,7 @@ async function findBestAgent(ctx: any, agents: any[], task: any) {
 
   return (
     matchedAgents[0] ||
-    (agents.find((a) => a.level === "lead") || agents[0])
+    (agents.find((a: any) => a.level === "lead") || agents[0])
   );
 }
 
@@ -1082,8 +1082,8 @@ export const autoAssignBacklog = mutation({
     // Pre-load agents and tasks once (H-03 fix: avoid N+1 and mutation-in-loop)
     const [tasks, agents] = await Promise.all([
       ctx.db.query("tasks")
-        .withIndex("by_status", (q) => q.eq("status", "backlog"))
-        .filter((q) => q.eq(q.field("assigneeIds"), []))
+        .withIndex("by_status", (q: any) => q.eq("status", "backlog"))
+        .filter((q: any) => q.eq(q.field("assigneeIds"), []))
         .take(limit),
       ctx.db.query("agents").collect(),
     ]);
@@ -1192,7 +1192,7 @@ export const getWithSubtasks = query({
     // Get subtasks
     const subtasks = await ctx.db
       .query("tasks")
-      .withIndex("by_parent", (q) => q.eq("parentId", taskId))
+      .withIndex("by_parent", (q: any) => q.eq("parentId", taskId))
       .collect();
 
     // Get assignees for main task
@@ -1276,7 +1276,7 @@ export const deleteTask = mutation({
     // Delete all messages for this task
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
 
     for (const msg of messages) {
@@ -1286,7 +1286,7 @@ export const deleteTask = mutation({
     // PERF-03: Delete thread subscriptions using by_task index
     const subscriptions = await ctx.db
       .query("threadSubscriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
 
     for (const sub of subscriptions) {
@@ -1296,7 +1296,7 @@ export const deleteTask = mutation({
     // PERF-03: Delete notifications for this task using by_task index
     const notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
 
     for (const notif of notifications) {
@@ -1446,7 +1446,7 @@ export const removeDependency = mutation({
       remainingBlockers.map((id) => ctx.db.get(id))
     );
     const hasActiveBlockers = activeBlockers.some(
-      (b) => b && b.status !== "done"
+      (b: any) => b && b.status !== "done"
     );
 
     if (!hasActiveBlockers && task.status === "blocked") {
@@ -1578,7 +1578,7 @@ export const addTags = mutation({
       newTags = Array.from(new Set([...newTags, ...tags]));
     } else if (action === "remove") {
       // Remove specified tags
-      newTags = newTags.filter((t) => !tags.includes(t));
+      newTags = newTags.filter((t: any) => !tags.includes(t));
     }
 
     await ctx.db.patch(taskId, {
@@ -1654,7 +1654,7 @@ export const updateChecklistItem = mutation({
     if (!task) throw new Error("Task not found");
 
     const checklist = task.doneChecklist || [];
-    const itemIndex = checklist.findIndex((i) => i.id === itemId);
+    const itemIndex = checklist.findIndex((i: any) => i.id === itemId);
 
     if (itemIndex === -1) throw new Error("Checklist item not found");
 
@@ -1686,7 +1686,7 @@ export const removeChecklistItem = mutation({
     if (!task) throw new Error("Task not found");
 
     const checklist = task.doneChecklist || [];
-    const filtered = checklist.filter((i) => i.id !== itemId);
+    const filtered = checklist.filter((i: any) => i.id !== itemId);
 
     await ctx.db.patch(taskId, {
       doneChecklist: filtered,
@@ -1712,7 +1712,7 @@ export const getInboxForAgent = query({
     // Fetch all tasks for the business
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
     // Filter tasks assigned to the agent
@@ -1721,14 +1721,14 @@ export const getInboxForAgent = query({
     );
 
     // Group by status
-    const myTasks = agentTasks.filter((t) => t.status === "in_progress");
-    const ready = agentTasks.filter((t) => t.status === "ready");
-    const blocked = agentTasks.filter((t) => t.status === "blocked");
-    const inReview = agentTasks.filter((t) => t.status === "review");
+    const myTasks = agentTasks.filter((t: any) => t.status === "in_progress");
+    const ready = agentTasks.filter((t: any) => t.status === "ready");
+    const blocked = agentTasks.filter((t: any) => t.status === "blocked");
+    const inReview = agentTasks.filter((t: any) => t.status === "review");
 
     // Only return last 10 completed tasks to avoid huge lists
     const done = agentTasks
-      .filter((t) => t.status === "done")
+      .filter((t: any) => t.status === "done")
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
       .slice(0, 10);
 
@@ -1769,7 +1769,7 @@ export const getStaleTaskIds = query({
     // Fetch all tasks for the business
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
     // Find tasks that are blocked or in_progress AND older than cutoff
@@ -1780,7 +1780,7 @@ export const getStaleTaskIds = query({
 
     return {
       count: staleTasks.length,
-      taskIds: staleTasks.map((t) => t._id),
+      taskIds: staleTasks.map((t: any) => t._id),
     };
   },
 });
@@ -1796,12 +1796,12 @@ export const getCycleTimeMetrics = query({
   handler: async (ctx, { businessId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
     // Filter for completed tasks with both startedAt and completedAt
     const completedTasks = allTasks.filter(
-      (t) => t.status === "done" && t.startedAt && t.completedAt
+      (t: any) => t.status === "done" && t.startedAt && t.completedAt
     );
 
     if (completedTasks.length === 0) {
@@ -1813,7 +1813,7 @@ export const getCycleTimeMetrics = query({
     }
 
     // Calculate cycle time in days for each task
-    const cycleTimes = completedTasks.map((t) => ({
+    const cycleTimes = completedTasks.map((t: any) => ({
       priority: t.priority || "P2",
       days: (t.completedAt! - t.startedAt!) / (1000 * 60 * 60 * 24),
     }));
@@ -1843,7 +1843,7 @@ export const getCycleTimeMetrics = query({
     });
 
     // Calculate averages
-    Object.keys(byPriority).forEach((p) => {
+    Object.keys(byPriority).forEach((p: any) => {
       if (countByPriority[p] > 0) {
         byPriority[p] = byPriority[p] / countByPriority[p];
       }
@@ -1879,13 +1879,13 @@ export const getVelocityByWeek = query({
     // Get task_completed activities for the business in the time range
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_business_created_at", (q) =>
+      .withIndex("by_business_created_at", (q: any) =>
         q.eq("businessId", businessId).gte("createdAt", cutoff)
       )
       .collect();
 
     const completedActivities = activities.filter(
-      (a) => a.type === "task_completed"
+      (a: any) => a.type === "task_completed"
     );
 
     // Group by ISO week
@@ -1922,11 +1922,11 @@ export const getStatusOverview = query({
   handler: async (ctx, { businessId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
     const total = allTasks.length;
-    const completedCount = allTasks.filter((t) => t.status === "done").length;
+    const completedCount = allTasks.filter((t: any) => t.status === "done").length;
     const completionRate =
       total === 0 ? 0 : Math.round((completedCount / total) * 100);
 

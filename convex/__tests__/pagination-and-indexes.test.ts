@@ -52,7 +52,7 @@ class PaginationMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -60,7 +60,7 @@ class PaginationMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -71,7 +71,7 @@ class PaginationMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -164,7 +164,7 @@ class PaginationMockDatabase {
         },
       };
       filterFn(mockQ);
-      return docs.filter((d) => d.businessId === mockQ._businessId);
+      return docs.filter((d: any) => d.businessId === mockQ._businessId);
     }
 
     // Simulate by_assignee index
@@ -314,7 +314,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Query with limit 300 (should be capped at 200)
       const results = await db
         .query("tasks")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .take(Math.min(300, 200));
 
       expect(results.length).toBeLessThanOrEqual(200);
@@ -429,7 +429,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Find all tasks where agent is assigned
       const assignedTasks = await db
         .query("tasks")
-        .withIndex("by_assignee", (q) => q.eq("assigneeIds", agentId))
+        .withIndex("by_assignee", (q: any) => q.eq("assigneeIds", agentId))
         .collect();
 
       expect(assignedTasks.length).toBe(1);
@@ -459,7 +459,7 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       const results = await db
         .query("tasks")
-        .withIndex("by_assignee", (q) => q.eq("assigneeIds", agentId))
+        .withIndex("by_assignee", (q: any) => q.eq("assigneeIds", agentId))
         .collect();
 
       expect(results.length).toBe(10); // agent_1 assigned to first 10 tasks
@@ -604,11 +604,11 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Query using by_business index (no as any needed)
       const patterns = await db
         .query("taskPatterns")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .collect();
 
       expect(patterns.length).toBe(5);
-      expect(patterns.every((p) => p.businessId === businessId)).toBe(true);
+      expect(patterns.every((p: any) => p.businessId === businessId)).toBe(true);
       expect(db.getStats().indexUsed).toBe(1); // index was used, no as any needed
     });
 
@@ -651,11 +651,11 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Query using by_business index
       const events = await db
         .query("calendarEvents")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .take(500);
 
       expect(events.length).toBe(10);
-      expect(events.every((e) => e.businessId === businessId)).toBe(true);
+      expect(events.every((e: any) => e.businessId === businessId)).toBe(true);
       expect(db.getStats().indexUsed).toBe(1); // index was used
     });
 
@@ -676,7 +676,7 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       const events = await db
         .query("calendarEvents")
-        .withIndex("by_business", (q) => q.eq("businessId", businessId))
+        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
         .take(500);
 
       expect(events.length).toBe(1);

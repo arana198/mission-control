@@ -18,7 +18,7 @@ export const getAllEpics = query({
   handler: async (ctx, { businessId }) => {
     return await ctx.db
       .query("epics")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .order("desc")
       .take(500);
   },
@@ -41,8 +41,8 @@ export const getEpicWithDetails = query({
 
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
-      .filter((q) => q.eq(q.field("epicId"), epicId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .filter((q: any) => q.eq(q.field("epicId"), epicId))
       .collect();
 
     return {
@@ -144,7 +144,7 @@ export const deleteEpic = mutation({
     // Clear epic references from tasks
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_epic", (q) => q.eq("epicId", epicId))
+      .withIndex("by_epic", (q: any) => q.eq("epicId", epicId))
       .collect();
 
     for (const task of tasks) {
@@ -167,7 +167,7 @@ export const recalculateEpicProgress = mutation({
 
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_epic", (q) => q.eq("epicId", epicId))
+      .withIndex("by_epic", (q: any) => q.eq("epicId", epicId))
       .collect();
 
     const doneCount = tasks.filter(t => t.status === "done").length;

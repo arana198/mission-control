@@ -86,7 +86,7 @@ export const heartbeatMonitorCronHandler = internalMutation({
     const allAgents = await ctx.db.query("agents").collect();
 
     const staleAgents = allAgents.filter(
-      (a) => a.lastHeartbeat < fiveMinutesAgo && a.status === "active"
+      (a: any) => a.lastHeartbeat < fiveMinutesAgo && a.status === "active"
     );
 
     // Mark stale agents as idle
@@ -125,14 +125,14 @@ export const escalationCheckCronHandler = internalMutation({
     const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
     const blockedTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", "blocked"))
+      .withIndex("by_status", (q: any) => q.eq("status", "blocked"))
       .take(100);
 
-    const escalatedTasks = blockedTasks.filter((t) => t.updatedAt < oneDayAgo).slice(0, 10); // Max 10 per run
+    const escalatedTasks = blockedTasks.filter((t: any) => t.updatedAt < oneDayAgo).slice(0, 10); // Max 10 per run
 
     // Get lead agents
     const allAgents = await ctx.db.query("agents").collect();
-    const leadAgents = allAgents.filter((a) => a.level === "lead");
+    const leadAgents = allAgents.filter((a: any) => a.level === "lead");
 
     // Create notifications for leads
     for (const task of escalatedTasks) {
@@ -190,10 +190,10 @@ export const alertEvaluatorCronHandler = internalMutation({
         // Fetch all enabled rules for this business
         const rules = await ctx.db
           .query("alertRules")
-          .withIndex("by_business", (q) => q.eq("businessId", business._id))
+          .withIndex("by_business", (q: any) => q.eq("businessId", business._id))
           .collect();
 
-        const enabledRules = rules.filter((r) => r.enabled);
+        const enabledRules = rules.filter((r: any) => r.enabled);
 
         for (const rule of enabledRules) {
           // Check cooldown: skip if rule fired recently
@@ -211,13 +211,13 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             const blockedTasks = await ctx.db
               .query("tasks")
-              .withIndex("by_business_status", (q) =>
+              .withIndex("by_business_status", (q: any) =>
                 q.eq("businessId", business._id).eq("status", "blocked")
               )
               .collect();
 
             const staleBlockedTasks = blockedTasks.filter(
-              (t) => now - t.updatedAt >= blockedThresholdMs
+              (t: any) => now - t.updatedAt >= blockedThresholdMs
             );
 
             conditionMet = staleBlockedTasks.length > 0;
@@ -230,7 +230,7 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             const backlogTasks = await ctx.db
               .query("tasks")
-              .withIndex("by_business_status", (q) =>
+              .withIndex("by_business_status", (q: any) =>
                 q.eq("businessId", business._id).eq("status", "backlog")
               )
               .collect();
@@ -245,7 +245,7 @@ export const alertEvaluatorCronHandler = internalMutation({
           if (conditionMet) {
             // Get up to 3 lead agents for notification
             const agents = await ctx.db.query("agents").collect();
-            const leadAgents = agents.filter((a) => a.role === "lead").slice(0, 3);
+            const leadAgents = agents.filter((a: any) => a.role === "lead").slice(0, 3);
 
             // Create notification for each lead agent
             for (const agent of leadAgents) {

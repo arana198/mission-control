@@ -18,9 +18,9 @@ import { ApiError, ErrorCode } from "./ApiError";
 import { generateRequestId } from "../utils/requestId";
 
 export interface ConvexErrorHandler {
-  <TArgs, TResult>(
-    handler: (ctx: any, args: TArgs) => Promise<TResult>
-  ): (ctx: any, args: TArgs) => Promise<TResult>;
+  <TResult = any>(
+    handler: (ctx: any, args: any) => Promise<TResult>
+  ): (ctx: any, args: any) => Promise<TResult>;
 }
 
 /**
@@ -33,11 +33,15 @@ export function isApiError(error: any): error is ApiError {
 /**
  * Wrapper for Convex handlers that catches ApiErrors and reformats them
  * Non-ApiErrors are converted to INTERNAL_ERROR for safety
+ *
+ * Supports both patterns:
+ * - handler: wrapConvexHandler(async (ctx, args) => { ... })
+ * - handler: wrapConvexHandler(async (ctx, { field1, field2 }) => { ... })
  */
-export function wrapConvexHandler<TArgs, TResult>(
-  handler: (ctx: any, args: TArgs) => Promise<TResult>
-): (ctx: any, args: TArgs) => Promise<TResult> {
-  return async (ctx: any, args: TArgs): Promise<TResult> => {
+export function wrapConvexHandler<TResult = any>(
+  handler: (ctx: any, args: any) => Promise<TResult>
+): (ctx: any, args: any) => Promise<TResult> {
+  return async (ctx: any, args: any): Promise<TResult> => {
     try {
       return await handler(ctx, args);
     } catch (error: any) {

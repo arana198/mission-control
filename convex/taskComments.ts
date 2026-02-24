@@ -20,7 +20,7 @@ export const getTaskComments = query({
   handler: async (ctx, { taskId, limit = 50 }) => {
     return await ctx.db
       .query("taskComments")
-      .withIndex("by_task_created_at", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task_created_at", (q: any) => q.eq("taskId", taskId))
       .order("desc")
       .take(limit);
   },
@@ -36,7 +36,7 @@ export const getThreadReplies = query({
   handler: async (ctx, { parentCommentId }) => {
     return await ctx.db
       .query("taskComments")
-      .withIndex("by_parent", (q) => q.eq("parentCommentId", parentCommentId))
+      .withIndex("by_parent", (q: any) => q.eq("parentCommentId", parentCommentId))
       .order("asc")
       .collect();
   },
@@ -52,7 +52,7 @@ export const getCommentCount = query({
   handler: async (ctx, { taskId }) => {
     const comments = await ctx.db
       .query("taskComments")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
     return comments.length;
   },
@@ -119,7 +119,7 @@ export const createComment = mutation({
     // Notify task subscribers (except commenter)
     const subscribers = await ctx.db
       .query("taskSubscriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
       .collect();
 
     for (const sub of subscribers) {
@@ -161,9 +161,9 @@ export const addReaction = mutation({
     const emojiReactions = reactions[emoji] || [];
 
     // Toggle: remove if already reacted, add if not
-    const alreadyReacted = emojiReactions.some((id) => id === agentId);
+    const alreadyReacted = emojiReactions.some((id: any) => id === agentId);
     if (alreadyReacted) {
-      reactions[emoji] = emojiReactions.filter((id) => id !== agentId);
+      reactions[emoji] = emojiReactions.filter((id: any) => id !== agentId);
       if (reactions[emoji].length === 0) delete reactions[emoji];
     } else {
       reactions[emoji] = [...emojiReactions, agentId];
@@ -248,7 +248,7 @@ export const subscribeToTask = mutation({
     // Check if already subscribed
     const existing = await ctx.db
       .query("taskSubscriptions")
-      .withIndex("by_agent_task", (q) =>
+      .withIndex("by_agent_task", (q: any) =>
         q.eq("agentId", agentId).eq("taskId", taskId)
       )
       .first();
@@ -282,7 +282,7 @@ export const unsubscribeFromTask = mutation({
   handler: async (ctx, { taskId, agentId }) => {
     const subscription = await ctx.db
       .query("taskSubscriptions")
-      .withIndex("by_agent_task", (q) =>
+      .withIndex("by_agent_task", (q: any) =>
         q.eq("agentId", agentId).eq("taskId", taskId)
       )
       .first();
@@ -305,7 +305,7 @@ export const getTaskSubscribers = query({
   handler: async (ctx, { taskId }) => {
     return await ctx.db
       .query("taskSubscriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
   },
 });
@@ -341,7 +341,7 @@ export const getUnreadMentions = query({
   handler: async (ctx, { agentId, businessId }) => {
     return await ctx.db
       .query("mentions")
-      .withIndex("by_read", (q) =>
+      .withIndex("by_read", (q: any) =>
         q.eq("mentionedAgentId", agentId).eq("read", false)
       )
       .collect();

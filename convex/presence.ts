@@ -27,7 +27,7 @@ export const updatePresence = mutation({
     // Check if presence indicator exists
     const existing = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", args.agentId))
       .first();
 
     if (existing) {
@@ -61,7 +61,7 @@ export const getBusinessPresence = query({
   handler: async (ctx, { businessId }) => {
     return await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
   },
 });
@@ -76,7 +76,7 @@ export const getAgentPresence = query({
   handler: async (ctx, { agentId }) => {
     return await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
       .first();
   },
 });
@@ -91,10 +91,10 @@ export const getOnlineAgents = query({
   handler: async (ctx, { businessId }) => {
     const all = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
-    return all.filter((p) => p.status === "online");
+    return all.filter((p: any) => p.status === "online");
   },
 });
 
@@ -110,7 +110,7 @@ export const checkAndMarkAway = mutation({
   handler: async (ctx, { agentId, businessId, awayThresholdMs = 5 * 60 * 1000 }) => {
     const presence = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
       .first();
 
     if (!presence) {
@@ -148,7 +148,7 @@ export const cleanupStalePresence = mutation({
   handler: async (ctx, { businessId, staleThresholdMs = 30 * 60 * 1000 }) => {
     const all = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
     const now = Date.now();
@@ -184,7 +184,7 @@ export const recordActivity = mutation({
 
     const existing = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_agent", (q) => q.eq("agentId", agentId))
+      .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
       .first();
 
     if (existing) {
@@ -218,10 +218,10 @@ export const getAgentPresenceWithDetails = query({
   handler: async (ctx, { businessId }) => {
     const presence = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q) => q.eq("businessId", businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
       .collect();
 
-    const agentIds = presence.map((p) => p.agentId);
+    const agentIds = presence.map((p: any) => p.agentId);
     const agents = await Promise.all(
       agentIds.map((id) => ctx.db.get(id))
     );

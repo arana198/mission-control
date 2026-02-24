@@ -41,7 +41,7 @@ class SkillInferenceMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -57,12 +57,12 @@ class SkillInferenceMockDatabase {
   }
 
   getTasksByAgent(agentId: string) {
-    return (this.data.get("tasks") || []).filter((t) => t.agentId === agentId);
+    return (this.data.get("tasks") || []).filter((t: any) => t.agentId === agentId);
   }
 
   getSkillsByAgent(agentId: string) {
     return (this.data.get("agentSkills") || []).filter(
-      (s) => s.agentId === agentId
+      (s: any) => s.agentId === agentId
     );
   }
 }
@@ -164,7 +164,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       // Simulate skill extraction
       const taskTypes = db
         .getTasksByAgent(agentId)
-        .map((t) => t.type)
+        .map((t: any) => t.type)
         .map((type) => type.replace("_task", ""));
 
       expect(taskTypes.sort()).toEqual(["backend", "design", "testing"]);
@@ -180,7 +180,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
       const completedTasks = db
         .getTasksByAgent(agentId)
-        .filter((t) => t.status === "completed");
+        .filter((t: any) => t.status === "completed");
 
       expect(completedTasks).toHaveLength(0);
     });
@@ -205,7 +205,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       // Filter to high-quality completions (rating >= 3)
       const goodCompletions = db
         .getTasksByAgent(agentId)
-        .filter((t) => t.status === "completed" && (t.rating || 0) >= 3);
+        .filter((t: any) => t.status === "completed" && (t.rating || 0) >= 3);
 
       expect(goodCompletions).toHaveLength(1);
     });
@@ -467,7 +467,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       });
 
       skills = db.getSkillsByAgent(agentId);
-      const backendSkill = skills.find((s) => s.skill === "backend");
+      const backendSkill = skills.find((s: any) => s.skill === "backend");
       expect(backendSkill?.confidence).toBeGreaterThanOrEqual(50);
     });
 
@@ -491,7 +491,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       });
 
       const skills = db.getSkillsByAgent(agentId);
-      expect(skills.map((s) => s.skill)).toContain("frontend");
+      expect(skills.map((s: any) => s.skill)).toContain("frontend");
     });
   });
 
@@ -540,14 +540,14 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       });
 
       const skills = db.getSkillsByAgent(agentId);
-      const exported = skills.map((s) => ({
+      const exported = skills.map((s: any) => ({
         skill: s.skill,
         confidence: s.confidence,
         inferred: !s.manuallyOverridden,
       }));
 
       expect(exported).toHaveLength(2);
-      expect(exported.find((s) => s.skill === "backend")?.confidence).toBe(85);
+      expect(exported.find((s: any) => s.skill === "backend")?.confidence).toBe(85);
     });
   });
 });

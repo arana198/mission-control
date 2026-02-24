@@ -31,7 +31,7 @@ class GoalMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -39,7 +39,7 @@ class GoalMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -84,7 +84,7 @@ class GoalMockDatabase {
     }
 
     const tasks = this.getTasksForGoal(goalId);
-    const completedCount = tasks.filter((t) => t.status === "done").length;
+    const completedCount = tasks.filter((t: any) => t.status === "done").length;
     const totalCount = tasks.length;
 
     return totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
@@ -102,8 +102,8 @@ class GoalMockDatabase {
         bottlenecks.push({
           goal,
           progress,
-          blockedTasks: tasks.filter((t) => t.status === "blocked"),
-          openTasks: tasks.filter((t) => t.status !== "done"),
+          blockedTasks: tasks.filter((t: any) => t.status === "blocked"),
+          openTasks: tasks.filter((t: any) => t.status !== "done"),
         });
       }
     }
@@ -136,7 +136,7 @@ class GoalMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -233,7 +233,7 @@ describe("Goals (convex/goals.ts)", () => {
 
       const businessGoals = db.getGoalsByCategory("business");
       expect(businessGoals).toHaveLength(2);
-      businessGoals.forEach((g) => {
+      businessGoals.forEach((g: any) => {
         expect(g.category).toBe("business");
       });
     });

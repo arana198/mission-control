@@ -42,7 +42,7 @@ class IntegrationMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -50,7 +50,7 @@ class IntegrationMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const doc = docs.find((d) => d._id === id);
+      const doc = docs.find((d: any) => d._id === id);
       if (doc) {
         Object.assign(doc, updates);
         return doc;
@@ -96,7 +96,7 @@ class IntegrationMockDatabase {
 
   delete(id: string) {
     for (const docs of this.data.values()) {
-      const index = docs.findIndex((d) => d._id === id);
+      const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
         docs.splice(index, 1);
         return true;
@@ -225,7 +225,7 @@ describe("Integration: End-to-End Workflows", () => {
 
       const activities = await db.query("activities").collect();
       expect(activities.length).toBeGreaterThan(0);
-      expect(activities.some((a) => a.type === "task_completed")).toBe(true);
+      expect(activities.some((a: any) => a.type === "task_completed")).toBe(true);
     });
   });
 
@@ -609,8 +609,8 @@ describe("Integration: End-to-End Workflows", () => {
       const activities = await db.query("activities").collect();
       expect(activities.length).toBeGreaterThanOrEqual(5);
 
-      const taskActivities = activities.filter((a) => a.taskId === taskId);
-      const types = taskActivities.map((a) => a.type);
+      const taskActivities = activities.filter((a: any) => a.taskId === taskId);
+      const types = taskActivities.map((a: any) => a.type);
 
       expect(types).toContain("task_created");
       expect(types).toContain("task_assigned");

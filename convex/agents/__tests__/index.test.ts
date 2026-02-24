@@ -96,8 +96,8 @@ describe("Agent Management", () => {
     it("returns all agents", async () => {
       const agents = db.getAllAgents();
       expect(agents.length).toBe(2);
-      expect(agents.map((a) => a.name)).toContain("jarvis");
-      expect(agents.map((a) => a.name)).toContain("shuri");
+      expect(agents.map((a: any) => a.name)).toContain("jarvis");
+      expect(agents.map((a: any) => a.name)).toContain("shuri");
     });
 
     it("returns empty array when no agents", async () => {
@@ -146,20 +146,20 @@ describe("Agent Management", () => {
   describe("getByName", () => {
     it("finds agent by lowercase name", async () => {
       const allAgents = db.getAllAgents();
-      const found = allAgents.find((a) => a.name === "jarvis");
+      const found = allAgents.find((a: any) => a.name === "jarvis");
       expect(found).toBeTruthy();
       expect(found?.name).toBe("jarvis");
     });
 
     it("is case-insensitive", async () => {
       const allAgents = db.getAllAgents();
-      const jarvisLower = allAgents.find((a) => a.name === "jarvis");
+      const jarvisLower = allAgents.find((a: any) => a.name === "jarvis");
       expect(jarvisLower).toBeTruthy();
     });
 
     it("returns null for non-existent agent", async () => {
       const allAgents = db.getAllAgents();
-      const found = allAgents.find((a) => a.name === "nonexistent");
+      const found = allAgents.find((a: any) => a.name === "nonexistent");
       expect(found).toBeUndefined();
     });
   });
@@ -444,13 +444,13 @@ describe("Agent Management", () => {
 
       // Verify all names are now lowercase
       const updated = db.getAllAgents();
-      const allLower = updated.every((a) => a.name === a.name.toLowerCase());
+      const allLower = updated.every((a: any) => a.name === a.name.toLowerCase());
       expect(allLower).toBe(true);
     });
 
     it("handles already-lowercase names", async () => {
       const agents = db.getAllAgents();
-      expect(agents.some((a) => a.name === "jarvis")).toBe(true);
+      expect(agents.some((a: any) => a.name === "jarvis")).toBe(true);
     });
 
     it("returns migration stats", () => {

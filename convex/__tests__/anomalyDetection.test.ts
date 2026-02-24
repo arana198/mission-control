@@ -36,7 +36,7 @@ class AnomalyDetectionMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -48,7 +48,7 @@ class AnomalyDetectionMockDatabase {
 
   getAnomaliesByAgent(agentId: string) {
     return (this.data.get("anomalies") || []).filter(
-      (a) => a.agentId === agentId
+      (a: any) => a.agentId === agentId
     );
   }
 
@@ -232,7 +232,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       });
 
       const anomalies = db.getAnomaliesByAgent(agentId);
-      const highSeverity = anomalies.filter((a) => a.severity === "high");
+      const highSeverity = anomalies.filter((a: any) => a.severity === "high");
 
       expect(highSeverity).toHaveLength(1);
     });
@@ -264,7 +264,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
 
       const anomalies = db.getAnomaliesByAgent(agentId);
       const durationAnomalies = anomalies.filter(
-        (a) => a.type === "duration_deviation"
+        (a: any) => a.type === "duration_deviation"
       );
 
       expect(durationAnomalies).toHaveLength(1);
@@ -367,7 +367,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
 
       const anomalies = db.getAnomaliesByAgent(agentId);
       const durationAnomalies = anomalies.filter(
-        (a) => a.type === "duration_deviation"
+        (a: any) => a.type === "duration_deviation"
       );
 
       expect(durationAnomalies).toHaveLength(3);

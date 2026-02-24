@@ -68,12 +68,12 @@ export const getByBusiness = query({
   handler: async (ctx, args) => {
     const rules = await ctx.db
       .query("alertRules")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     let filtered = rules;
     if (args.enabledOnly) {
-      filtered = rules.filter((r) => r.enabled === true);
+      filtered = rules.filter((r: any) => r.enabled === true);
     }
 
     return filtered.sort((a, b) => b.createdAt - a.createdAt);

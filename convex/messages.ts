@@ -87,7 +87,7 @@ export const create = mutation({
       if (agent) {
         const existingSub = await ctx.db
           .query("threadSubscriptions")
-          .withIndex("by_agent_task", (q) => q.eq("agentId", senderId as Id<"agents">).eq("taskId", taskId))
+          .withIndex("by_agent_task", (q: any) => q.eq("agentId", senderId as Id<"agents">).eq("taskId", taskId))
           .first();
 
         if (!existingSub) {
@@ -125,7 +125,7 @@ export const create = mutation({
         // Auto-subscribe mentioned agents to thread
         const agentSub = await ctx.db
           .query("threadSubscriptions")
-          .withIndex("by_agent_task", (q) => q.eq("agentId", agent._id).eq("taskId", taskId))
+          .withIndex("by_agent_task", (q: any) => q.eq("agentId", agent._id).eq("taskId", taskId))
           .first();
         
         if (!agentSub) {
@@ -171,7 +171,7 @@ export const create = mutation({
         // Auto-subscribe mentioned agents to thread
         const agentSub = await ctx.db
           .query("threadSubscriptions")
-          .withIndex("by_agent_task", (q) => q.eq("agentId", mentionedAgentId).eq("taskId", taskId))
+          .withIndex("by_agent_task", (q: any) => q.eq("agentId", mentionedAgentId).eq("taskId", taskId))
           .first();
         
         if (!agentSub) {
@@ -201,12 +201,12 @@ export const create = mutation({
     // Notify thread subscribers (except sender and direct mentions)
     const subscribers = await ctx.db
       .query("threadSubscriptions")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .collect();
 
     const notifiedIds = new Set<string>([
       senderId,
-      ...(mentions || []).map(id => id as string),
+      ...(mentions || []).map((id: any) => id as string),
     ]);
 
     for (const sub of subscribers) {
@@ -246,7 +246,7 @@ export const getByTask = query({
   handler: async (ctx, { taskId, limit }) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_task", (q) => q.eq("taskId", taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
       .order("desc")
       .take(limit || 50);
 

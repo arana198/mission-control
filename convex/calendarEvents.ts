@@ -25,14 +25,14 @@ export const getTimelineRange = query(async (ctx, args: {
   const events = args.businessId
     ? await ctx.db
         .query('calendarEvents')
-        .withIndex('by_business', (q) => q.eq('businessId', args.businessId!))
+        .withIndex('by_business', (q: any) => q.eq('businessId', args.businessId!))
         .take(500)
     : await ctx.db
         .query('calendarEvents')
         .take(500);
 
   // Filter by time range in JS (time range queries still require filtering)
-  const filtered = events.filter((e) =>
+  const filtered = events.filter((e: any) =>
     e.startTime <= args.endTime && e.endTime >= args.startTime
   );
 
@@ -60,13 +60,13 @@ export const getByGoal = query(async (ctx, args: {
   const events = args.businessId
     ? await ctx.db
         .query('calendarEvents')
-        .withIndex('by_business', (q) => q.eq('businessId', args.businessId!))
+        .withIndex('by_business', (q: any) => q.eq('businessId', args.businessId!))
         .take(500)
     : await ctx.db
         .query('calendarEvents')
         .take(500);
 
-  return events.filter((e) => e.goalIds?.includes(args.goalId));
+  return events.filter((e: any) => e.goalIds?.includes(args.goalId));
 });
 
 /**
@@ -218,7 +218,7 @@ export const rescheduleTask = mutation(wrapConvexHandler(async (ctx, args: {
   // Find existing calendar event for this task
   const existingEvent = await ctx.db
     .query('calendarEvents')
-    .filter(q =>
+    .filter((q: any) =>
       q.and(
         q.eq(q.field('taskId'), args.taskId),
         q.eq(q.field('type'), 'ai_task')

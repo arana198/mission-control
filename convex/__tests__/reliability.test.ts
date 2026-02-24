@@ -160,7 +160,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Verify: task 1 and 3 were updated, task 2 error was logged
       expect(updatedTasks).toHaveLength(2);
-      expect(updatedTasks.map((t) => t.taskId)).toEqual(["task_1", "task_3"]);
+      expect(updatedTasks.map((t: any) => t.taskId)).toEqual(["task_1", "task_3"]);
 
       expect(activities).toHaveLength(1);
       expect(activities[0].message).toContain("Task 2");
@@ -202,7 +202,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
       }
 
       // Create one activity log per business
-      const businessIds = [...new Set(tasks.map((t) => t.businessId))];
+      const businessIds = [...new Set(tasks.map((t: any) => t.businessId))];
       for (const bId of businessIds) {
         const count = notifiedCount[bId];
         if (count > 0) {
@@ -219,7 +219,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Verify: 2 activity logs (one per business)
       expect(activities).toHaveLength(2);
-      expect(activities.map((a) => a.businessId)).toEqual(["business_1", "business_2"]);
+      expect(activities.map((a: any) => a.businessId)).toEqual(["business_1", "business_2"]);
       expect(activities[0].message).toContain("Auto-claimed 2 task(s)");
       expect(activities[1].message).toContain("Auto-claimed 2 task(s)");
     });
@@ -263,7 +263,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Verify: 2 activity logs (business_1 and business_3, not business_2)
       expect(activities).toHaveLength(2);
-      expect(activities.map((a) => a.businessId)).toEqual(["business_1", "business_3"]);
+      expect(activities.map((a: any) => a.businessId)).toEqual(["business_1", "business_3"]);
       expect(activities[0].message).toContain("5");
       expect(activities[1].message).toContain("3");
     });

@@ -21,7 +21,7 @@ describe("State Engine for OpenClaw", () => {
     }
 
     getUnreadNotifications(agentId?: string) {
-      return this.notifications.filter((n) => !n.read && (!agentId || n.agentId === agentId));
+      return this.notifications.filter((n: any) => !n.read && (!agentId || n.agentId === agentId));
     }
 
     createAlertRule(rule: any) {
@@ -32,7 +32,7 @@ describe("State Engine for OpenClaw", () => {
 
     evaluateAlerts() {
       // Simulate alert evaluation
-      const queueDepth = this.tasks.filter((t) => t.status === "pending").length;
+      const queueDepth = this.tasks.filter((t: any) => t.status === "pending").length;
 
       for (const rule of this.alertRules) {
         if (!rule.enabled) continue;
@@ -65,11 +65,11 @@ describe("State Engine for OpenClaw", () => {
     }
 
     getDecisions(decidedBy: string) {
-      return this.decisions.filter((d) => d.decidedBy === decidedBy);
+      return this.decisions.filter((d: any) => d.decidedBy === decidedBy);
     }
 
     escalateTask(taskId: string, reason: string) {
-      const task = this.tasks.find((t) => t._id === taskId);
+      const task = this.tasks.find((t: any) => t._id === taskId);
       if (!task) throw new Error("Task not found");
 
       task.priority = "high";
@@ -85,7 +85,7 @@ describe("State Engine for OpenClaw", () => {
     }
 
     reassignTask(taskId: string, toAgent: string, reason: string) {
-      const task = this.tasks.find((t) => t._id === taskId);
+      const task = this.tasks.find((t: any) => t._id === taskId);
       if (!task) throw new Error("Task not found");
 
       const fromAgent = task.assignedTo;
@@ -105,7 +105,7 @@ describe("State Engine for OpenClaw", () => {
     }
 
     unblockTask(taskId: string, reason: string) {
-      const task = this.tasks.find((t) => t._id === taskId);
+      const task = this.tasks.find((t: any) => t._id === taskId);
       if (!task) throw new Error("Task not found");
 
       task.blockedBy = [];
@@ -123,20 +123,20 @@ describe("State Engine for OpenClaw", () => {
     getMetrics() {
       const now = Date.now();
       const blockedTasks = this.tasks.filter(
-        (t) => t.status === "in_progress" && now - t.updatedAt > 20 * 60 * 1000
+        (t: any) => t.status === "in_progress" && now - t.updatedAt > 20 * 60 * 1000
       );
 
       return {
-        queueDepth: this.tasks.filter((t) => t.status === "pending").length,
-        blockedTasks: blockedTasks.map((t) => ({
+        queueDepth: this.tasks.filter((t: any) => t.status === "pending").length,
+        blockedTasks: blockedTasks.map((t: any) => ({
           id: t._id,
           title: t.title,
           blockedForMinutes: Math.floor((now - t.updatedAt) / 1000 / 60),
           assignedTo: t.assignedTo,
         })),
         agents: {
-          active: this.agents.filter((a) => a.status === "active").length,
-          idle: this.agents.filter((a) => a.status === "idle").length,
+          active: this.agents.filter((a: any) => a.status === "active").length,
+          idle: this.agents.filter((a: any) => a.status === "idle").length,
         },
       };
     }
@@ -371,7 +371,7 @@ describe("State Engine for OpenClaw", () => {
       // Get highest priority pending task
       const pendingTasks = engine.getUnreadNotifications("openclaw");
       const criticalNotification = pendingTasks.find(
-        (n) => n.type === "Queue Overload"
+        (n: any) => n.type === "Queue Overload"
       );
 
       expect(criticalNotification).toBeDefined();
@@ -409,9 +409,9 @@ describe("State Engine for OpenClaw", () => {
 
       // Later cycle - analyze pattern
       const decisions = engine.getDecisions("openclaw");
-      const escalations = decisions.filter((d) => d.action === "escalated");
+      const escalations = decisions.filter((d: any) => d.action === "escalated");
       const blockedReasons = escalations.filter(
-        (d) => d.reason === "blocked_too_long"
+        (d: any) => d.reason === "blocked_too_long"
       );
 
       expect(blockedReasons.length).toBe(2);

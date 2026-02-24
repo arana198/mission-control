@@ -21,7 +21,7 @@ export const getRecent = query({
 
     // Filter by business if provided
     if (businessId) {
-      activities = activities.filter((a) => a.businessId === businessId);
+      activities = activities.filter((a: any) => a.businessId === businessId);
     }
 
     return activities.slice(0, limit || 50);
@@ -74,7 +74,7 @@ export const getByType = query({
 
     // Filter by business if provided
     if (businessId) {
-      activities = activities.filter((a) => a.businessId === businessId);
+      activities = activities.filter((a: any) => a.businessId === businessId);
     }
 
     return activities.slice(0, limit || 30);
@@ -153,7 +153,7 @@ export const getFeed = query({
 
     // Filter by business if provided
     if (businessId) {
-      activities = activities.filter((a) => a.businessId === businessId);
+      activities = activities.filter((a: any) => a.businessId === businessId);
     }
 
     return activities.slice(0, limit || 100);

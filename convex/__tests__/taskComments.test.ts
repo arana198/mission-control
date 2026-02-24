@@ -43,7 +43,7 @@ class TaskCommentsMockDatabase {
 
   get(id: string) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) return found;
     }
     return null;
@@ -51,7 +51,7 @@ class TaskCommentsMockDatabase {
 
   patch(id: string, updates: any) {
     for (const docs of this.data.values()) {
-      const found = docs.find((d) => d._id === id);
+      const found = docs.find((d: any) => d._id === id);
       if (found) {
         Object.assign(found, updates);
         return true;
@@ -90,24 +90,24 @@ class TaskCommentsMockDatabase {
   }
 
   getCommentsByTask(taskId: string) {
-    return (this.data.get("taskComments") || []).filter((c) => c.taskId === taskId);
+    return (this.data.get("taskComments") || []).filter((c: any) => c.taskId === taskId);
   }
 
   getCommentReplies(parentCommentId: string) {
     return (this.data.get("taskComments") || []).filter(
-      (c) => c.parentCommentId === parentCommentId
+      (c: any) => c.parentCommentId === parentCommentId
     );
   }
 
   getMentions(agentId: string) {
     return (this.data.get("mentions") || []).filter(
-      (m) => m.mentionedAgentId === agentId
+      (m: any) => m.mentionedAgentId === agentId
     );
   }
 
   getSubscriptions(taskId: string) {
     return (this.data.get("taskSubscriptions") || []).filter(
-      (s) => s.taskId === taskId
+      (s: any) => s.taskId === taskId
     );
   }
 
@@ -324,7 +324,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Should NOT create notification for self
       const selfNotifs = (db.getNotifications() || []).filter(
-        (n) => n.recipientId === agentId1
+        (n: any) => n.recipientId === agentId1
       );
       expect(selfNotifs).toHaveLength(0);
     });
@@ -594,7 +594,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       const subs = db.getSubscriptions(taskId);
       expect(subs).toHaveLength(4);
-      expect(subs.map((s) => s.notifyOn).sort()).toEqual([
+      expect(subs.map((s: any) => s.notifyOn).sort()).toEqual([
         "all",
         "comments",
         "mentions",
@@ -633,7 +633,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       const unreadMentions = db
         .getMentions(agentId1)
-        .filter((m) => !m.read);
+        .filter((m: any) => !m.read);
       expect(unreadMentions).toHaveLength(1);
       expect(unreadMentions[0].mentionedBy).toBe(agentId2);
     });

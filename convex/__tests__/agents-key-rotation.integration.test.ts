@@ -207,7 +207,7 @@ describe("Agent Key Rotation - Integration Tests", () => {
         const oneHourAgo = now - 60 * 60 * 1000;
         const attempts = rotationAttempts.get(agentId) || [];
         const recentRotations = attempts.filter(
-          (a) => a.timestamp > oneHourAgo && a.success
+          (a: any) => a.timestamp > oneHourAgo && a.success
         );
         return recentRotations.length < 3;
       };
@@ -495,7 +495,7 @@ describe("Agent Key Rotation - Integration Tests", () => {
       rotationAttempts.set(testAgentId, attempts);
 
       const recentRotations = attempts.filter(
-        (a) => a.timestamp > oneHourAgo && a.success
+        (a: any) => a.timestamp > oneHourAgo && a.success
       );
 
       expect(recentRotations).toHaveLength(3);
@@ -513,7 +513,7 @@ describe("Agent Key Rotation - Integration Tests", () => {
       const oneHourAgo = now - 60 * 60 * 1000;
 
       const recentRotations = rotationAttempts.filter(
-        (a) => a.timestamp > oneHourAgo && a.success
+        (a: any) => a.timestamp > oneHourAgo && a.success
       );
 
       const canRotate = recentRotations.length < 3;
@@ -531,7 +531,7 @@ describe("Agent Key Rotation - Integration Tests", () => {
       ];
 
       const oneHourAgo = now - 60 * 60 * 1000;
-      const recentRotations = oldAttempts.filter((a) => a.timestamp > oneHourAgo);
+      const recentRotations = oldAttempts.filter((a: any) => a.timestamp > oneHourAgo);
 
       expect(recentRotations).toHaveLength(0);
       expect(recentRotations.length < 3).toBe(true);

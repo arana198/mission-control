@@ -67,18 +67,18 @@ export const getByBusiness = query({
     const limit = args.limit || 50;
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     let filtered = decisions;
     if (args.since) {
-      filtered = filtered.filter((d) => d.createdAt > args.since!);
+      filtered = filtered.filter((d: any) => d.createdAt > args.since!);
     }
     if (args.action) {
-      filtered = filtered.filter((d) => d.action === args.action);
+      filtered = filtered.filter((d: any) => d.action === args.action);
     }
     if (args.decidedBy) {
-      filtered = filtered.filter((d) => d.decidedBy === args.decidedBy);
+      filtered = filtered.filter((d: any) => d.decidedBy === args.decidedBy);
     }
 
     return filtered.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
@@ -95,7 +95,7 @@ export const getByTask = query({
   handler: async (ctx, args) => {
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .withIndex("by_task", (q: any) => q.eq("taskId", args.taskId))
       .collect();
     return decisions.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -112,11 +112,11 @@ export const analyzePatterns = query({
   handler: async (ctx, args) => {
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     // Filter by time if provided
-    const filtered = args.since ? decisions.filter((d) => d.createdAt > args.since!) : decisions;
+    const filtered = args.since ? decisions.filter((d: any) => d.createdAt > args.since!) : decisions;
 
     // Analyze patterns
     const patterns: Record<string, any> = {
@@ -202,12 +202,12 @@ export const getAuditTrail = query({
     const limit = args.limit || 100;
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
+      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
       .collect();
 
     let filtered = decisions;
     if (args.taskId) {
-      filtered = filtered.filter((d) => d.taskId === args.taskId);
+      filtered = filtered.filter((d: any) => d.taskId === args.taskId);
     }
 
     return filtered.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
