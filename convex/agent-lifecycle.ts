@@ -330,3 +330,122 @@ export const updateAgentStatus = mutation({
     return { success: true };
   },
 });
+
+/**
+ * PHASE 3: getAgentStatus() - Query
+ *
+ * Get current status of an agent.
+ */
+export const getAgentStatus = query({
+  args: {
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("agent_status")
+      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .first();
+  },
+});
+
+/**
+ * PHASE 3: getAgentMetrics() - Query
+ *
+ * Get calculated metrics for an agent (utilization, failure rate, uptime, etc).
+ */
+export const getAgentMetrics = query({
+  args: {
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    // Get agent status
+    const status = await ctx.db
+      .query("agent_status")
+      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .first();
+
+    if (!status) {
+      return {
+        status: "unknown",
+        utilization: 0,
+        failureRate: 0,
+        avgExecutionTime: 0,
+        onlinePercent: 0,
+      };
+    }
+
+    // Get recent executions (simplified for now, would use proper time windowing)
+    const executions = await ctx.db
+      .query("executions")
+      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .collect();
+
+    // Calculate stats from executions
+    let successCount = 0;
+    let failureCount = 0;
+    let totalDuration = 0;
+
+    for (const exec of executions) {
+      if (exec.status === "success") successCount++;
+      if (exec.status === "failed") failureCount++;
+      totalDuration += exec.durationMs || 0;
+    }
+
+    const total = executions.length;
+    const failureRate = total > 0 ? failureCount / total : 0;
+    const avgExecutionTime = total > 0 ? Math.round(totalDuration / total) : 0;
+
+    return {
+      status: status.status,
+      utilization: Math.round((status.queuedTaskCount || 0) / 10 * 100) || 0,
+      failureRate: Math.round(failureRate * 100) / 100,
+      avgExecutionTime,
+      onlinePercent:
+        status.status !== "failed" && status.status !== "stopped" ? 100 : 0,
+    };
+  },
+});
+
+/**
+ * PHASE 3: detectAgentTimeout() - Mutation
+ *
+ * Check if agent has timed out and mark as failed if needed.
+ */
+export const detectAgentTimeout = mutation({
+  args: {
+    agentId: v.id("agents"),
+    timeoutMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const status = await ctx.db
+      .query("agent_status")
+      .filter((q) => q.eq(q.field("agentId"), args.agentId))
+      .first();
+
+    if (!status) {
+      return { timedOut: false };
+    }
+
+    const timeoutMs = args.timeoutMs || 30000;
+    const now = Date.now();
+    const timeSinceHeartbeat = now - status.lastHeartbeatAt;
+
+    if (timeSinceHeartbeat > timeoutMs) {
+      await ctx.db.patch(status._id, {
+        status: "failed",
+      });
+
+      await ctx.db.insert("events", {
+        type: "agent_stopped",
+        agentId: args.agentId,
+        message: `Agent timeout detected after ${timeSinceHeartbeat}ms`,
+        severity: "error",
+        timestamp: now,
+      });
+
+      return { timedOut: true };
+    }
+
+    return { timedOut: false };
+  },
+});

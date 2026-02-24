@@ -134,3 +134,187 @@ export function calculateSystemHealth(
     avgFailureRate,
   };
 }
+
+/**
+ * ========== PHASE 3: QUERY & CONTROL LOGIC ==========
+ */
+
+/**
+ * Calculate execution statistics from a list of executions.
+ */
+export function calculateExecutionStats(
+  executions: any[],
+  daysFilter = 7
+): {
+  totalExecutions: number;
+  successCount: number;
+  failureCount: number;
+  avgDurationMs: number;
+  avgTokensPerExecution: number;
+  totalCostCents: number;
+  failureRate: number;
+} {
+  if (executions.length === 0) {
+    return {
+      totalExecutions: 0,
+      successCount: 0,
+      failureCount: 0,
+      avgDurationMs: 0,
+      avgTokensPerExecution: 0,
+      totalCostCents: 0,
+      failureRate: 0,
+    };
+  }
+
+  let successCount = 0;
+  let failureCount = 0;
+  let totalDuration = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+
+  for (const exec of executions) {
+    if (exec.status === "success") successCount++;
+    if (exec.status === "failed") failureCount++;
+
+    totalDuration += exec.durationMs || 0;
+    totalTokens += (exec.inputTokens || 0) + (exec.outputTokens || 0);
+    totalCost += exec.costCents || 0;
+  }
+
+  const totalExecutions = executions.length;
+  const avgDurationMs = Math.round(totalDuration / totalExecutions);
+  const avgTokensPerExecution = Math.round(totalTokens / totalExecutions);
+  const failureRate = Math.round((failureCount / totalExecutions) * 100) / 100;
+
+  return {
+    totalExecutions,
+    successCount,
+    failureCount,
+    avgDurationMs,
+    avgTokensPerExecution,
+    totalCostCents: totalCost,
+    failureRate,
+  };
+}
+
+/**
+ * Check if agent has exceeded rate limit.
+ */
+export function checkRateLimitLogic(
+  recentExecutionCount: number,
+  maxCallsPerMinute: number
+): {
+  allowed: boolean;
+  remaining: number;
+} {
+  const remaining = Math.max(0, maxCallsPerMinute - recentExecutionCount);
+  const allowed = recentExecutionCount < maxCallsPerMinute;
+
+  return { allowed, remaining };
+}
+
+/**
+ * Check if budget is available for execution.
+ */
+export function checkBudgetLimitLogic(
+  estimatedCostCents: number,
+  spentTodayCents: number,
+  dailyBudgetCents: number
+): {
+  allowed: boolean;
+  remaining: number;
+} {
+  if (dailyBudgetCents === 0) {
+    // Unlimited budget
+    return { allowed: true, remaining: estimatedCostCents };
+  }
+
+  const totalCost = spentTodayCents + estimatedCostCents;
+  const remaining = Math.max(0, dailyBudgetCents - spentTodayCents);
+  const allowed = totalCost <= dailyBudgetCents;
+
+  return { allowed, remaining };
+}
+
+/**
+ * Detect if agent has timed out.
+ */
+export function detectAgentTimeoutLogic(
+  lastHeartbeatMs: number,
+  currentTimeMs: number,
+  timeoutMs: number
+): {
+  timedOut: boolean;
+  timeSinceHeartbeatMs: number;
+} {
+  const timeSinceHeartbeat = currentTimeMs - lastHeartbeatMs;
+  const timedOut = timeSinceHeartbeat > timeoutMs;
+
+  return { timedOut, timeSinceHeartbeatMs: timeSinceHeartbeat };
+}
+
+/**
+ * Calculate agent metrics (utilization, uptime, etc).
+ */
+export function calculateAgentMetricsLogic(
+  statusHistory: Array<{ status: string; timestamp: number }>,
+  executions: any[]
+): {
+  utilization: number;
+  failureRate: number;
+  avgExecutionTime: number;
+  onlinePercent: number;
+} {
+  // Calculate utilization from status transitions
+  let busyTime = 0;
+  let totalTime = 0;
+
+  for (let i = 0; i < statusHistory.length - 1; i++) {
+    const current = statusHistory[i];
+    const next = statusHistory[i + 1];
+    const duration = next.timestamp - current.timestamp;
+
+    totalTime += duration;
+    if (current.status === "busy") {
+      busyTime += duration;
+    }
+  }
+
+  const utilization = totalTime > 0 ? Math.round((busyTime / totalTime) * 100) : 0;
+
+  // Calculate failure rate and avg execution time
+  let failureCount = 0;
+  let totalExecutionTime = 0;
+
+  for (const exec of executions) {
+    if (exec.status === "failed") failureCount++;
+    totalExecutionTime += exec.durationMs || 0;
+  }
+
+  const failureRate =
+    executions.length > 0
+      ? Math.round((failureCount / executions.length) * 100) / 100
+      : 0;
+  const avgExecutionTime =
+    executions.length > 0 ? Math.round(totalExecutionTime / executions.length) : 0;
+
+  // Calculate uptime (% of time agent was online vs failed/stopped)
+  let onlineTime = 0;
+  for (const status of statusHistory) {
+    if (status.status !== "failed" && status.status !== "stopped") {
+      onlineTime++;
+    }
+  }
+
+  const onlinePercent =
+    statusHistory.length > 0
+      ? Math.round((onlineTime / statusHistory.length) * 100)
+      : 0;
+
+  return {
+    utilization,
+    failureRate,
+    avgExecutionTime,
+    onlinePercent,
+  };
+}

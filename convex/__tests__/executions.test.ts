@@ -11,6 +11,11 @@ import {
   calculateCostLogic,
   validateStatusTransition,
   calculateSystemHealth,
+  calculateExecutionStats,
+  checkRateLimitLogic,
+  checkBudgetLimitLogic,
+  detectAgentTimeoutLogic,
+  calculateAgentMetricsLogic,
 } from "../utils/execution-logic";
 
 /**
@@ -345,5 +350,233 @@ describe("Performance Baselines", () => {
     const duration = Date.now() - start;
 
     expect(duration).toBeLessThan(5);
+  });
+});
+
+/**
+ * ========== PHASE 3: QUERY & CONTROL LOGIC ==========
+ * 48 total tests across 3 suites
+ */
+
+describe("Suite 1.5: getExecutionStats()", () => {
+  test("1.5.1: Calculates success count", () => {
+    const executions = [
+      { status: "success", durationMs: 100, inputTokens: 100, outputTokens: 50, costCents: 50 },
+      { status: "success", durationMs: 200, inputTokens: 100, outputTokens: 50, costCents: 50 },
+      { status: "success", durationMs: 300, inputTokens: 100, outputTokens: 50, costCents: 50 },
+      { status: "failed", durationMs: 150, inputTokens: 100, outputTokens: 50, costCents: 50 },
+    ];
+
+    const stats = calculateExecutionStats(executions);
+    expect(stats.successCount).toBe(3);
+    expect(stats.failureCount).toBe(1);
+  });
+
+  test("1.5.2: Calculates failure rate", () => {
+    const executions = Array.from({ length: 10 }, (_, i) => ({
+      status: i < 7 ? "success" : "failed",
+      durationMs: 100,
+      inputTokens: 100,
+      outputTokens: 50,
+      costCents: 50,
+    }));
+
+    const stats = calculateExecutionStats(executions);
+    expect(stats.failureRate).toBe(0.3); // 3 failures out of 10
+  });
+
+  test("1.5.3: Calculates avg duration", () => {
+    const executions = [
+      { status: "success", durationMs: 100, inputTokens: 100, outputTokens: 50, costCents: 50 },
+      { status: "success", durationMs: 200, inputTokens: 100, outputTokens: 50, costCents: 50 },
+      { status: "success", durationMs: 300, inputTokens: 100, outputTokens: 50, costCents: 50 },
+    ];
+
+    const stats = calculateExecutionStats(executions);
+    expect(stats.avgDurationMs).toBe(200); // (100 + 200 + 300) / 3
+  });
+
+  test("1.5.4: Calculates avg tokens", () => {
+    const executions = [
+      { status: "success", durationMs: 100, inputTokens: 1000, outputTokens: 100, costCents: 50 },
+      { status: "success", durationMs: 200, inputTokens: 1000, outputTokens: 900, costCents: 50 },
+    ];
+
+    const stats = calculateExecutionStats(executions);
+    // Total tokens: (1000+100) + (1000+900) = 3000, avg = 1500
+    expect(stats.avgTokensPerExecution).toBe(1500);
+  });
+
+  test("1.5.5: Calculates total cost", () => {
+    const executions = [
+      { status: "success", durationMs: 100, inputTokens: 100, outputTokens: 50, costCents: 100 },
+      { status: "success", durationMs: 200, inputTokens: 100, outputTokens: 50, costCents: 200 },
+      { status: "success", durationMs: 300, inputTokens: 100, outputTokens: 50, costCents: 300 },
+    ];
+
+    const stats = calculateExecutionStats(executions);
+    expect(stats.totalCostCents).toBe(600); // 100 + 200 + 300
+  });
+
+  test("1.5.6: Handles empty executions", () => {
+    const stats = calculateExecutionStats([]);
+    expect(stats.totalExecutions).toBe(0);
+    expect(stats.failureRate).toBe(0);
+  });
+});
+
+describe("Suite 3.2: checkRateLimit()", () => {
+  test("3.2.1: Allows under limit", () => {
+    const result = checkRateLimitLogic(5, 10);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(5);
+  });
+
+  test("3.2.2: Blocks at limit", () => {
+    const result = checkRateLimitLogic(10, 10);
+    expect(result.allowed).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  test("3.2.3: Handles first execution", () => {
+    const result = checkRateLimitLogic(0, 10);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(10);
+  });
+
+  test("3.2.4: Blocks over limit", () => {
+    const result = checkRateLimitLogic(11, 10);
+    expect(result.allowed).toBe(false);
+    expect(result.remaining).toBe(0); // Capped at 0
+  });
+
+  test("3.2.5: Counts exactly at boundary", () => {
+    const result = checkRateLimitLogic(9, 10);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(1);
+  });
+
+  test("3.2.6: Performance with high limits", () => {
+    const start = Date.now();
+    checkRateLimitLogic(5000, 10000);
+    const duration = Date.now() - start;
+    expect(duration).toBeLessThan(5);
+  });
+});
+
+describe("Suite 3.3: checkBudgetLimit()", () => {
+  test("3.3.1: Allows under budget", () => {
+    const result = checkBudgetLimitLogic(4000, 5000, 10000);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(5000); // 10000 - 5000
+  });
+
+  test("3.3.2: Blocks over budget", () => {
+    const result = checkBudgetLimitLogic(1000, 9500, 10000);
+    expect(result.allowed).toBe(false);
+    expect(result.remaining).toBe(500); // 10000 - 9500
+  });
+
+  test("3.3.3: Handles zero budget (unlimited)", () => {
+    const result = checkBudgetLimitLogic(1000, 5000, 0);
+    expect(result.allowed).toBe(true); // Unlimited
+  });
+
+  test("3.3.4: Allows at exact budget", () => {
+    const result = checkBudgetLimitLogic(2000, 8000, 10000);
+    expect(result.allowed).toBe(true);
+  });
+});
+
+describe("Suite 2.5: detectAgentTimeout()", () => {
+  test("2.5.1: Detects timeout after 30s", () => {
+    const currentTime = 31000;
+    const lastHeartbeat = 0;
+    const result = detectAgentTimeoutLogic(lastHeartbeat, currentTime, 30000);
+
+    expect(result.timedOut).toBe(true);
+    expect(result.timeSinceHeartbeatMs).toBe(31000);
+  });
+
+  test("2.5.2: No timeout if recent", () => {
+    const currentTime = 5000;
+    const lastHeartbeat = 0;
+    const result = detectAgentTimeoutLogic(lastHeartbeat, currentTime, 30000);
+
+    expect(result.timedOut).toBe(false);
+  });
+
+  test("2.5.3: Custom timeout value", () => {
+    const currentTime = 15000;
+    const lastHeartbeat = 0;
+    const result = detectAgentTimeoutLogic(lastHeartbeat, currentTime, 10000);
+
+    expect(result.timedOut).toBe(true);
+  });
+
+  test("2.5.4: Exact boundary", () => {
+    const currentTime = 30000;
+    const lastHeartbeat = 0;
+    const result = detectAgentTimeoutLogic(lastHeartbeat, currentTime, 30000);
+
+    expect(result.timedOut).toBe(false); // Exactly at boundary, not timed out
+  });
+});
+
+describe("Suite 2.4: getAgentMetrics()", () => {
+  test("2.4.1: Calculates utilization", () => {
+    const statusHistory = [
+      { status: "idle", timestamp: 0 },
+      { status: "busy", timestamp: 1800000 }, // 30 min idle
+      { status: "idle", timestamp: 3600000 }, // 30 min busy
+    ];
+
+    const executions = [];
+    const metrics = calculateAgentMetricsLogic(statusHistory, executions);
+
+    expect(metrics.utilization).toBe(50); // 50% busy
+  });
+
+  test("2.4.2: Calculates failure rate", () => {
+    const statusHistory = [
+      { status: "idle", timestamp: 0 },
+      { status: "idle", timestamp: 1000 },
+    ];
+
+    const executions = [
+      { status: "success", durationMs: 100 },
+      { status: "success", durationMs: 100 },
+      { status: "failed", durationMs: 100 },
+      { status: "failed", durationMs: 100 },
+    ];
+
+    const metrics = calculateAgentMetricsLogic(statusHistory, executions);
+    expect(metrics.failureRate).toBe(0.5); // 50% failure rate
+  });
+
+  test("2.4.3: Calculates avg execution time", () => {
+    const statusHistory = [];
+    const executions = [
+      { status: "success", durationMs: 100 },
+      { status: "success", durationMs: 200 },
+      { status: "success", durationMs: 300 },
+    ];
+
+    const metrics = calculateAgentMetricsLogic(statusHistory, executions);
+    expect(metrics.avgExecutionTime).toBe(200); // (100 + 200 + 300) / 3
+  });
+
+  test("2.4.4: Calculates uptime", () => {
+    const statusHistory = [
+      { status: "idle", timestamp: 0 },
+      { status: "busy", timestamp: 1000 },
+      { status: "idle", timestamp: 2000 },
+      { status: "failed", timestamp: 3000 },
+      { status: "failed", timestamp: 4000 },
+    ];
+
+    const executions = [];
+    const metrics = calculateAgentMetricsLogic(statusHistory, executions);
+    expect(metrics.onlinePercent).toBe(60); // 3 online out of 5
   });
 });

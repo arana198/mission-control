@@ -357,6 +357,165 @@ export const updateExecutionStatus = mutation({
 });
 
 /**
+ * ========== PHASE 3: QUERY & CONTROL FUNCTIONS ==========
+ */
+
+/**
+ * PHASE 3: getExecutionLog() - Query
+ *
+ * Retrieve a complete execution record by ID.
+ */
+export const getExecutionLog = query({
+  args: {
+    executionId: v.id("executions"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.executionId);
+  },
+});
+
+/**
+ * PHASE 3: getAgentExecutions() - Query
+ *
+ * Get execution history for an agent, with optional status filter.
+ * Orders by startTime descending (newest first).
+ */
+export const getAgentExecutions = query({
+  args: {
+    agentId: v.id("agents"),
+    limit: v.optional(v.number()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let executions = await ctx.db
+      .query("executions")
+      .filter((q: any) => q.eq(q.field("agentId"), args.agentId))
+      .order("desc")
+      .collect();
+
+    // Filter by status if provided
+    if (args.status) {
+      executions = executions.filter((e: any) => e.status === args.status);
+    }
+
+    // Apply limit if specified
+    const limit = args.limit || 50;
+    return executions.slice(0, limit);
+  },
+});
+
+/**
+ * PHASE 3: retryExecution() - Mutation
+ *
+ * Create a new execution from a previous one, incrementing retry count.
+ */
+export const retryExecution = mutation({
+  args: {
+    executionId: v.id("executions"),
+  },
+  handler: async (ctx, args) => {
+    const originalExecution = await ctx.db.get(args.executionId);
+
+    if (!originalExecution) {
+      throw new Error(`Execution not found: ${args.executionId}`);
+    }
+
+    // Can only retry failed or aborted executions
+    if (originalExecution.status === "success" || originalExecution.status === "running") {
+      throw new Error(
+        `Cannot retry execution with status: ${originalExecution.status}`
+      );
+    }
+
+    // Create new execution with same agent/task
+    const retryMetadata = {
+      ...originalExecution.metadata,
+      retryCount: (originalExecution.metadata?.retryCount || 0) + 1,
+      originalExecutionId: args.executionId,
+    };
+
+    const newExecution: any = {
+      agentId: originalExecution.agentId,
+      agentName: originalExecution.agentName,
+      triggerType: "autonomous",
+      status: "pending",
+      startTime: Date.now(),
+      inputTokens: 0,
+      outputTokens: 0,
+      costCents: 0,
+      logs: [],
+      metadata: retryMetadata,
+    };
+
+    if (originalExecution.taskId) newExecution.taskId = originalExecution.taskId;
+    if (originalExecution.taskTitle) newExecution.taskTitle = originalExecution.taskTitle;
+    if (originalExecution.workflowId) newExecution.workflowId = originalExecution.workflowId;
+    if (originalExecution.model) newExecution.model = originalExecution.model;
+    if (originalExecution.modelProvider) newExecution.modelProvider = originalExecution.modelProvider;
+
+    const newExecutionId = await ctx.db.insert("executions", newExecution);
+
+    // Create retry event
+    await ctx.db.insert("events", {
+      type: "retry_attempt",
+      executionId: newExecutionId,
+      agentId: originalExecution.agentId,
+      message: `Retry attempt ${retryMetadata.retryCount} for execution ${args.executionId}`,
+      severity: "info",
+      timestamp: Date.now(),
+    });
+
+    return newExecutionId;
+  },
+});
+
+/**
+ * PHASE 3: abortExecution() - Mutation
+ *
+ * Abort a pending or running execution.
+ */
+export const abortExecution = mutation({
+  args: {
+    executionId: v.id("executions"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const execution = await ctx.db.get(args.executionId);
+
+    if (!execution) {
+      throw new Error(`Execution not found: ${args.executionId}`);
+    }
+
+    // Can only abort pending or running executions
+    if (execution.status !== "pending" && execution.status !== "running") {
+      throw new Error(`Cannot abort execution with status: ${execution.status}`);
+    }
+
+    const abortReason = args.reason || "Aborted by user";
+
+    // Update execution to aborted
+    await ctx.db.patch(args.executionId, {
+      status: "aborted",
+      error: abortReason,
+      endTime: Date.now(),
+      durationMs: Date.now() - execution.startTime,
+    });
+
+    // Create abort event
+    await ctx.db.insert("events", {
+      type: "execution_failed",
+      executionId: args.executionId,
+      agentId: execution.agentId,
+      message: `Execution aborted: ${abortReason}`,
+      severity: "error",
+      timestamp: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Export for testing
  */
 export { calculateCost };
