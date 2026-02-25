@@ -100,11 +100,12 @@ describe('GET ?action=sessions', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.sessions).toHaveLength(2);
-    expect(data.sessions[0]).toEqual({
+    expect(data.sessions[0]).toMatchObject({
       key: 's1',
       label: 'Main',
       lastActivity: 1700000000000,
     });
+    expect(data.sessions[0].status).toBe('inactive'); // status is derived from old timestamp
     expect(data.sessions[1]).toMatchObject({ key: 's2', label: 'Backup' });
   });
 
@@ -182,6 +183,89 @@ describe('GET ?action=sessions', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.sessions).toEqual([]);
+  });
+
+  describe('status derivation', () => {
+    it('derives "active" status when lastActivity < 5 min ago', async () => {
+      const { GET } = await import('../route');
+      const now = Date.now();
+      const activeTime = now - 2 * 60 * 1000; // 2 minutes ago
+      mockCall.mockResolvedValue({
+        sessions: [{ key: 's1', label: 'Active Session', lastActivity: activeTime }],
+      });
+
+      const res = await GET(makeSessionsRequest('gateway_123'), {
+        params: Promise.resolve({ gatewayId: 'gateway_123' }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.sessions[0].status).toBe('active');
+    });
+
+    it('derives "idle" status when lastActivity is 10 min ago', async () => {
+      const { GET } = await import('../route');
+      const now = Date.now();
+      const idleTime = now - 10 * 60 * 1000; // 10 minutes ago
+      mockCall.mockResolvedValue({
+        sessions: [{ key: 's2', label: 'Idle Session', lastActivity: idleTime }],
+      });
+
+      const res = await GET(makeSessionsRequest('gateway_123'), {
+        params: Promise.resolve({ gatewayId: 'gateway_123' }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.sessions[0].status).toBe('idle');
+    });
+
+    it('derives "inactive" status when lastActivity is 1 hour ago', async () => {
+      const { GET } = await import('../route');
+      const now = Date.now();
+      const inactiveTime = now - 60 * 60 * 1000; // 1 hour ago
+      mockCall.mockResolvedValue({
+        sessions: [{ key: 's3', label: 'Inactive Session', lastActivity: inactiveTime }],
+      });
+
+      const res = await GET(makeSessionsRequest('gateway_123'), {
+        params: Promise.resolve({ gatewayId: 'gateway_123' }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.sessions[0].status).toBe('inactive');
+    });
+
+    it('derives "inactive" status when lastActivity is absent', async () => {
+      const { GET } = await import('../route');
+      mockCall.mockResolvedValue({
+        sessions: [{ key: 's4', label: 'No Activity Session' }],
+      });
+
+      const res = await GET(makeSessionsRequest('gateway_123'), {
+        params: Promise.resolve({ gatewayId: 'gateway_123' }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.sessions[0].status).toBe('inactive');
+    });
+
+    it('passes through gateway-provided status field when present', async () => {
+      const { GET } = await import('../route');
+      mockCall.mockResolvedValue({
+        sessions: [{ key: 's5', label: 'Explicit Status', status: 'idle' }],
+      });
+
+      const res = await GET(makeSessionsRequest('gateway_123'), {
+        params: Promise.resolve({ gatewayId: 'gateway_123' }),
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.sessions[0].status).toBe('idle');
+    });
   });
 });
 

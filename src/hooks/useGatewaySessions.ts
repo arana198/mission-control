@@ -13,6 +13,7 @@ export interface GatewaySession {
   key: string;
   label: string;
   lastActivity?: number;
+  status?: 'active' | 'idle' | 'inactive';
 }
 
 interface UseGatewaySessionsReturn {

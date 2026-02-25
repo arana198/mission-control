@@ -14,6 +14,31 @@ interface HistoryEntry {
 }
 
 /**
+ * Status badge configuration
+ * Maps session status to UI colors and text
+ */
+const STATUS_CONFIG = {
+  active: {
+    badge: "bg-success/20 text-success/70",
+    label: "Active",
+    infoClass: "text-success/70",
+    infoLabel: "Connected",
+  },
+  idle: {
+    badge: "bg-amber-500/20 text-amber-500/70",
+    label: "Idle",
+    infoClass: "text-amber-500/70",
+    infoLabel: "Idle",
+  },
+  inactive: {
+    badge: "bg-muted text-muted-foreground",
+    label: "Inactive",
+    infoClass: "text-muted-foreground",
+    infoLabel: "Disconnected",
+  },
+} as const;
+
+/**
  * Gateway Sessions Panel Component
  * Phase 4 UI: View and interact with gateway sessions
  */
@@ -165,9 +190,14 @@ export function GatewaySessionsPanel({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="px-2 py-1 bg-success/20 text-success/70 text-xs rounded">
-                      Active
-                    </span>
+                    {(() => {
+                      const cfg = STATUS_CONFIG[session.status ?? "active"];
+                      return (
+                        <span className={`px-2 py-1 ${cfg.badge} text-xs rounded`}>
+                          {cfg.label}
+                        </span>
+                      );
+                    })()}
                     {expandedSession === session.key ? (
                       <ChevronUp className="w-5 h-5 text-muted-foreground" />
                     ) : (
@@ -247,7 +277,14 @@ export function GatewaySessionsPanel({
                       </div>
                       <div>
                         <div className="text-muted-foreground">Status</div>
-                        <div className="text-success/70 font-medium">Connected</div>
+                        {(() => {
+                          const cfg = STATUS_CONFIG[session.status ?? "active"];
+                          return (
+                            <div className={`${cfg.infoClass} font-medium`}>
+                              {cfg.infoLabel}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

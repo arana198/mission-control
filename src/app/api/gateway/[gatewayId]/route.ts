@@ -30,6 +30,7 @@ interface GatewaySession {
   key: string;
   label: string;
   lastActivity?: number;
+  status?: 'active' | 'idle' | 'inactive';
 }
 
 interface HistoryEntry {
@@ -172,11 +173,25 @@ async function handleGetSessions(
       ? result
       : (result?.sessions ?? []);
 
-    const sessions: GatewaySession[] = rawSessions.map((s: any) => ({
-      key: s.key,
-      label: s.label ?? s.name ?? s.key,
-      ...(s.lastActivity !== undefined && { lastActivity: s.lastActivity }),
-    }));
+    const sessions: GatewaySession[] = rawSessions.map((s: any) => {
+      // Derive status from lastActivity or use gateway-provided status
+      let status: 'active' | 'idle' | 'inactive';
+      if (s.status) {
+        status = s.status;
+      } else if (s.lastActivity) {
+        const age = Date.now() - s.lastActivity;
+        status = age < 5 * 60 * 1000 ? 'active' : age < 30 * 60 * 1000 ? 'idle' : 'inactive';
+      } else {
+        status = 'inactive';
+      }
+
+      return {
+        key: s.key,
+        label: s.label ?? s.name ?? s.key,
+        ...(s.lastActivity !== undefined && { lastActivity: s.lastActivity }),
+        status,
+      };
+    });
 
     return new Response(
       JSON.stringify({ sessions }),

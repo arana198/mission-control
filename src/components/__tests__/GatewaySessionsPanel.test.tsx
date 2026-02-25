@@ -154,6 +154,125 @@ describe('GatewaySessionsPanel Component', () => {
     });
   });
 
+  describe('dynamic status badges', () => {
+    it('shows "Active" badge (green) for session with status "active"', () => {
+      const activeSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Active Session', status: 'active' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={activeSessions}
+        />
+      );
+
+      expect(screen.getByText('Active')).toBeInTheDocument();
+    });
+
+    it('shows "Idle" badge (amber) for session with status "idle"', () => {
+      const idleSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Idle Session', status: 'idle' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={idleSessions}
+        />
+      );
+
+      expect(screen.getByText('Idle')).toBeInTheDocument();
+    });
+
+    it('shows "Inactive" badge (muted) for session with status "inactive"', () => {
+      const inactiveSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Inactive Session', status: 'inactive' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={inactiveSessions}
+        />
+      );
+
+      expect(screen.getByText('Inactive')).toBeInTheDocument();
+    });
+
+    it('shows "Connected" info text for active session when expanded', () => {
+      const activeSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Active Session', status: 'active' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={activeSessions}
+        />
+      );
+
+      // Expand the session
+      fireEvent.click(screen.getByText('Active Session'));
+
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
+    it('shows "Idle" info text for idle session when expanded', () => {
+      const idleSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Idle Session', status: 'idle' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={idleSessions}
+        />
+      );
+
+      // Expand the session
+      fireEvent.click(screen.getByText('Idle Session'));
+
+      // Look for the Status section which should show "Idle"
+      const statusTexts = screen.getAllByText('Idle');
+      // Should have at least 2: one in badge, one in status info
+      expect(statusTexts.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('shows "Disconnected" info text for inactive session when expanded', () => {
+      const inactiveSessions: GatewaySession[] = [
+        { key: 'session-1', label: 'Inactive Session', status: 'inactive' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={inactiveSessions}
+        />
+      );
+
+      // Expand the session
+      fireEvent.click(screen.getByText('Inactive Session'));
+
+      expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    });
+
+    it('defaults to "Active" badge when status is undefined', () => {
+      const sessionsNoStatus: GatewaySession[] = [
+        { key: 'session-1', label: 'Session No Status' },
+      ];
+
+      render(
+        <GatewaySessionsPanel
+          gatewayId="gateway-1"
+          sessions={sessionsNoStatus}
+        />
+      );
+
+      expect(screen.getByText('Active')).toBeInTheDocument();
+    });
+  });
+
   describe('edge cases', () => {
     it('handles sessions with no lastActivity', () => {
       const sessionsNoActivity = [

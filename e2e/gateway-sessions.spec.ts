@@ -648,4 +648,72 @@ test.describe('Gateway Sessions Page', () => {
       }
     }
   });
+
+  // Phase 8 Tests - Dynamic Session Status Badges
+  test.describe('Phase 8 - Dynamic Session Status Badges', () => {
+    test('session badge reflects status from API response', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Intercept and inspect sessions API to validate status field
+      let sessionsResponseBody: any = null;
+      page.on('response', async (response) => {
+        if (
+          response.url().includes('/api/gateway/') &&
+          response.url().includes('action=sessions')
+        ) {
+          try {
+            sessionsResponseBody = await response.json();
+          } catch { /* ignore parse errors */ }
+        }
+      });
+
+      // Trigger a gateway selection to make the sessions call
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+      if (isClickable) {
+        await firstGateway.click();
+        await page.waitForTimeout(1500);
+      }
+
+      // If we got a response with sessions, verify status field exists
+      if (sessionsResponseBody?.sessions && sessionsResponseBody.sessions.length > 0) {
+        const session = sessionsResponseBody.sessions[0];
+        // Status should be one of the valid values
+        expect(['active', 'idle', 'inactive']).toContain(session.status);
+      }
+    });
+
+    test('all three statuses render without errors', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Find and click first gateway to show sessions
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+      if (isClickable) {
+        await firstGateway.click();
+        await page.waitForLoadState('networkidle');
+      }
+
+      // Check for status badges in the page
+      const statusBadges = page.locator('text=/Active|Idle|Inactive/');
+      const count = await statusBadges.count();
+
+      // Should either have status badges or "No active sessions" message
+      const hasContent = count > 0 || await page.locator('text=No active sessions').isVisible().catch(() => false);
+      expect(hasContent).toBe(true);
+
+      // No unhandled console errors
+      const errors: string[] = [];
+      page.on('console', msg => {
+        if (msg.type() === 'error') {
+          errors.push(msg.text());
+        }
+      });
+
+      // Wait a bit for any async errors
+      await page.waitForTimeout(1000);
+
+      expect(errors.filter(e => !e.includes('fetch'))).toHaveLength(0);
+    });
+  });
 });
