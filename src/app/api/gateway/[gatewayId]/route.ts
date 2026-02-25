@@ -274,9 +274,11 @@ async function handleSendMessage(
 
 /**
  * Get gateway status / health
+ * Pings the gateway and writes health status back to database
  */
 async function handleGatewayStatus(gatewayId: string): Promise<Response> {
   try {
+    // 1. Load gateway from Convex
     const gateway = await client.query(api.gateways.getById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
@@ -288,20 +290,43 @@ async function handleGatewayStatus(gatewayId: string): Promise<Response> {
       );
     }
 
-    return new Response(
-      JSON.stringify({
-        gatewayId,
-        name: gateway.name,
-        url: gateway.url,
-        isHealthy: gateway.isHealthy ?? true,
-        lastChecked: Date.now(),
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    // 2. Ping the gateway to check connectivity
+    const pingResult = await ping(
+      gateway.url,
+      gateway.token,
+      gateway.allowInsecureTls,
+      5000
     );
+
+    // 3. Write result back to database
+    await client.mutation(api.gateways.updateHealthStatus, {
+      gatewayId: gatewayId as Id<'gateways'>,
+      isHealthy: pingResult.success,
+    });
+
+    // 4. Return comprehensive status response
+    const response: any = {
+      gatewayId,
+      name: gateway.name,
+      url: gateway.url,
+      isHealthy: pingResult.success,
+      latencyMs: pingResult.latencyMs,
+      lastChecked: Date.now(),
+    };
+
+    // Include error message if ping failed
+    if (!pingResult.success && pingResult.error) {
+      response.error = pingResult.error;
+    }
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error: any) {
     return new Response(
       JSON.stringify({
-        error: error?.message || 'Failed to fetch gateway status',
+        error: error?.message || 'Failed to check gateway status',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
