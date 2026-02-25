@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useGatewaySessions } from "@/hooks/useGatewaySessions";
 import { useGatewayHealth } from "@/hooks/useGatewayHealth";
 import { usePageActive } from "@/hooks/usePageActive";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit2 } from "lucide-react";
 
 /**
  * Gateway Sessions Panel with Hook
@@ -73,8 +73,10 @@ export default function GatewaysPage() {
   const { currentBusiness } = useBusiness();
   const [showForm, setShowForm] = useState(false);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(null);
+  const [editGatewayId, setEditGatewayId] = useState<string | null>(null);
   const [deleteConfirmGatewayId, setDeleteConfirmGatewayId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"name" | "health" | "recent">("name");
 
   // Detect if page is active (visible/focused) to pause polling
   const { isActive } = usePageActive();
@@ -83,6 +85,11 @@ export default function GatewaysPage() {
   const gateways = useQuery(
     api.gateways.getByBusiness,
     currentBusiness ? { businessId: currentBusiness._id as any } : "skip"
+  );
+
+  const editingGateway = useQuery(
+    api.gateways.getById,
+    editGatewayId ? { gatewayId: editGatewayId as any } : "skip"
   );
 
   // Mutations
@@ -152,7 +159,18 @@ export default function GatewaysPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 border border-slate-700 rounded-lg bg-slate-900 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-700">
-            <h3 className="font-semibold text-white">Gateways</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-white">Gateways</h3>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-gray-300 focus:outline-none focus:border-blue-500"
+              >
+                <option value="name">Name (A-Z)</option>
+                <option value="health">Health</option>
+                <option value="recent">Recent</option>
+              </select>
+            </div>
             <p className="text-sm text-gray-400">
               {gateways?.length || 0} configured
             </p>
@@ -164,7 +182,22 @@ export default function GatewaysPage() {
                 No gateways configured yet
               </div>
             ) : (
-              gateways.map((gateway) => (
+              (() => {
+                let sortedGateways = [...gateways];
+
+                if (sortOrder === "name") {
+                  sortedGateways.sort((a, b) => a.name.localeCompare(b.name));
+                } else if (sortOrder === "health") {
+                  sortedGateways.sort((a, b) => {
+                    const aHealthy = a.isHealthy === true ? 0 : a.isHealthy === false ? 2 : 1;
+                    const bHealthy = b.isHealthy === true ? 0 : b.isHealthy === false ? 2 : 1;
+                    return aHealthy - bHealthy;
+                  });
+                } else if (sortOrder === "recent") {
+                  sortedGateways.sort((a, b) => b._creationTime - a._creationTime);
+                }
+
+                return sortedGateways.map((gateway) => (
                 <button
                   key={gateway._id}
                   onClick={() => setSelectedGatewayId(gateway._id)}
@@ -178,24 +211,37 @@ export default function GatewaysPage() {
                   <div className="text-xs text-gray-400 truncate mb-2">
                     {gateway.url}
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <GatewayHealthBadge
                       gatewayId={gateway._id}
                       isActive={isActive}
                     />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmGatewayId(gateway._id);
-                      }}
-                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                      title="Delete gateway"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditGatewayId(gateway._id);
+                        }}
+                        className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                        title="Edit gateway"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmGatewayId(gateway._id);
+                        }}
+                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                        title="Delete gateway"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </button>
-              ))
+              ));
+              })()
             )}
           </div>
         </div>
@@ -239,6 +285,24 @@ export default function GatewaysPage() {
           </ul>
         </div>
       </div>
+
+      {/* Edit Gateway Modal */}
+      {editGatewayId && editingGateway && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-lg max-w-lg w-full p-6 border border-slate-700">
+            <h2 className="text-xl font-semibold text-white mb-4">Edit Gateway</h2>
+            <GatewayForm
+              businessId={currentBusiness!._id as any}
+              gateway={editingGateway}
+              onClose={() => setEditGatewayId(null)}
+              onSuccess={() => {
+                setEditGatewayId(null);
+                // Refresh is automatic via Convex reactivity
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmGatewayId && (
