@@ -36,11 +36,11 @@ function KnowledgeCardComponent({ item, onClick }: KnowledgeCardProps) {
   };
 
   const typeColors: Record<string, string> = {
-    memory: "text-blue-600 bg-blue-100",
-    task: "text-green-600 bg-green-100",
-    activity: "text-amber-600 bg-amber-100",
-    pattern: "text-purple-600 bg-purple-100",
-    insight: "text-pink-600 bg-pink-100",
+    memory: "text-primary bg-primary/10",
+    task: "text-success bg-success/10",
+    activity: "text-warning bg-warning/10",
+    pattern: "text-accent bg-accent/10",
+    insight: "text-destructive bg-destructive/10",
   };
 
   const Icon = typeIcons[item.type] || FileText;
@@ -52,7 +52,7 @@ function KnowledgeCardComponent({ item, onClick }: KnowledgeCardProps) {
   return (
     <div
       onClick={onClick}
-      className="card p-4 cursor-pointer hover:border-blue-300 transition-all group"
+      className="card p-4 cursor-pointer hover:border-primary/30 transition-all group"
     >
       <div className="flex items-start gap-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeColors[item.type] || typeColors.insight}`}>
@@ -60,12 +60,12 @@ function KnowledgeCardComponent({ item, onClick }: KnowledgeCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
-            <h3 className="font-semibold truncate group-hover:text-blue-600 transition-colors">
+            <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
               {item.title}
             </h3>
             <div className="flex items-center gap-1 ml-2">
               {Array.from({ length: item.importance }).map((_, i) => (
-                <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <Star key={i} className="w-3 h-3 fill-warning text-warning" />
               ))}
             </div>
           </div>

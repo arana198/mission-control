@@ -43,8 +43,8 @@ export function KnowledgeDetailPanel({
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-          <Icon className="w-6 h-6 text-blue-600" />
+        <div className="p-3 bg-primary/10 rounded-lg">
+          <Icon className="w-6 h-6 text-primary" />
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Type</p>
@@ -71,8 +71,8 @@ export function KnowledgeDetailPanel({
                 key={i}
                 className={`w-4 h-4 ${
                   i < item.importance
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-gray-300"
+                    ? "fill-warning text-warning"
+                    : "text-muted-foreground"
                 }`}
               />
             ))}
@@ -87,7 +87,7 @@ export function KnowledgeDetailPanel({
             {item.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-xs px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded"
+                className="text-xs px-2 py-1 bg-primary/10 text-primary rounded"
               >
                 #{tag}
               </span>
