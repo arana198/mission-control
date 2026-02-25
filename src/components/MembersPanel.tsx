@@ -51,9 +51,9 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
 
   const getRoleIcon = (role: string) => {
     return role === "owner" ? (
-      <Shield className="w-4 h-4 text-yellow-400" />
+      <Shield className="w-4 h-4 text-warning" />
     ) : (
-      <User className="w-4 h-4 text-gray-400" />
+      <User className="w-4 h-4 text-muted-foreground" />
     );
   };
 
@@ -74,7 +74,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Members</h2>
-          <p className="text-sm text-gray-400">{members?.length || 0} members in this organization</p>
+          <p className="text-sm text-muted-foreground">{members?.length || 0} members in this organization</p>
         </div>
         <button
           onClick={() => setShowInviteForm(!showInviteForm)}
@@ -87,7 +87,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
 
       {/* Invite Form */}
       {showInviteForm && (
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 space-y-4">
+        <div className="bg-card rounded-lg p-4 border border-border space-y-4">
           <h3 className="font-semibold text-white">Invite New Member</h3>
           {error && (
             <div className="bg-destructive/20 border border-destructive/70 rounded p-3 text-destructive/70 text-sm">
@@ -100,7 +100,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
               placeholder="member@example.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
             />
             <select
               value={inviteRole}

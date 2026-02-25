@@ -199,12 +199,12 @@ export function TaskCommits({ taskId, businessId }: { taskId: string; businessId
             {receipts.map((receipt, idx) => (
               <div
                 key={receipt || idx}
-                className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+                className="p-3 rounded-lg bg-warning/10 border border-warning/30"
               >
                 <div className="flex items-start gap-2">
-                  <Package className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <Package className="w-4 h-4 mt-0.5 flex-shrink-0 text-warning" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-mono break-all text-amber-700 dark:text-amber-300">
+                    <p className="text-xs font-mono break-all text-warning">
                       {receipt}
                     </p>
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">

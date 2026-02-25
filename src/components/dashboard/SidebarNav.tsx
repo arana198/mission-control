@@ -88,8 +88,8 @@ export function SidebarNav({
         <div className="p-4 border-b flex items-center justify-between gap-3">
           {!desktopCollapsed && (
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="hidden md:block min-w-0">
                 <h1 className="font-semibold text-sm truncate">Mission Control</h1>

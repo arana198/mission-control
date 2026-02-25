@@ -79,23 +79,23 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
         <h3 className="text-lg font-semibold text-white mb-4">Pending Invitations ({pendingInvites.length})</h3>
 
         {pendingInvites.length === 0 ? (
-          <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
+          <div className="bg-card rounded-lg p-8 text-center text-muted-foreground">
             No pending invitations
           </div>
         ) : (
           <div className="border border-slate-700 rounded-lg divide-y divide-slate-700">
             {pendingInvites.map((invite) => (
-              <div key={invite._id} className="p-4 hover:bg-slate-900/50 transition-colors">
+              <div key={invite._id} className="p-4 hover:bg-surface/50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-4 h-4 text-yellow-400" />
+                      <Clock className="w-4 h-4 text-warning" />
                       <h4 className="font-semibold text-white">{invite.email}</h4>
                       <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.role)}`}>
                         {invite.role}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       Invited {timeAgo(invite.createdAt)} by {invite.invitedBy}
                     </p>
                   </div>
@@ -133,7 +133,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
         <h3 className="text-lg font-semibold text-white mb-4">Accepted Invitations ({acceptedInvites.length})</h3>
 
         {acceptedInvites.length === 0 ? (
-          <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
+          <div className="bg-card rounded-lg p-8 text-center text-muted-foreground">
             No accepted invitations yet
           </div>
         ) : (
@@ -149,7 +149,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
                         {invite.role}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       Accepted {formatDate(invite.acceptedAt!)} by {invite.acceptedBy}
                     </p>
                   </div>

@@ -110,7 +110,7 @@ export function GatewaySessionsPanel({
           <div>
             <h3 className="text-lg font-semibold text-white">Active Sessions</h3>
             {lastHealthCheck && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Last checked {timeAgo(lastHealthCheck)} ago
                 {isHealthy !== undefined && (
                   <span className={isHealthy ? " · 🟢 Healthy" : " · 🔴 Unhealthy"} />
@@ -131,7 +131,7 @@ export function GatewaySessionsPanel({
 
         {/* Loading State */}
         {isLoading && (
-          <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
+          <div className="bg-card rounded-lg p-8 text-center text-muted-foreground">
             <div className="animate-spin inline-block mr-2">⟳</div>
             Loading sessions...
           </div>
@@ -139,7 +139,7 @@ export function GatewaySessionsPanel({
 
         {/* No Sessions */}
         {!isLoading && sessions.length === 0 && (
-          <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
+          <div className="bg-card rounded-lg p-8 text-center text-muted-foreground">
             No active sessions
           </div>
         )}
@@ -148,19 +148,19 @@ export function GatewaySessionsPanel({
         {!isLoading && sessions.length > 0 && (
           <div className="space-y-2">
             {sessions.map((session) => (
-              <div key={session.key} className="border border-slate-700 rounded-lg overflow-hidden">
+              <div key={session.key} className="border border-border rounded-lg overflow-hidden">
                 {/* Session Header */}
                 <button
                   onClick={() =>
                     setExpandedSession(expandedSession === session.key ? null : session.key)
                   }
-                  className="w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 flex items-center justify-between transition-colors"
+                  className="w-full px-4 py-3 bg-surface hover:bg-surface/80 flex items-center justify-between transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 text-left">
                     <MessageSquare className="w-5 h-5 text-primary/70" />
                     <div>
                       <div className="font-medium text-white">{session.label || session.key}</div>
-                      <div className="text-xs text-gray-500">{session.key}</div>
+                      <div className="text-xs text-muted-foreground">{session.key}</div>
                     </div>
                   </div>
 

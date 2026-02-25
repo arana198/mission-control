@@ -30,16 +30,16 @@ export function GatewayHealthBadge({
   };
 
   // Determine badge color and text
-  let bgColor = "bg-slate-700";
-  let textColor = "text-gray-300";
+  let bgColor = "bg-muted";
+  let textColor = "text-muted-foreground";
   let statusText = "Unknown";
-  let dotColor = "bg-slate-400";
+  let dotColor = "bg-muted-foreground/40";
 
   if (isLoading) {
-    bgColor = "bg-slate-800";
-    textColor = "text-gray-400";
+    bgColor = "bg-card";
+    textColor = "text-muted-foreground";
     statusText = "Checking";
-    dotColor = "bg-slate-400 animate-pulse";
+    dotColor = "bg-muted-foreground/40 animate-pulse";
   } else if (error) {
     bgColor = "bg-destructive/20";
     textColor = "text-destructive/70";

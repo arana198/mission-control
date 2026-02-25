@@ -724,7 +724,7 @@ function EditEpicModal({
           <h2 className="text-xl font-semibold">Edit Epic</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg"
+            className="p-2 hover:bg-muted rounded-lg"
             aria-label="Close edit epic modal"
           >
             <X className="w-5 h-5" />
