@@ -186,3 +186,61 @@ function generateUUID(): string {
     return v.toString(16);
   });
 }
+
+/**
+ * Ping result from WebSocket connectivity check
+ */
+export interface PingResult {
+  success: boolean;
+  latencyMs: number;
+  error?: string;
+}
+
+/**
+ * Ping a gateway to test WebSocket connectivity
+ *
+ * Usage:
+ * ```
+ * const result = await ping('wss://gateway.example.com', 'token123', false, 5000);
+ * if (result.success) {
+ *   console.log(`Connected in ${result.latencyMs}ms`);
+ * } else {
+ *   console.error(`Connection failed: ${result.error}`);
+ * }
+ * ```
+ */
+export async function ping(
+  url: string,
+  token?: string,
+  allowInsecureTls?: boolean,
+  timeoutMs = 5000
+): Promise<PingResult> {
+  const startTime = Date.now();
+
+  try {
+    // Use Promise.race to implement timeout
+    const ws = await Promise.race([
+      connect({ url, token, allowInsecureTls, disableDevicePairing: true }),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Connection timeout after ${timeoutMs}ms`)),
+          timeoutMs
+        )
+      ),
+    ]);
+
+    // Successfully connected
+    ws.close();
+    return {
+      success: true,
+      latencyMs: Date.now() - startTime,
+    };
+  } catch (err) {
+    // Connection failed or timed out
+    return {
+      success: false,
+      latencyMs: Date.now() - startTime,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}

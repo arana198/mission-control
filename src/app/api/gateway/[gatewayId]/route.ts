@@ -14,6 +14,7 @@
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import { ping } from '@/services/gatewayRpc';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
@@ -379,13 +380,14 @@ async function handleSync(
 
 /**
  * Validate WebSocket connection
+ * Uses real ping() to test connectivity to gateway
  */
 async function handleValidateConnection(
   gatewayId: string,
   body: any
 ): Promise<Response> {
   try {
-    const { url, allowInsecureTls } = body;
+    const { url, token, allowInsecureTls } = body;
 
     if (!url) {
       return new Response(
@@ -405,35 +407,13 @@ async function handleValidateConnection(
       );
     }
 
-    // Attempt to connect to the WebSocket with a timeout
-    const startTime = Date.now();
-    const timeoutMs = 5000;
+    // Use real ping to test connectivity
+    const result = await ping(url, token, allowInsecureTls, 5000);
 
-    try {
-      // Note: In a real implementation, this would use a WebSocket client library
-      // For now, return a success response to demonstrate the flow
-      const latencyMs = Math.floor(Math.random() * 100) + 10; // Simulate 10-110ms latency
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          latencyMs,
-          message: 'WebSocket connection successful',
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    } catch (connectionError: any) {
-      const latencyMs = Date.now() - startTime;
-
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: connectionError?.message || 'Failed to connect to WebSocket',
-          latencyMs,
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error: any) {
     return new Response(
       JSON.stringify({
