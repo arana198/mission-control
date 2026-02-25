@@ -39,7 +39,7 @@ export function NotificationPanel() {
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">Notifications</h2>
           {unreadCount > 0 && (
-            <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+            <span className="px-2 py-1 bg-destructive/10 text-destructive text-xs rounded-full font-medium">
               {unreadCount} unread
             </span>
           )}
@@ -73,10 +73,10 @@ export function NotificationPanel() {
                 className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
                   notification.read
                     ? "bg-transparent opacity-70"
-                    : "bg-blue-50 hover:bg-blue-100"
+                    : "bg-primary/10 hover:bg-primary/20"
                 }`}
               >
-                <div className={`mt-0.5 ${notification.read ? "text-muted-foreground" : "text-blue-600"}`}>
+                <div className={`mt-0.5 ${notification.read ? "text-muted-foreground" : "text-primary"}`}>
                   {notification.read ? (
                     <Check className="w-4 h-4" />
                   ) : (
@@ -92,7 +92,7 @@ export function NotificationPanel() {
                   </p>
                 </div>
                 {!notification.read && (
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+                  <div className="w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
                 )}
               </div>
             ))}
@@ -129,7 +129,7 @@ export function NotificationDropdown({ onClose }: { onClose: () => void }) {
         <h3 className="font-semibold">Notifications</h3>
         <div className="flex items-center gap-2">
           {notifications && notifications.some(n => !n.read) && (
-            <button onClick={handleMarkAllRead} className="text-xs text-blue-600 hover:underline">
+            <button onClick={handleMarkAllRead} className="text-xs text-primary hover:underline">
               Mark all read
             </button>
           )}
@@ -152,12 +152,12 @@ export function NotificationDropdown({ onClose }: { onClose: () => void }) {
             <div
               key={n._id}
               onClick={() => handleMarkRead(n._id)}
-              className={`p-3 cursor-pointer hover:bg-muted ${n.read ? "opacity-60" : "bg-blue-50/50"}`}
+              className={`p-3 cursor-pointer hover:bg-muted ${n.read ? "opacity-60" : "bg-primary/10"}`}
             >
               <p className="text-sm">{n.content}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {formatDistanceToNow(n.createdAt, { addSuffix: true })}
-                {!n.read && <span className="ml-2 text-blue-600 font-medium">· unread</span>}
+                {!n.read && <span className="ml-2 text-primary font-medium">· unread</span>}
               </p>
             </div>
           ))}

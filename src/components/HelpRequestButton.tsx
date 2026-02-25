@@ -89,12 +89,12 @@ export function HelpRequestButton({
   // Success state
   if (isSuccess) {
     return (
-      <div className="p-3 rounded-lg bg-green-500/10 border border-green-200">
-        <div className="flex items-center gap-2 text-green-700">
+      <div className="p-3 rounded-lg bg-success/10 border border-success/30">
+        <div className="flex items-center gap-2 text-success">
           <HelpCircle className="w-4 h-4" />
           <span className="text-sm font-semibold">Help requested ✓</span>
         </div>
-        <p className="text-xs text-green-600 mt-1">
+        <p className="text-xs text-success/90 mt-1">
           {leadAgent?.name} has been notified and will assist you.
         </p>
       </div>

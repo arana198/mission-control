@@ -41,20 +41,20 @@ export function GatewayHealthBadge({
     statusText = "Checking";
     dotColor = "bg-slate-400 animate-pulse";
   } else if (error) {
-    bgColor = "bg-red-900/30";
-    textColor = "text-red-300";
+    bgColor = "bg-destructive/20";
+    textColor = "text-destructive/70";
     statusText = "Error";
-    dotColor = "bg-red-500";
+    dotColor = "bg-destructive";
   } else if (isHealthy === true) {
-    bgColor = "bg-green-900/30";
-    textColor = "text-green-300";
+    bgColor = "bg-success/20";
+    textColor = "text-success/70";
     statusText = "Healthy";
-    dotColor = "bg-green-500";
+    dotColor = "bg-success";
   } else if (isHealthy === false) {
-    bgColor = "bg-red-900/30";
-    textColor = "text-red-300";
+    bgColor = "bg-destructive/20";
+    textColor = "text-destructive/70";
     statusText = "Unhealthy";
-    dotColor = "bg-red-500";
+    dotColor = "bg-destructive";
   }
 
   return (
