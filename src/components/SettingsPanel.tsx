@@ -59,8 +59,8 @@ export function SettingsPanel() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <Settings className="w-5 h-5 text-blue-600" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Settings className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h2 className="text-xl font-semibold">Settings</h2>
@@ -134,7 +134,7 @@ export function SettingsPanel() {
             
             {saveMessage && (
               <span className={`flex items-center gap-1 text-sm ${
-                saveMessage.type === "success" ? "text-green-600" : "text-red-600"
+                saveMessage.type === "success" ? "text-success" : "text-destructive"
               }`}>
                 {saveMessage.type === "success" ? (
                   <CheckCircle className="w-4 h-4" />

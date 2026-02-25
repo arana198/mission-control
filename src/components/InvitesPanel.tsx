@@ -64,11 +64,11 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "owner":
-        return "bg-yellow-900/30 text-yellow-300";
+        return "bg-warning/20 text-warning/70";
       case "admin":
-        return "bg-blue-900/30 text-blue-300";
+        return "bg-primary/20 text-primary/70";
       default:
-        return "bg-slate-700 text-gray-300";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -105,8 +105,8 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
                       onClick={() => handleCopyLink(invite.token)}
                       className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium transition-colors ${
                         copiedId === invite.token
-                          ? "bg-green-900/30 text-green-300"
-                          : "bg-slate-700 hover:bg-slate-600 text-gray-300"
+                          ? "bg-success/20 text-success/70"
+                          : "bg-muted hover:bg-muted/80 text-muted-foreground"
                       }`}
                     >
                       <Copy size={14} />
@@ -115,7 +115,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
 
                     <button
                       onClick={() => handleDeleteInvite(invite._id)}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                      className="p-2 text-destructive hover:text-destructive hover:bg-destructive/20 rounded transition-colors"
                       title="Revoke invitation"
                     >
                       <Trash2 size={18} />
@@ -143,7 +143,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <CheckCircle className="w-4 h-4 text-success" />
                       <h4 className="font-semibold text-white">{invite.email}</h4>
                       <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.role)}`}>
                         {invite.role}
@@ -154,7 +154,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
                     </p>
                   </div>
 
-                  <span className="px-3 py-1 bg-green-900/30 text-green-300 text-sm rounded font-medium">
+                  <span className="px-3 py-1 bg-success/20 text-success/70 text-sm rounded font-medium">
                     Joined
                   </span>
                 </div>

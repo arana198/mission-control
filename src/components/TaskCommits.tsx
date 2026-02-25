@@ -88,7 +88,7 @@ export function TaskCommits({ taskId, businessId }: { taskId: string; businessId
                 {totalCount}
               </span>
               {source && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                   {source}
                 </span>
               )}
@@ -112,7 +112,7 @@ export function TaskCommits({ taskId, businessId }: { taskId: string; businessId
 
       {/* Error Message */}
       {error && (
-        <div className="p-3 rounded-lg bg-red-500/10 text-red-600 mb-3">
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive mb-3">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div className="flex-1 text-sm">
