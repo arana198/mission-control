@@ -99,39 +99,39 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WF-01 | — | Pending |
-| WF-02 | — | Pending |
-| WF-03 | — | Pending |
-| WF-04 | — | Pending |
-| WF-05 | — | Pending |
-| BUDGET-01 | — | Pending |
-| BUDGET-02 | — | Pending |
-| BUDGET-03 | — | Pending |
-| BUDGET-04 | — | Pending |
-| BUDGET-05 | — | Pending |
-| BUDGET-06 | — | Pending |
-| APPR-01 | — | Pending |
-| APPR-02 | — | Pending |
-| APPR-03 | — | Pending |
-| OBS-01 | — | Pending |
-| OBS-02 | — | Pending |
-| OBS-03 | — | Pending |
-| OBS-04 | — | Pending |
-| OBS-05 | — | Pending |
-| OBS-06 | — | Pending |
-| AUDIT-01 | — | Pending |
-| AUDIT-02 | — | Pending |
-| AUDIT-03 | — | Pending |
-| AUDIT-04 | — | Pending |
-| AUDIT-05 | — | Pending |
-| AUDIT-06 | — | Pending |
+| WF-01 | Phase 2 | Pending |
+| WF-02 | Phase 2 | Pending |
+| WF-03 | Phase 2 | Pending |
+| WF-04 | Phase 2 | Pending |
+| WF-05 | Phase 2 | Pending |
+| BUDGET-01 | Phase 2 | Pending |
+| BUDGET-02 | Phase 2 | Pending |
+| BUDGET-03 | Phase 3 | Pending |
+| BUDGET-04 | Phase 3 | Pending |
+| BUDGET-05 | Phase 4 | Pending |
+| BUDGET-06 | Phase 4 | Pending |
+| APPR-01 | Phase 3 | Pending |
+| APPR-02 | Phase 3 | Pending |
+| APPR-03 | Phase 3 | Pending |
+| OBS-01 | Phase 4 | Pending |
+| OBS-02 | Phase 4 | Pending |
+| OBS-03 | Phase 4 | Pending |
+| OBS-04 | Phase 4 | Pending |
+| OBS-05 | Phase 4 | Pending |
+| OBS-06 | Phase 4 | Pending |
+| AUDIT-01 | Phase 1 | Pending |
+| AUDIT-02 | Phase 5 | Pending |
+| AUDIT-03 | Phase 5 | Pending |
+| AUDIT-04 | Phase 5 | Pending |
+| AUDIT-05 | Phase 5 | Pending |
+| AUDIT-06 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 26 total
-- Mapped to phases: — (pending roadmap)
-- Unmapped: — (pending roadmap)
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 
 *Requirements defined: 2025-02-25*
-*Last updated: 2025-02-25 after research synthesis*
+*Last updated: 2026-02-25 after roadmap creation — all 26 requirements mapped*
