@@ -16,6 +16,9 @@ interface State {
 /**
  * Error Boundary component to catch and display errors gracefully
  * Prevents entire app from crashing due to component errors
+ *
+ * NOTE: Uses inline styles instead of CSS tokens because this component renders
+ * when the CSS may not be properly loaded. This is intentional and should not be refactored.
  */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {

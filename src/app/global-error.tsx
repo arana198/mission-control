@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Global Error Fallback
+ * Uses inline styles because CSS may not be loaded during critical errors.
+ * This is intentional and should not be refactored to use CSS tokens.
+ * Colors are manually selected for error state visibility.
+ */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <html lang="en">
