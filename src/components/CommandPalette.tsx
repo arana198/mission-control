@@ -367,13 +367,13 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                       {/* Icon */}
                       <div className="pt-0.5">
                         {result.type === "goal" && (
-                          <Target className="w-4 h-4 text-blue-500" />
+                          <Target className="w-4 h-4 text-primary" />
                         )}
                         {result.type === "task" && (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success" />
                         )}
                         {result.type === "memory" && (
-                          <FileText className="w-4 h-4 text-amber-500" />
+                          <FileText className="w-4 h-4 text-warning" />
                         )}
                         {result.type === "agent" && (
                           <Zap className="w-4 h-4 text-purple-500" />
@@ -413,10 +413,10 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                             className={clsx(
                               "text-xs px-2 py-1 rounded",
                               result.metadata.status === "done"
-                                ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                                ? "bg-success/20 text-success"
                                 : result.metadata.status === "blocked"
-                                  ? "bg-red-500/20 text-red-700 dark:text-red-400"
-                                  : "bg-blue-500/20 text-blue-700 dark:text-blue-400"
+                                  ? "bg-destructive/20 text-destructive"
+                                  : "bg-primary/20 text-primary"
                             )}
                           >
                             {result.metadata.status}

@@ -260,19 +260,19 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
           label="Memories"
           value={stats.totalMemories}
           icon={BookOpen}
-          color="text-blue-500"
+          color="text-primary"
         />
         <StatCard
           label="Tasks"
           value={stats.totalTasks}
           icon={Target}
-          color="text-green-500"
+          color="text-success"
         />
         <StatCard
           label="Activities"
           value={stats.totalActivities}
           icon={BarChart3}
-          color="text-amber-500"
+          color="text-warning"
         />
         <StatCard
           label="Insights"
@@ -439,7 +439,7 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
                 (patternInsights?.patterns ?? []).map((pattern, i) => (
                   <div key={i} className="p-2 bg-muted/50 rounded text-sm">
                     <p className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">•</span>
+                      <span className="text-success mt-0.5">•</span>
                       {pattern}
                     </p>
                   </div>
@@ -571,7 +571,7 @@ function AddMemoryModal({
                 <button
                   key={i}
                   onClick={() => setState({ ...state, importance: i })}
-                  className={`p-1 ${i <= state.importance ? "text-amber-500" : "text-muted-foreground"}`}
+                  className={`p-1 ${i <= state.importance ? "text-warning" : "text-muted-foreground"}`}
                 >
                   <Star className={`w-5 h-5 ${i <= state.importance ? "fill-amber-500" : ""}`} />
                 </button>
@@ -696,7 +696,7 @@ function ExportModal({
             <div className="text-left flex items-center gap-2">
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="w-4 h-4 text-success" />
                   <div>
                     <p className="font-medium">Copied to Clipboard!</p>
                   </div>
@@ -756,7 +756,7 @@ function ArchiveModal({
         
         {state.archived > 0 ? (
           <div className="text-center py-8">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-success" />
             <p className="font-semibold text-lg">Archived {state.archived} items</p>
             <p className="text-sm text-muted-foreground mt-2">
               Items older than {state.daysOld} days have been archived

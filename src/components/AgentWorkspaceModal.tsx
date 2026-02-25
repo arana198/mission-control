@@ -98,9 +98,9 @@ export function AgentWorkspaceModal({
               <p className="text-muted-foreground">Loading workspace...</p>
             </div>
           ) : error ? (
-            <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-              <h3 className="font-semibold text-red-900 mb-2">Error</h3>
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="p-6 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <h3 className="font-semibold text-destructive mb-2">Error</h3>
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           ) : workspaceData ? (
             <AgentWorkspaceViewer
