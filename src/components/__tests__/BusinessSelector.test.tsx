@@ -23,8 +23,8 @@ class WorkspaceSelectorMock {
   private callCount = 0;
 
   constructor(
-    private currentWorkspace:  | null,
-    private businesses: [],
+    private currentWorkspace: Workspace | null,
+    private businesses: Workspace[],
     private isLoading: boolean = false,
     private error: string | null = null,
     private onNavigate: (url: string) => void = () => {},
@@ -44,11 +44,11 @@ class WorkspaceSelectorMock {
     return `${this.currentWorkspace.emoji} ${this.currentWorkspace.name}`;
   }
 
-  getDropdownText(business: ): string {
-    return `${ workspace.emoji} ${ workspace.name}`;
+  getDropdownText(workspace: Workspace): string {
+    return `${workspace.emoji} ${workspace.name}`;
   }
 
-  select(business: ): void {
+  select(workspace: Workspace): void {
     if (workspace._id === this.currentWorkspace?._id) {
       // No-op if same business
       return;
@@ -80,11 +80,11 @@ class WorkspaceSelectorMock {
     return this.currentTab;
   }
 
-  getColor(business: ): string {
-    return  workspace.color;
+  getColor(workspace: Workspace): string {
+    return workspace.color;
   }
 
-  isSelected(business: ): boolean {
+  isSelected(workspace: Workspace): boolean {
     return workspace._id === this.currentWorkspace?._id;
   }
 
@@ -98,8 +98,8 @@ class WorkspaceSelectorMock {
 }
 
 describe("WorkspaceSelector Component", () => {
-  let mockes: [];
-  let currentWorkspace: ;
+  let mockes: any[];
+  let currentWorkspace: any;
   let selector: WorkspaceSelectorMock;
 
   beforeEach(() => {
@@ -640,7 +640,7 @@ describe("WorkspaceSelector Component", () => {
       // Expected: defaults to isDefault: true business
       const defaultWorkspace = mockes.find((b) => b.isDefault);
       const defaultSelector = new WorkspaceSelectorMock(
-        default || null,
+        defaultWorkspace || null,
         mockes
       );
       expect(defaultSelector.getDisplayText()).toContain(

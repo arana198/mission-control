@@ -19,7 +19,7 @@ interface Workspace {
 // Mock WorkspaceBadge component behavior
 class WorkspaceBadgeMock {
   constructor(
-    private business:  | null = null,
+    private workspace: Workspace | null = null,
     private variant: "inline" | "small" | "large" | "emoji-only" = "inline",
     private size: "sm" | "md" | "lg" = "md",
     private className: string = "",
@@ -28,31 +28,31 @@ class WorkspaceBadgeMock {
   ) {}
 
   render(): string {
-    if (!this.business) return "";
-    return `${this. workspace.emoji} ${this. workspace.name}`;
+    if (!this.workspace) return "";
+    return `${this.workspace.emoji} ${this.workspace.name}`;
   }
 
   renderCompact(): string {
-    if (!this.business) return "";
-    return `${this. workspace.emoji} ${this. workspace.name.substring(0, 2)}`;
+    if (!this.workspace) return "";
+    return `${this.workspace.emoji} ${this.workspace.name.substring(0, 2)}`;
   }
 
   renderEmojiOnly(): string {
-    if (!this.business) return "";
-    return this. workspace.emoji;
+    if (!this.workspace) return "";
+    return this.workspace.emoji;
   }
 
   getBackgroundColor(): string {
-    if (!this.business) return "#e5e7eb";
-    return this. workspace.color;
+    if (!this.workspace) return "#e5e7eb";
+    return this.workspace.color;
   }
 
   getTextColor(): string {
-    if (!this.business) return "#000000";
+    if (!this.workspace) return "#000000";
     // Simple contrast calculation - light colors get dark text
-    const r = parseInt(this. workspace.color.substring(1, 3), 16);
-    const g = parseInt(this. workspace.color.substring(3, 5), 16);
-    const b = parseInt(this. workspace.color.substring(5, 7), 16);
+    const r = parseInt(this.workspace.color.substring(1, 3), 16);
+    const g = parseInt(this.workspace.color.substring(3, 5), 16);
+    const b = parseInt(this.workspace.color.substring(5, 7), 16);
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness > 155 ? "#000000" : "#ffffff";
   }
@@ -91,7 +91,7 @@ class WorkspaceBadgeMock {
   }
 
   getActivityEntryFormat(): string {
-    if (!this.business) return "";
+    if (!this.workspace) return "";
     return `: ${this.render()}`;
   }
 
@@ -101,16 +101,16 @@ class WorkspaceBadgeMock {
   }
 
   hasTooltip(): boolean {
-    return !!this.business?.slug;
+    return !!this.workspace?.slug;
   }
 
   getTooltipText(): string {
-    return this.business?.slug || "";
+    return this.workspace?.slug || "";
   }
 }
 
 describe("WorkspaceBadge Component", () => {
-  let business: ;
+  let workspace: Workspace;
   let badge: WorkspaceBadgeMock;
 
   beforeEach(() => {
@@ -150,7 +150,7 @@ describe("WorkspaceBadge Component", () => {
     it("should handle long workspace names gracefully", async () => {
       // Arrange: name = "Very Long Workspace Name That Might Overflow"
       const long = {
-        ...business,
+        ...workspace,
         name: "Very Long Workspace Name That Might Overflow Completely",
       };
       const longBadge = new WorkspaceBadgeMock(long);
@@ -160,7 +160,7 @@ describe("WorkspaceBadge Component", () => {
 
     it("should handle missing emoji gracefully", async () => {
       // Arrange: workspace without emoji
-      const no = { ...business, emoji: "" };
+      const no = { ...workspace, emoji: "" };
       const noBadge = new WorkspaceBadgeMock(no);
       // Expected: shows name and color
       expect(noBadge.render()).toBeDefined();
@@ -185,10 +185,10 @@ describe("WorkspaceBadge Component", () => {
       expect(["#000000", "#ffffff"]).toContain(textColor);
     });
 
-    it("should have distinct visual styling per business", async () => {
+    it("should have distinct visual styling per workspace", async () => {
       // Expected:  A badge looks different from  B
       const bizB = {
-        ...business,
+        ...workspace,
         _id: "biz_2",
         name: " B",
         slug: "business-b",
@@ -214,26 +214,26 @@ describe("WorkspaceBadge Component", () => {
   describe("Variants", () => {
     it("should support inline variant (for activity entries)", async () => {
       // Expected: compact inline badge suitable for activity list
-      const inlineBadge = new WorkspaceBadgeMock(business, "inline");
+      const inlineBadge = new WorkspaceBadgeMock(workspace, "inline");
       expect(inlineBadge.getDisplay()).toBeDefined();
     });
 
     it("should support small variant", async () => {
       // Expected: smaller badge for compact spaces
-      const smallBadge = new WorkspaceBadgeMock(business, "small");
+      const smallBadge = new WorkspaceBadgeMock(workspace, "small");
       smallBadge.setVariant("small");
       expect(smallBadge.getDisplay()).toBeDefined();
     });
 
     it("should support large variant for prominent display", async () => {
       // Expected: larger badge for headers/titles
-      const largeBadge = new WorkspaceBadgeMock(business, "large");
+      const largeBadge = new WorkspaceBadgeMock(workspace, "large");
       expect(largeBadge.getDisplay()).toBeDefined();
     });
 
     it("should support emoji-only variant", async () => {
       // Expected: only emoji shown (for tight spacing)
-      const emojiBadge = new WorkspaceBadgeMock(business, "emoji-only");
+      const emojiBadge = new WorkspaceBadgeMock(workspace, "emoji-only");
       expect(emojiBadge.getDisplay()).toBe("🚀");
     });
 
@@ -255,7 +255,7 @@ describe("WorkspaceBadge Component", () => {
       // Expected: consistent alignment across multiple entries
       const format1 = badge.getActivityEntryFormat();
       const badge2 = new WorkspaceBadgeMock({
-        ...business,
+        ...workspace,
         name: "Other ",
       });
       const format2 = badge2.getActivityEntryFormat();
@@ -284,9 +284,9 @@ describe("WorkspaceBadge Component", () => {
 
   describe("Interactivity", () => {
     it("should support optional click handler", async () => {
-      // Expected: optional onClick prop that filters by business
+      // Expected: optional onClick prop that filters by workspace
       let clicked = false;
-      const clickBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
+      const clickBadge = new WorkspaceBadgeMock(workspace, "inline", "md", "", () => {
         clicked = true;
       });
       clickBadge.setClickable(true);
@@ -297,7 +297,7 @@ describe("WorkspaceBadge Component", () => {
     it("should show cursor pointer if clickable", async () => {
       // Expected: cursor: pointer on hover if onClick provided
       let clicked = false;
-      const clickBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
+      const clickBadge = new WorkspaceBadgeMock(workspace, "inline", "md", "", () => {
         clicked = true;
       });
       clickBadge.setClickable(true);
@@ -307,7 +307,7 @@ describe("WorkspaceBadge Component", () => {
     it("should navigate to workspace when clicked", async () => {
       // Act: click badge
       let navigated = false;
-      const navBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
+      const navBadge = new WorkspaceBadgeMock(workspace, "inline", "md", "", () => {
         navigated = true;
       });
       navBadge.setClickable(true);
@@ -327,7 +327,7 @@ describe("WorkspaceBadge Component", () => {
     it("should accept workspace object as prop", async () => {
       // Expected: workspace prop controls displayed content
       const customBadge = new WorkspaceBadgeMock({
-        ...business,
+        ...workspace,
         name: "Custom ",
       });
       expect(customBadge.render()).toContain("Custom ");
@@ -335,14 +335,14 @@ describe("WorkspaceBadge Component", () => {
 
     it("should accept variant prop", async () => {
       // Expected: variant="inline" | "small" | "large" | "emoji-only"
-      const emojiBadge = new WorkspaceBadgeMock(business, "emoji-only");
+      const emojiBadge = new WorkspaceBadgeMock(workspace, "emoji-only");
       expect(emojiBadge.getDisplay()).toBe("🚀");
     });
 
     it("should accept size prop", async () => {
       // Expected: size="sm" | "md" | "lg"
-      const smBadge = new WorkspaceBadgeMock(business, "inline", "sm");
-      const lgBadge = new WorkspaceBadgeMock(business, "inline", "lg");
+      const smBadge = new WorkspaceBadgeMock(workspace, "inline", "sm");
+      const lgBadge = new WorkspaceBadgeMock(workspace, "inline", "lg");
       expect(smBadge.getPadding()).not.toBe(lgBadge.getPadding());
     });
 
@@ -394,7 +394,7 @@ describe("WorkspaceBadge Component", () => {
     it("should truncate long names with ellipsis", async () => {
       // Expected: "Mission Control..." if too long
       const long = {
-        ...business,
+        ...workspace,
         name: "This Is A Very Very Long Workspace Name",
       };
       const longBadge = new WorkspaceBadgeMock(long);
@@ -422,7 +422,7 @@ describe("WorkspaceBadge Component", () => {
 
     it("should handle invalid color gracefully", async () => {
       // Arrange: color = "invalid-color"
-      const invalid = { ...business, color: "#000000" };
+      const invalid = { ...workspace, color: "#000000" };
       const invalidBadge = new WorkspaceBadgeMock(invalid);
       // Expected: falls back to handling
       expect(invalidBadge.getBackgroundColor()).toBe("#000000");
@@ -430,14 +430,14 @@ describe("WorkspaceBadge Component", () => {
 
     it("should apply color opacity when needed", async () => {
       // Expected: optional opacity for subtle backgrounds
-      const business2 = { ...business, color: "#6366f1" };
+      const business2 = { ...workspace, color: "#6366f1" };
       const badge2 = new WorkspaceBadgeMock(business2);
       expect(badge2.getBackgroundColor()).toBeDefined();
     });
 
     it("should support dark mode color adjustments", async () => {
       // Expected: colors adjusted for dark theme
-      const dark = { ...business, color: "#1f2937" };
+      const dark = { ...workspace, color: "#1f2937" };
       const darkBadge = new WorkspaceBadgeMock(dark);
       expect(darkBadge.getTextColor()).toBe("#ffffff");
     });

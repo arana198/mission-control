@@ -17,27 +17,27 @@ interface Workspace {
 }
 
 interface WorkspaceContextValue {
-  currentWorkspace:  | null;
-  businesses: [];
-  setCurrentWorkspace: (business: ) => void;
+  currentWorkspace: Workspace | null;
+  businesses: Workspace[];
+  setCurrentWorkspace: (workspace: Workspace) => void;
   isLoading: boolean;
 }
 
 // Mock WorkspaceProvider
 class WorkspaceProviderMock {
-  private currentWorkspace:  | null = null;
-  private businesses: [] = [];
+  private currentWorkspace: Workspace | null = null;
+  private businesses: Workspace[] = [];
   private isLoading = false;
   private localStorage: Record<string, string> = {};
   private currentTab = "overview";
 
-  constructor(businesses: [], defaultSlug?: string) {
+  constructor(businesses: Workspace[], defaultSlug?: string) {
     this.businesses = businesses;
     if (defaultSlug) {
       this.currentWorkspace =
         businesses.find((b) => b.slug === defaultSlug) ||
         businesses.find((b) => b.isDefault) ||
-        workspaces[0] ||
+        businesses[0] ||
         null;
     } else {
       this.currentWorkspace =
@@ -74,7 +74,7 @@ class WorkspaceProviderMock {
     };
   }
 
-  setCurrentWorkspace(business: ): void {
+  setCurrentWorkspace(workspace: Workspace): void {
     if (this.businesses.some((b) => b._id === workspace._id)) {
       this.currentWorkspace = workspace;
       this.localStorage["mission-control:businessSlug"] = workspace.slug;
@@ -190,8 +190,8 @@ describe("WorkspaceProvider", () => {
     it("should persist current workspace to localStorage on change", async () => {
       // Arrange: user switches business
       // Act: call setCurrentWorkspace
-      const new = mockes[1];
-      provider.setCurrentWorkspace(new);
+      const newWorkspace = mockes[1];
+      provider.setCurrentWorkspace(newWorkspace);
 
       // Expected: localStorage updated
       const stored = provider.getFromLocalStorage(
@@ -317,7 +317,7 @@ describe("WorkspaceProvider", () => {
 
     it("should validate workspaceId exists before switching", async () => {
       // Arrange: workspaceId doesn't exist
-      const invalid:  = {
+      const invalid: Workspace = {
         _id: "nonexistent",
         name: "Nonexistent",
         slug: "nonexistent",
