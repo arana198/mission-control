@@ -369,18 +369,18 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600">
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-2 text-destructive">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">{error}</span>
             </div>
           )}
 
           {/* Epic Selection - Required */}
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <label className="label flex items-center gap-2 text-blue-900">
+          <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+            <label className="label flex items-center gap-2 text-primary">
               <Target className="w-4 h-4" />
               Epic *
-              {autoFilledEpic && <span className="text-xs text-blue-600 ml-1">(auto)</span>}
+              {autoFilledEpic && <span className="text-xs text-primary/80 ml-1">(auto)</span>}
             </label>
             <div className="flex gap-2 mt-2">
               <select
@@ -409,7 +409,7 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
               </button>
             </div>
             {!effectiveEpicId && (
-              <p className="text-xs text-blue-700 mt-2">
+              <p className="text-xs text-primary/90 mt-2">
                 Every user story must be associated with an epic. Create one above.
               </p>
             )}
@@ -428,12 +428,12 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
                     type="button"
                     onClick={() => applyTemplate(key as keyof typeof TASK_TEMPLATES)}
                     className={`p-3 rounded-lg border text-left transition-all ${
-                      isSelected 
-                        ? "border-blue-500 bg-blue-50" 
+                      isSelected
+                        ? "border-primary bg-primary/10"
                         : "border hover:border-strong hover:bg-muted"
                     }`}
                   >
-                    <Icon className={`w-5 h-5 mb-2 ${isSelected ? "text-blue-600" : "text-muted-foreground"}`} />
+                    <Icon className={`w-5 h-5 mb-2 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                     <p className="text-sm font-medium">{template.title}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {template.defaultTime} · {template.defaultPriority}
@@ -503,10 +503,10 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
                     }}
                     className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
                       priority === p
-                        ? p === "P0" ? "bg-red-100 text-red-700" :
-                          p === "P1" ? "bg-orange-100 text-orange-700" :
-                          p === "P2" ? "bg-slate-100 text-slate-700" :
-                          "bg-gray-100 text-gray-700"
+                        ? p === "P0" ? "bg-destructive/20 text-destructive" :
+                          p === "P1" ? "bg-warning/20 text-warning" :
+                          p === "P2" ? "bg-primary/20 text-primary" :
+                          "bg-muted text-muted-foreground"
                         : "bg-muted/50 hover:bg-muted"
                     }`}
                   >
@@ -570,11 +570,11 @@ export function CreateTaskModal({ agents, epics, tasks, onClose, onSuccess }: Cr
                   }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition-colors ${
                     selectedAgents.includes(agent._id)
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      ? "border-primary bg-primary/10 text-primary"
                       : "border hover:bg-muted"
                   }`}
                 >
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] text-primary-foreground font-bold">
                     {agent.name[0]}
                   </div>
                   {agent.name}

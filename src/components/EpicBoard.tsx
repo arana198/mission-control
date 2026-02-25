@@ -411,27 +411,27 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
                           onSelectTask(task);
                         }
                       }}
-                      className="w-full flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer group hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-full flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer group hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0"
                       title="Click to view task details"
                       type="button"
                     >
-                      <span className="font-medium truncate group-hover:text-blue-600 text-left">{task.title}</span>
+                      <span className="font-medium truncate group-hover:text-primary text-left">{task.title}</span>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         {task.timeEstimate && (
-                          <span className="badge bg-blue-100 text-blue-700 text-xs">
+                          <span className="badge bg-primary/10 text-primary text-xs">
                             {task.timeEstimate}
                           </span>
                         )}
                         <span className={`badge badge-priority-${task.priority.toLowerCase()} text-xs`}>
                           {task.priority}
                         </span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                         {task.assigneeIds.length > 0 ? (
                           <div className="flex -space-x-1">
                             {task.assigneeIds.slice(0, 3).map(id => {
                               const ag = agents.find(a => a._id === id);
                               return ag ? (
-                                <div key={id} className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] text-white border border-white" title={ag.name}>
+                                <div key={id} className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-primary-foreground border border-white" title={ag.name}>
                                   {ag.name[0]}
                                 </div>
                               ) : null;
@@ -459,7 +459,7 @@ function EpicDetailView({ epic, tasks, agents, allEpics, onBack, onSelectTask }:
             {workloadByAgent.map(({ agent, tasks: agentTasks, totalHours }) => (
               <div key={agent._id} className="card p-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
                     {agent.name[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -512,7 +512,7 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
               {task.status.replace("_", " ")}
             </span>
             {isOverdue && (
-              <span className="badge bg-red-100 text-red-700">Overdue</span>
+              <span className="badge bg-destructive/10 text-destructive">Overdue</span>
             )}
           </div>
           <button
@@ -576,7 +576,7 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
               {task.dueDate && (
                 <div>
                   <h3 className="font-medium text-muted-foreground mb-1">Due Date</h3>
-                  <span className={`text-sm ${isOverdue ? "text-red-600 font-medium" : ""}`}>
+                  <span className={`text-sm ${isOverdue ? "text-destructive font-medium" : ""}`}>
                     {new Date(task.dueDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -656,7 +656,7 @@ function CreateEpicModal({
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {!businessId && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
               Please select a business context to create an epic.
             </div>
           )}
@@ -801,15 +801,15 @@ function DeleteEpicModal({
     <div className="fixed inset-0 z-[50] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="card rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-6">
-          <div className="flex items-center gap-3 text-red-600 mb-4">
+          <div className="flex items-center gap-3 text-destructive mb-4">
             <AlertTriangle className="w-6 h-6" />
             <h2 className="text-lg font-semibold">Delete Epic</h2>
           </div>
           
-          <p className="text-slate-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Are you sure you want to delete <strong>{epic.title}</strong>?
             {hasTasks && (
-              <span className="block mt-2 text-amber-600">
+              <span className="block mt-2 text-warning">
                 This epic contains {epic.taskIds.length} task{epic.taskIds.length > 1 ? "s" : ""}.
               </span>
             )}
@@ -837,10 +837,10 @@ function DeleteEpicModal({
 
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
-            <button 
-              onClick={handleDelete} 
-              disabled={isDeleting} 
-              className="btn bg-red-600 text-white hover:bg-red-700 flex-1"
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="btn bg-destructive text-destructive-foreground hover:bg-destructive/90 flex-1"
             >
               {isDeleting ? "Deleting..." : "Delete Epic"}
             </button>

@@ -93,7 +93,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
     >
       {/* Agent Icon and Badges - Custom Header Content */}
       <div className="px-6 pt-0 pb-2 flex items-start gap-4">
-        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white flex-shrink-0">
+        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground flex-shrink-0">
           <Icon className="w-7 h-7" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">

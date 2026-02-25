@@ -119,12 +119,12 @@ export function AgentWorkspaceViewer({
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="font-semibold text-red-900 mb-2">
+      <div className="p-6 bg-destructive/10 border border-destructive/30 rounded-lg">
+        <h3 className="font-semibold text-destructive mb-2">
           Could not load workspace
         </h3>
-        <p className="text-sm text-red-800">{error}</p>
-        <p className="text-xs text-red-700 mt-2 font-mono">{rootPath}</p>
+        <p className="text-sm text-destructive/90">{error}</p>
+        <p className="text-xs text-destructive/80 mt-2 font-mono">{rootPath}</p>
       </div>
     );
   }

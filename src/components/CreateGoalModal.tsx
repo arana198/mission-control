@@ -91,7 +91,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-500" />
+            <Target className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">Create New Goal</h2>
           </div>
           <button
@@ -105,9 +105,9 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-destructive/90">{error}</p>
             </div>
           )}
 
@@ -119,7 +119,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Launch product feature"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={isLoading}
             />
           </div>
@@ -132,7 +132,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What are you trying to achieve? Why is this goal important?"
               rows={3}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               disabled={isLoading}
             />
           </div>
@@ -148,7 +148,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
                   onClick={() => setCategory(cat.value as any)}
                   className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     category === cat.value
-                      ? "bg-blue-500 text-white border-blue-500"
+                      ? "bg-primary text-primary-foreground border-primary"
                       : "border-border hover:bg-muted"
                   }`}
                   disabled={isLoading}
@@ -166,7 +166,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={isLoading}
             />
           </div>
@@ -218,7 +218,7 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
