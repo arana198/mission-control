@@ -225,7 +225,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
                 key={v}
                 onClick={() => setView(v as any)}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
-                  view === v ? "bg-blue-500 text-white" : "hover:bg-muted"
+                  view === v ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                 }`}
               >
                 {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -243,7 +243,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
               <p className="text-2xl font-bold">{scheduledToday}</p>
               <p className="text-sm text-muted-foreground">Scheduled Today</p>
             </div>
-            <Clock className="w-5 h-5 text-amber-500" />
+            <Clock className="w-5 h-5 text-warning" />
           </div>
         </div>
         <div className="card p-4">
@@ -252,7 +252,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
               <p className="text-2xl font-bold">{cronJobs}</p>
               <p className="text-sm text-muted-foreground">Cron Jobs</p>
             </div>
-            <Repeat2 className="w-5 h-5 text-green-500" />
+            <Repeat2 className="w-5 h-5 text-success" />
           </div>
         </div>
         <div className="card p-4">
@@ -261,7 +261,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
               <p className="text-2xl font-bold">{executedToday}</p>
               <p className="text-sm text-muted-foreground">Executed Today</p>
             </div>
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
         </div>
         <div className="card p-4">
@@ -285,7 +285,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
               onClick={() => setSelectedAgentId("all")}
               className={`px-3 py-1 text-sm rounded transition-colors ${
                 selectedAgentId === "all"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted hover:bg-muted/80"
               }`}
             >
@@ -297,7 +297,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
                 onClick={() => setSelectedAgentId(agent._id)}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
                   selectedAgentId === agent._id
-                    ? "bg-blue-500 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted hover:bg-muted/80"
                 }`}
               >
@@ -317,7 +317,7 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
                 onClick={() => setEventTypeFilter(type)}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
                   eventTypeFilter === type
-                    ? "bg-blue-500 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted hover:bg-muted/80"
                 }`}
               >
@@ -384,12 +384,12 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
                     key={dayNumber}
                     onClick={() => setSelectedDate(date)}
                     className={`p-2 h-24 border rounded-lg cursor-pointer transition-all ${
-                      isToday ? "bg-blue-50 border-blue-200" :
-                      isSelected ? "bg-muted border-blue-300" :
+                      isToday ? "bg-primary/10 border-primary/30" :
+                      isSelected ? "bg-muted border-primary/50" :
                       "hover:bg-muted border-transparent"
                     }`}
                   >
-                    <div className={`text-sm font-medium mb-1 ${isToday ? "text-blue-600" : ""}`}>
+                    <div className={`text-sm font-medium mb-1 ${isToday ? "text-primary" : ""}`}>
                       {dayNumber}
                     </div>
                     <div className="space-y-1">
@@ -509,11 +509,11 @@ export function CalendarView({ tasks, agents }: { tasks: Task[]; agents: Agent[]
                         <p className="text-sm font-medium truncate flex items-center gap-2">
                           {event.title}
                           {event.executedAt ? (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ Executed</span>
+                            <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded">✓ Executed</span>
                           ) : event.endDate && event.endDate < today ? (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Missed</span>
+                            <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">Missed</span>
                           ) : (
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">Scheduled</span>
+                            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Scheduled</span>
                           )}
                         </p>
                         {event.agentName && (

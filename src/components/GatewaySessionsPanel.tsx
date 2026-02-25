@@ -99,7 +99,7 @@ export function GatewaySessionsPanel({
     <div className="space-y-4">
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-900/20 border border-red-700 rounded p-4 text-red-300 text-sm">
+        <div className="bg-destructive/20 border border-destructive/70 rounded p-4 text-destructive/70 text-sm">
           Error: {error}
         </div>
       )}
@@ -121,7 +121,7 @@ export function GatewaySessionsPanel({
           {onRefresh && (
             <button
               onClick={onRefresh}
-              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+              className="p-2 text-primary/70 hover:text-primary/60 hover:bg-primary/20 rounded transition-colors"
               title="Refresh sessions"
             >
               <RefreshCw size={18} />
@@ -157,7 +157,7 @@ export function GatewaySessionsPanel({
                   className="w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 flex items-center justify-between transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 text-left">
-                    <MessageSquare className="w-5 h-5 text-blue-400" />
+                    <MessageSquare className="w-5 h-5 text-primary/70" />
                     <div>
                       <div className="font-medium text-white">{session.label || session.key}</div>
                       <div className="text-xs text-gray-500">{session.key}</div>
@@ -165,7 +165,7 @@ export function GatewaySessionsPanel({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="px-2 py-1 bg-green-900/30 text-green-300 text-xs rounded">
+                    <span className="px-2 py-1 bg-success/20 text-success/70 text-xs rounded">
                       Active
                     </span>
                     {expandedSession === session.key ? (
@@ -198,8 +198,8 @@ export function GatewaySessionsPanel({
                             key={idx}
                             className={`text-sm p-2 rounded ${
                               msg.type === "sent"
-                                ? "bg-blue-900/30 text-blue-200 ml-8 border-l-2 border-blue-500"
-                                : "bg-gray-900/30 text-gray-300 mr-8 border-l-2 border-gray-500"
+                                ? "bg-primary/20 text-primary/80 ml-8 border-l-2 border-primary/50"
+                                : "bg-muted text-muted-foreground mr-8 border-l-2 border-muted-foreground/30"
                             }`}
                           >
                             <div className="text-xs text-gray-400 mb-1">{timeAgo(msg.timestamp)}</div>
@@ -225,12 +225,12 @@ export function GatewaySessionsPanel({
                               handleSendMessage(session.key);
                             }
                           }}
-                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
                         />
                         <button
                           onClick={() => handleSendMessage(session.key)}
                           disabled={!messageInputs[session.key]?.trim()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 text-white rounded font-medium transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground rounded font-medium transition-colors flex items-center gap-2"
                         >
                           <Send size={16} />
                         </button>
@@ -247,7 +247,7 @@ export function GatewaySessionsPanel({
                       </div>
                       <div>
                         <div className="text-gray-400">Status</div>
-                        <div className="text-green-300 font-medium">Connected</div>
+                        <div className="text-success/70 font-medium">Connected</div>
                       </div>
                     </div>
                   </div>

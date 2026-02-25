@@ -169,7 +169,7 @@ export function EnhancedTaskComments({
         return isValidMention ? (
           <span
             key={i}
-            className="text-blue-600 font-medium bg-blue-50 px-1 rounded"
+            className="text-primary font-medium bg-primary/10 px-1 rounded"
           >
             {part}
           </span>
@@ -280,7 +280,7 @@ export function EnhancedTaskComments({
                               )
                             )
                           }
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-primary hover:underline"
                         >
                           Hide replies
                         </button>
@@ -292,7 +292,7 @@ export function EnhancedTaskComments({
                             new Set([...expandedReplies, comment._id])
                           )
                         }
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-primary hover:underline"
                       >
                         {replies.length} repl{replies.length === 1 ? "y" : "ies"}
                       </button>
@@ -309,17 +309,17 @@ export function EnhancedTaskComments({
       <form onSubmit={handleSubmit} className="relative">
         {/* Reply Banner */}
         {replyTo && (
-          <div className="flex items-center gap-2 p-2 mb-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <MessageSquare className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-blue-700">
+          <div className="flex items-center gap-2 p-2 mb-2 bg-primary/10 border border-primary/30 rounded-lg">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary">
               Replying to <strong>{replyTo.name}</strong>
             </span>
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              className="ml-auto p-1 hover:bg-blue-100 rounded"
+              className="ml-auto p-1 hover:bg-primary/20 rounded"
             >
-              <X className="w-3 h-3 text-blue-600" />
+              <X className="w-3 h-3 text-primary" />
             </button>
           </div>
         )}
@@ -357,7 +357,7 @@ export function EnhancedTaskComments({
                   onClick={() => insertMention(agent.name)}
                   className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2"
                 >
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-xs text-white">
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground">
                     {agent.name[0]}
                   </div>
                   <div>
@@ -432,7 +432,7 @@ function CommentItem({
           <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={onReply}
-              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-all"
+              className="p-1 text-primary hover:bg-primary/10 rounded transition-all"
               title="Reply to this comment"
             >
               <Reply className="w-3 h-3" />
@@ -440,7 +440,7 @@ function CommentItem({
             {canDelete && (
               <button
                 onClick={onDelete}
-                className="p-1 text-red-600 hover:bg-red-50 rounded transition-all"
+                className="p-1 text-destructive hover:bg-destructive/10 rounded transition-all"
                 title="Delete comment"
               >
                 <Trash2 className="w-3 h-3" />
@@ -459,7 +459,7 @@ function CommentItem({
               <button
                 key={emoji}
                 onClick={() => onReact(emoji)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors text-xs"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-warning/10 border border-warning/30 hover:bg-warning/20 transition-colors text-xs"
                 title={`Reacted by ${reactors.length} agent${reactors.length === 1 ? "" : "s"}`}
               >
                 {emoji}

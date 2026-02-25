@@ -35,8 +35,8 @@ const agentIcons: Record<string, React.ReactNode> = {
 
 const statusConfig = {
   idle: {
-    color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    dot: "bg-amber-400",
+    color: "text-warning bg-warning/10 border-warning/20",
+    dot: "bg-warning",
     label: "Idle",
   },
   active: {
@@ -62,8 +62,8 @@ export function AgentCards({ compact = false }: AgentCardsProps) {
     return compact ? (
       <GlassCard className="p-4">
         <div className="animate-pulse space-y-2">
-          <div className="h-4 bg-slate-700 rounded w-20" />
-          <div className="h-3 bg-slate-700 rounded" />
+          <div className="h-4 bg-muted rounded w-20" />
+          <div className="h-3 bg-muted rounded" />
         </div>
       </GlassCard>
     ) : (
