@@ -60,11 +60,11 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "owner":
-        return "bg-yellow-900/30 text-yellow-300";
+        return "bg-warning/20 text-warning/70";
       case "admin":
-        return "bg-blue-900/30 text-blue-300";
+        return "bg-primary/20 text-primary/70";
       default:
-        return "bg-slate-700 text-gray-300";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -78,7 +78,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
         </div>
         <button
           onClick={() => setShowInviteForm(!showInviteForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 font-medium transition-colors"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded px-4 py-2 font-medium transition-colors"
         >
           <UserPlus size={18} />
           Invite Member
@@ -90,7 +90,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
         <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 space-y-4">
           <h3 className="font-semibold text-white">Invite New Member</h3>
           {error && (
-            <div className="bg-red-900/30 border border-red-700 rounded p-3 text-red-300 text-sm">
+            <div className="bg-destructive/20 border border-destructive/70 rounded p-3 text-destructive/70 text-sm">
               {error}
             </div>
           )}
@@ -100,12 +100,12 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
               placeholder="member@example.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary"
             />
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value as any)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-primary"
             >
               <option value="member">Member</option>
               <option value="admin">Admin</option>
@@ -135,7 +135,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                     setError((err as Error).message);
                   }
                 }}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 font-medium transition-colors"
+                className="flex-1 bg-success hover:bg-success/90 text-success-foreground rounded px-4 py-2 font-medium transition-colors"
               >
                 Send Invite
               </button>
@@ -180,7 +180,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                   <select
                     value={member.role}
                     onChange={(e) => handleChangeRole(member._id, e.target.value)}
-                    className="px-3 py-1 bg-slate-800 border border-slate-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
+                    className="px-3 py-1 bg-slate-800 border border-slate-600 rounded text-sm text-white focus:outline-none focus:border-primary"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
@@ -189,7 +189,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
 
                   <button
                     onClick={() => handleRemoveMember(member._id)}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                    className="p-2 text-destructive hover:text-destructive hover:bg-destructive/20 rounded transition-colors"
                     title="Remove member"
                   >
                     <Trash2 size={18} />
