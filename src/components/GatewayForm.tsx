@@ -1,64 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Save, X } from "lucide-react";
+import { Save, X, Eye, EyeOff, Check, AlertCircle, Loader2 } from "lucide-react";
 
 /**
  * Gateway Form Component
- * Phase 4 UI: Create/edit gateway configurations
+ * Phase 5: Create/edit gateway configurations with connection validation
  */
 interface GatewayFormProps {
   businessId: Id<"businesses">;
+  gateway?: {
+    _id: Id<"gateways">;
+    name: string;
+    url: string;
+    token?: string;
+    workspaceRoot: string;
+    disableDevicePairing: boolean;
+    allowInsecureTls: boolean;
+  };
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function GatewayForm({ businessId, onClose, onSuccess }: GatewayFormProps) {
+export function GatewayForm({ businessId, gateway, onClose, onSuccess }: GatewayFormProps) {
+  const isEditMode = !!gateway;
+
   const [formData, setFormData] = useState({
-    name: "",
-    url: "wss://",
+    name: gateway?.name ?? "",
+    url: gateway?.url ?? "wss://",
     token: "",
-    workspaceRoot: "/workspace",
-    disableDevicePairing: false,
-    allowInsecureTls: false,
+    workspaceRoot: gateway?.workspaceRoot ?? "/workspace",
+    disableDevicePairing: gateway?.disableDevicePairing ?? false,
+    allowInsecureTls: gateway?.allowInsecureTls ?? false,
   });
 
   const [error, setError] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testConnectionResult, setTestConnectionResult] = useState<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  } | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const createGateway = useMutation(api.gateways.createGateway);
+  const updateGateway = useMutation(api.gateways.updateGateway);
+
+  const handleTestConnection = async () => {
+    if (!formData.url) {
+      setError("Please enter a WebSocket URL first");
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setTestConnectionResult(null);
+
+    try {
+      const gatewayId = gateway?._id || "temp";
+      const response = await fetch(`/api/gateway/${gatewayId}?action=validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: formData.url,
+          allowInsecureTls: formData.allowInsecureTls,
+        }),
+      });
+
+      const result = await response.json();
+      setTestConnectionResult(result);
+    } catch (err) {
+      setTestConnectionResult({
+        success: false,
+        error: (err as Error).message,
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
     // Validate
     if (!formData.name) {
       setError("Gateway name is required");
+      setIsSubmitting(false);
       return;
     }
     if (!formData.url.startsWith("ws://") && !formData.url.startsWith("wss://")) {
       setError("URL must start with ws:// or wss://");
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      await createGateway({
-        businessId,
-        name: formData.name,
-        url: formData.url,
-        token: formData.token || undefined,
-        workspaceRoot: formData.workspaceRoot,
-        disableDevicePairing: formData.disableDevicePairing,
-        allowInsecureTls: formData.allowInsecureTls,
-      });
+      if (isEditMode && gateway) {
+        await updateGateway({
+          gatewayId: gateway._id,
+          name: formData.name,
+          url: formData.url,
+          token: formData.token || undefined,
+          workspaceRoot: formData.workspaceRoot,
+          disableDevicePairing: formData.disableDevicePairing,
+          allowInsecureTls: formData.allowInsecureTls,
+        } as any);
+      } else {
+        await createGateway({
+          businessId,
+          name: formData.name,
+          url: formData.url,
+          token: formData.token || undefined,
+          workspaceRoot: formData.workspaceRoot,
+          disableDevicePairing: formData.disableDevicePairing,
+          allowInsecureTls: formData.allowInsecureTls,
+        });
+      }
 
       onSuccess?.();
       onClose();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,14 +179,24 @@ export function GatewayForm({ businessId, onClose, onSuccess }: GatewayFormProps
       {/* Auth Token */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">Auth Token (Optional)</label>
-        <input
-          type="password"
-          name="token"
-          value={formData.token}
-          onChange={handleChange}
-          placeholder="Leave empty if no auth required"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-        />
+        <div className="flex gap-2">
+          <input
+            type={showToken ? "text" : "password"}
+            name="token"
+            value={isEditMode && gateway?.token && !formData.token ? "••••••••" : formData.token}
+            onChange={handleChange}
+            placeholder="Leave empty if no auth required"
+            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => setShowToken(!showToken)}
+            aria-label="Toggle token visibility"
+            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-gray-400 hover:text-gray-300 transition-colors"
+          >
+            {showToken ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </div>
 
       {/* Workspace Root */}
@@ -158,19 +237,70 @@ export function GatewayForm({ businessId, onClose, onSuccess }: GatewayFormProps
         </label>
       </div>
 
+      {/* Test Connection Result */}
+      {testConnectionResult && (
+        <div className={`p-3 rounded border flex items-center gap-2 ${
+          testConnectionResult.success
+            ? "bg-green-900/20 border-green-700 text-green-300"
+            : "bg-red-900/20 border-red-700 text-red-300"
+        }`}>
+          {testConnectionResult.success ? (
+            <>
+              <Check size={16} />
+              <span className="text-sm">✓ Connected ({testConnectionResult.latencyMs}ms)</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle size={16} />
+              <span className="text-sm">✗ {testConnectionResult.error}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Test Connection Button */}
+      <div className="pt-2 pb-2 border-b border-slate-700">
+        <button
+          type="button"
+          onClick={handleTestConnection}
+          disabled={isTestingConnection || isSubmitting}
+          className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
+        >
+          {isTestingConnection ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Testing Connection...
+            </>
+          ) : (
+            "Test Connection"
+          )}
+        </button>
+      </div>
+
       {/* Actions */}
       <div className="flex gap-2 pt-4 border-t border-slate-700">
         <button
           type="submit"
-          className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 font-medium transition-colors"
+          disabled={isSubmitting}
+          className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
         >
-          <Save size={18} />
-          Create Gateway
+          {isSubmitting ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              {isEditMode ? "Saving..." : "Creating..."}
+            </>
+          ) : (
+            <>
+              <Save size={18} />
+              {isEditMode ? "Save Changes" : "Create Gateway"}
+            </>
+          )}
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white rounded px-4 py-2 font-medium transition-colors"
+          disabled={isSubmitting}
+          className="flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
         >
           <X size={18} />
           Cancel
