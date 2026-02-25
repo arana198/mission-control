@@ -18,26 +18,9 @@ export default function Home() {
   const businesses = useQuery(api.businesses.getAll);
 
   useEffect(() => {
-    // Priority: localStorage → default → first business → global fallback
-    let targetSlug: string | null = null;
-
-    if (localStorage_slug && businesses) {
-      const saved = businesses.find(b => b.slug === localStorage_slug);
-      if (saved) targetSlug = saved.slug;
-    }
-
-    if (!targetSlug && defaultBusiness) {
-      targetSlug = defaultBusiness.slug;
-    }
-
-    if (!targetSlug && businesses && businesses.length > 0) {
-      targetSlug = businesses[0].slug;
-    }
-
-    // Redirect to the target business or global fallback
-    const destination = targetSlug ? `/${targetSlug}/overview` : "/global/overview";
-    router.push(destination);
-  }, [defaultBusiness, businesses, localStorage_slug, router]);
+    // Simply redirect to overview - business context is handled by BusinessProvider
+    router.push("/overview");
+  }, [router]);
 
   return <LoadingSkeleton />;
 }

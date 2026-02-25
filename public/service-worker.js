@@ -4,7 +4,7 @@
  * Phase 5D: Mobile & PWA Support
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v3';
 const CACHE_NAMES = {
   static: `mission-control-static-${CACHE_VERSION}`,
   dynamic: `mission-control-dynamic-${CACHE_VERSION}`,
@@ -12,10 +12,9 @@ const CACHE_NAMES = {
 };
 
 // Assets to cache immediately on install
+// Note: CSS is bundled by Next.js and cached via staleWhileRevalidate
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/styles/globals.css',
   '/offline.html', // Fallback for offline state (Phase 5D)
 ];
 
@@ -170,11 +169,23 @@ async function staleWhileRevalidateStrategy(request) {
   const cached = await caches.match(request);
 
   const fetchPromise = fetch(request).then((response) => {
+    // Clone the response BEFORE consuming it
     if (response.ok) {
-      const cache = caches.open(CACHE_NAMES.static);
-      cache.then((c) => c.put(request, response.clone()));
+      const responseClone = response.clone();
+      caches.open(CACHE_NAMES.static).then((cache) => {
+        cache.put(request, responseClone);
+      }).catch((error) => {
+        console.warn('[Service Worker] Failed to cache response:', error);
+      });
     }
     return response;
+  }).catch((error) => {
+    console.log('[Service Worker] Fetch failed in stale-while-revalidate:', error);
+    // If network fails, return cached version
+    if (cached) {
+      return cached;
+    }
+    throw error;
   });
 
   return cached || fetchPromise;

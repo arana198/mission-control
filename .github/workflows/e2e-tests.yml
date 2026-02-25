@@ -1,0 +1,131 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  e2e-tests:
+    name: E2E Tests - Critical Flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # No external services needed - tests run against local dev server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start Convex backend
+        run: |
+          npm run convex:dev > /tmp/convex.log 2>&1 &
+          echo $! > /tmp/convex.pid
+          echo "Waiting for Convex to start..."
+          for i in {1..30}; do
+            if grep -q "ready" /tmp/convex.log; then
+              echo "Convex is ready!"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Start Next.js server
+        run: |
+          npm run dev > /tmp/nextjs.log 2>&1 &
+          echo $! > /tmp/nextjs.pid
+          echo "Waiting for Next.js to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null 2>&1 || \
+               curl -s http://localhost:3001 > /dev/null 2>&1 || \
+               curl -s http://localhost:3002 > /dev/null 2>&1; then
+              echo "Next.js is ready!"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run E2E tests - Critical Flows
+        run: npm run e2e -- e2e/critical-flows.spec.ts
+        env:
+          BASE_URL: http://localhost:3001
+
+      - name: Run E2E tests - UI Audit
+        if: always()
+        run: npm run e2e -- e2e/ui-audit.spec.ts
+        env:
+          BASE_URL: http://localhost:3001
+
+      - name: Generate audit report
+        if: always()
+        run: node scripts/audit-ui.js
+        env:
+          BASE_URL: http://localhost:3001
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: audit-report
+          path: reports/
+          retention-days: 30
+
+      - name: Stop servers
+        if: always()
+        run: |
+          kill $(cat /tmp/nextjs.pid 2>/dev/null) 2>/dev/null || true
+          kill $(cat /tmp/convex.pid 2>/dev/null) 2>/dev/null || true
+          sleep 2
+
+      - name: Print Convex logs on failure
+        if: failure()
+        run: tail -50 /tmp/convex.log || true
+
+      - name: Print Next.js logs on failure
+        if: failure()
+        run: tail -50 /tmp/nextjs.log || true
+
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'reports/mission-control-ui-audit-*.md';
+            const glob = require('glob');
+            const reports = glob.sync(reportPath);
+
+            if (reports.length > 0) {
+              const report = fs.readFileSync(reports[0], 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🧪 E2E Test Results\n\n${report}`
+              });
+            }
