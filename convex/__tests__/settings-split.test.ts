@@ -43,7 +43,7 @@ class SettingsMockDatabase {
       //  setting: getSetting(workspaceId, key)
       const businessMap = this.businessSettings.get(keyOrId);
       if (!businessMap) return null;
-      return workspaceMap.get(key) || null;
+      return businessMap.get(key) || null;
     }
   }
 

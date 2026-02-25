@@ -18,7 +18,7 @@ class StaleBugMockDatabase {
   addTask(task: any) {
     const workspace = task.workspaceId || "default";
     if (!this.tasks.has(workspace)) {
-      this.tasks.set(business, []);
+      this.tasks.set(workspace, []);
     }
     this.tasks.get(workspace)!.push(task);
   }

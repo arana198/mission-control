@@ -309,7 +309,7 @@ describe("es Module", () => {
 
       // Expected: workspace object returned
       expect(workspace).toBeDefined();
-      expect(business?.name).toBe("Mission Control");
+      expect(workspace?.name).toBe("Mission Control");
     });
 
     it("should return null if slug not found", async () => {
