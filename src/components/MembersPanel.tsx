@@ -105,7 +105,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value as any)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 bg-card border border-border rounded text-foreground focus:outline-none focus:border-primary"
             >
               <option value="member">Member</option>
               <option value="admin">Admin</option>
@@ -144,7 +144,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                   setShowInviteForm(false);
                   setError(null);
                 }}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white rounded px-4 py-2 font-medium transition-colors"
+                className="flex-1 bg-muted hover:bg-muted/80 text-foreground rounded px-4 py-2 font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -156,10 +156,10 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
       {/* Members List */}
       <div className="border border-slate-700 rounded-lg divide-y divide-slate-700">
         {!members || members.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">No members yet</div>
+          <div className="p-8 text-center text-muted-foreground">No members yet</div>
         ) : (
           members.map((member) => (
-            <div key={member._id} className="p-4 hover:bg-slate-900/50 transition-colors">
+            <div key={member._id} className="p-4 hover:bg-surface/50 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -169,8 +169,8 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                       {member.role}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400">{member.userEmail || "No email"}</p>
-                  <div className="flex gap-2 mt-2 text-xs text-gray-500">
+                  <p className="text-sm text-muted-foreground">{member.userEmail || "No email"}</p>
+                  <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
                     {member.allBoardsRead && <span>📖 Read All</span>}
                     {member.allBoardsWrite && <span>✏️ Write All</span>}
                   </div>
@@ -180,7 +180,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                   <select
                     value={member.role}
                     onChange={(e) => handleChangeRole(member._id, e.target.value)}
-                    className="px-3 py-1 bg-slate-800 border border-slate-600 rounded text-sm text-white focus:outline-none focus:border-primary"
+                    className="px-3 py-1 bg-card border border-border rounded text-sm text-foreground focus:outline-none focus:border-primary"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>

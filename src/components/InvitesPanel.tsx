@@ -139,7 +139,7 @@ export function InvitesPanel({ businessId }: InvitesPanelProps) {
         ) : (
           <div className="border border-slate-700 rounded-lg divide-y divide-slate-700">
             {acceptedInvites.map((invite) => (
-              <div key={invite._id} className="p-4 hover:bg-slate-900/50 transition-colors opacity-75">
+              <div key={invite._id} className="p-4 hover:bg-surface/50 transition-colors opacity-75">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">

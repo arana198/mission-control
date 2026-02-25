@@ -169,27 +169,27 @@ export function GatewaySessionsPanel({
                       Active
                     </span>
                     {expandedSession === session.key ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
                 </button>
 
                 {/* Session Content */}
                 {expandedSession === session.key && (
-                  <div className="bg-slate-950 p-4 space-y-4 border-t border-slate-700">
+                  <div className="bg-background p-4 space-y-4 border-t border-border">
                     {/* Message History */}
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-300 mb-2">Message History</h4>
-                      <div className="bg-slate-900 rounded h-48 p-3 overflow-y-auto space-y-2 border border-slate-700 mb-3">
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">Message History</h4>
+                      <div className="bg-card rounded h-48 p-3 overflow-y-auto space-y-2 border border-border mb-3">
                         {loadingHistory[session.key] && (
-                          <div className="text-center text-gray-500 text-sm py-8">
+                          <div className="text-center text-muted-foreground text-sm py-8">
                             Loading messages...
                           </div>
                         )}
                         {!loadingHistory[session.key] && (!history[session.key] || history[session.key].length === 0) && (
-                          <div className="text-center text-gray-500 text-sm py-8">
+                          <div className="text-center text-muted-foreground text-sm py-8">
                             No messages yet. Send a message to start.
                           </div>
                         )}
@@ -202,7 +202,7 @@ export function GatewaySessionsPanel({
                                 : "bg-muted text-muted-foreground mr-8 border-l-2 border-muted-foreground/30"
                             }`}
                           >
-                            <div className="text-xs text-gray-400 mb-1">{timeAgo(msg.timestamp)}</div>
+                            <div className="text-xs text-muted-foreground mb-1">{timeAgo(msg.timestamp)}</div>
                             <div>{msg.content}</div>
                           </div>
                         ))}
@@ -225,7 +225,7 @@ export function GatewaySessionsPanel({
                               handleSendMessage(session.key);
                             }
                           }}
-                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                          className="flex-1 px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary text-sm"
                         />
                         <button
                           onClick={() => handleSendMessage(session.key)}
@@ -238,15 +238,15 @@ export function GatewaySessionsPanel({
                     </div>
 
                     {/* Session Info */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700 text-sm">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border text-sm">
                       <div>
-                        <div className="text-gray-400">Last Activity</div>
+                        <div className="text-muted-foreground">Last Activity</div>
                         <div className="text-white font-medium">
                           {session.lastActivity ? timeAgo(session.lastActivity) : "—"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-gray-400">Status</div>
+                        <div className="text-muted-foreground">Status</div>
                         <div className="text-success/70 font-medium">Connected</div>
                       </div>
                     </div>
