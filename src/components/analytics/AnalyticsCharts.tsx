@@ -33,10 +33,10 @@ export function AnalyticsStatCard({
               <span
                 className={`flex items-center gap-1 text-xs font-medium ${
                   trend === "up"
-                    ? "text-green-600"
+                    ? "text-success"
                     : trend === "down"
-                      ? "text-red-600"
-                      : "text-gray-600"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
                 }`}
               >
                 {trend === "up" && <ArrowUp className="w-3 h-3" />}
@@ -71,18 +71,18 @@ export function MiniBarChart({
 
   const defaultColorFn = (label: string) => {
     const colors: Record<string, string> = {
-      P0: "bg-red-500",
-      P1: "bg-orange-500",
-      P2: "bg-blue-500",
-      P3: "bg-green-500",
-      backlog: "bg-gray-300",
-      ready: "bg-blue-300",
-      in_progress: "bg-yellow-300",
-      review: "bg-purple-300",
-      blocked: "bg-red-300",
-      done: "bg-green-300",
+      P0: "bg-destructive",
+      P1: "bg-warning",
+      P2: "bg-primary",
+      P3: "bg-success",
+      backlog: "bg-muted",
+      ready: "bg-primary/20",
+      in_progress: "bg-warning/20",
+      review: "bg-accent/20",
+      blocked: "bg-destructive/20",
+      done: "bg-success/20",
     };
-    return colors[label] || "bg-gray-400";
+    return colors[label] || "bg-muted/50";
   };
 
   const getColor = colorFn || defaultColorFn;
@@ -96,7 +96,7 @@ export function MiniBarChart({
               <span className="text-sm font-medium">{item.label}</span>
               <span className="text-xs text-muted-foreground">{item.value}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-muted/50 rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all ${getColor(
                   item.label
@@ -163,7 +163,7 @@ export function WeeklyVelocityChart({
           >
             <div className="w-full relative h-40 flex items-end justify-center">
               <div
-                className="w-full rounded-t bg-blue-500 transition-all"
+                className="w-full rounded-t bg-primary transition-all"
                 style={{ height: `${(item.count / maxCount) * 100}%` }}
                 title={`${item.week}: ${item.count} tasks`}
               />
@@ -201,7 +201,7 @@ export function StackedBarChart({
         <span className="text-sm font-medium">{label}</span>
         <span className="text-xs text-muted-foreground">Total: {total}</span>
       </div>
-      <div className="flex h-6 rounded-full overflow-hidden bg-gray-100">
+      <div className="flex h-6 rounded-full overflow-hidden bg-muted/20">
         {segments.map((segment) => (
           <div
             key={segment.label}

@@ -118,14 +118,14 @@ export function BusinessAnalyticsDashboard({
               }))}
               colorFn={(status) => {
                 const colors: Record<string, string> = {
-                  backlog: "bg-gray-300",
-                  ready: "bg-blue-300",
-                  in_progress: "bg-yellow-300",
-                  review: "bg-purple-300",
-                  blocked: "bg-red-300",
-                  done: "bg-green-300",
+                  backlog: "bg-muted",
+                  ready: "bg-primary/20",
+                  in_progress: "bg-warning/20",
+                  review: "bg-accent/20",
+                  blocked: "bg-destructive/20",
+                  done: "bg-success/20",
                 };
-                return colors[status] || "bg-gray-400";
+                return colors[status] || "bg-muted/50";
               }}
             />
           ) : (
@@ -149,12 +149,12 @@ export function BusinessAnalyticsDashboard({
                 }))}
               colorFn={(priority) => {
                 const colors: Record<string, string> = {
-                  P0: "bg-red-500",
-                  P1: "bg-orange-500",
-                  P2: "bg-blue-500",
-                  P3: "bg-green-500",
+                  P0: "bg-destructive",
+                  P1: "bg-warning",
+                  P2: "bg-primary",
+                  P3: "bg-success",
                 };
-                return colors[priority] || "bg-gray-500";
+                return colors[priority] || "bg-muted/50";
               }}
             />
           ) : (
@@ -221,22 +221,22 @@ export function BusinessAnalyticsDashboard({
               {
                 label: "P0 Critical",
                 value: statusOverview.byPriority.P0 || 0,
-                color: "bg-red-500",
+                color: "bg-destructive",
               },
               {
                 label: "P1 High",
                 value: statusOverview.byPriority.P1 || 0,
-                color: "bg-orange-500",
+                color: "bg-warning",
               },
               {
                 label: "P2 Medium",
                 value: statusOverview.byPriority.P2 || 0,
-                color: "bg-blue-500",
+                color: "bg-primary",
               },
               {
                 label: "P3 Low",
                 value: statusOverview.byPriority.P3 || 0,
-                color: "bg-green-500",
+                color: "bg-success",
               },
             ]}
             total={statusOverview?.total || 0}

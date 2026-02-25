@@ -52,19 +52,19 @@ export function WikiPageEditor({ page, onSave, onCancel }: WikiPageEditorProps) 
         <div className="flex items-center justify-between px-4 py-3">
           <div className="text-xs font-medium">
             {saveState === "saving" && (
-              <span className="text-yellow-600 flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full border-2 border-yellow-600 border-t-transparent animate-spin" />
+              <span className="text-warning flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full border-2 border-warning border-t-transparent animate-spin" />
                 Saving...
               </span>
             )}
             {saveState === "saved" && (
-              <span className="text-green-600 flex items-center gap-1">
+              <span className="text-success flex items-center gap-1">
                 <Check className="w-4 h-4" />
                 Saved
               </span>
             )}
             {saveState === "error" && (
-              <span className="text-red-600 flex items-center gap-1">
+              <span className="text-destructive flex items-center gap-1">
                 <AlertCircle className="w-4 h-4" />
                 Error saving
               </span>

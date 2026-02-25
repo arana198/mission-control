@@ -38,9 +38,9 @@ function StatCard({
   alert?: boolean;
 }) {
   return (
-    <div className={`card p-4 ${alert ? "border-red-200 bg-red-50 dark:bg-red-900/10" : ""}`}>
+    <div className={`card p-4 ${alert ? "border-destructive/30 bg-destructive/10" : ""}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-bold ${alert ? "text-red-600" : ""}`}>{value}</p>
+      <p className={`text-2xl font-bold ${alert ? "text-destructive" : ""}`}>{value}</p>
       {total !== undefined && (
         <p className="text-xs text-muted-foreground">{total} total</p>
       )}

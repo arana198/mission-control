@@ -98,7 +98,7 @@ export function DropdownMenuTrigger({ asChild, children }: DropdownMenuTriggerPr
 export function DropdownMenuContent({ align = "end", children }: DropdownMenuContentProps) {
   return (
     <div
-      className="py-1 bg-background border border-input rounded-lg shadow-lg dark:bg-slate-800"
+      className="py-1 bg-background border border-input rounded-lg shadow-lg"
     >
       {children}
     </div>

@@ -69,12 +69,12 @@ export function DashboardHeader({
         {/* P0 alert */}
         {p0Count > 0 && (
           <div
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full"
+            className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 rounded-full"
             role="alert"
             aria-label={`${p0Count} critical P0 task(s) require attention`}
           >
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" aria-hidden="true" />
-            <span className="text-sm font-medium text-red-600">{p0Count} P0 tasks</span>
+            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" aria-hidden="true" />
+            <span className="text-sm font-medium text-destructive">{p0Count} P0 tasks</span>
           </div>
         )}
 
@@ -86,7 +86,7 @@ export function DashboardHeader({
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
           )}
         </button>
 
