@@ -14,7 +14,9 @@
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { ping } from '@/services/gatewayRpc';
+import { connect, call, ping } from '@/services/gatewayRpc';
+import WebSocket from 'ws';
+import { provisionAgent, getSessionKey } from '@/services/agentProvisioning';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
@@ -137,10 +139,12 @@ export async function POST(
 
 /**
  * Get active sessions for a gateway
+ * Calls sessions.list RPC on the live gateway via WebSocket
  */
 async function handleGetSessions(
   gatewayId: string
 ): Promise<Response> {
+  let ws: WebSocket | undefined;
   try {
     const gateway = await client.query(api.gateways.getById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -153,19 +157,26 @@ async function handleGetSessions(
       );
     }
 
-    // Mock sessions - in production would connect to actual gateway
-    const sessions: GatewaySession[] = [
-      {
-        key: 'session-main',
-        label: 'Main Session',
-        lastActivity: Date.now() - 5000,
-      },
-      {
-        key: 'session-backup',
-        label: 'Backup Session',
-        lastActivity: Date.now() - 30000,
-      },
-    ];
+    ws = await connect({
+      url: gateway.url,
+      token: gateway.token,
+      disableDevicePairing: gateway.disableDevicePairing,
+      allowInsecureTls: gateway.allowInsecureTls,
+    });
+
+    const result = await call(ws, 'sessions.list', {});
+
+    // Map gateway RPC response to GatewaySession[]
+    // Gateway may return { sessions: [...] } or a bare array
+    const rawSessions: any[] = Array.isArray(result)
+      ? result
+      : (result?.sessions ?? []);
+
+    const sessions: GatewaySession[] = rawSessions.map((s: any) => ({
+      key: s.key,
+      label: s.label ?? s.name ?? s.key,
+      ...(s.lastActivity !== undefined && { lastActivity: s.lastActivity }),
+    }));
 
     return new Response(
       JSON.stringify({ sessions }),
@@ -176,16 +187,22 @@ async function handleGetSessions(
       JSON.stringify({ error: error?.message || 'Failed to fetch sessions' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
+  } finally {
+    if (ws) {
+      try { ws.close(); } catch { /* ignore close errors on already-closed socket */ }
+    }
   }
 }
 
 /**
  * Get message history for a session
+ * Calls chat.history RPC on the live gateway via WebSocket
  */
 async function handleGetHistory(
   gatewayId: string,
   sessionKey: string
 ): Promise<Response> {
+  let ws: WebSocket | undefined;
   try {
     const gateway = await client.query(api.gateways.getById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -198,19 +215,25 @@ async function handleGetHistory(
       );
     }
 
-    // Mock history - in production would retrieve from gateway storage
-    const history: HistoryEntry[] = [
-      {
-        type: 'received',
-        content: 'Hello, this is a test message',
-        timestamp: Date.now() - 60000,
-      },
-      {
-        type: 'sent',
-        content: 'Hi there, received your message',
-        timestamp: Date.now() - 30000,
-      },
-    ];
+    ws = await connect({
+      url: gateway.url,
+      token: gateway.token,
+      disableDevicePairing: gateway.disableDevicePairing,
+      allowInsecureTls: gateway.allowInsecureTls,
+    });
+
+    const result = await call(ws, 'chat.history', { sessionKey });
+
+    // Normalize: gateway may return { history: [...] } or a bare array
+    const rawHistory: any[] = Array.isArray(result)
+      ? result
+      : (result?.history ?? []);
+
+    const history: HistoryEntry[] = rawHistory.map((h: any) => ({
+      type: h.type === 'sent' ? 'sent' : 'received',
+      content: h.content ?? h.message ?? '',
+      timestamp: h.timestamp ?? Date.now(),
+    }));
 
     return new Response(
       JSON.stringify({ history }),
@@ -221,28 +244,34 @@ async function handleGetHistory(
       JSON.stringify({ error: error?.message || 'Failed to fetch history' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
+  } finally {
+    if (ws) {
+      try { ws.close(); } catch { /* ignore */ }
+    }
   }
 }
 
 /**
  * Send a message to a gateway session
+ * Calls chat.send RPC on the live gateway via WebSocket
  */
 async function handleSendMessage(
   gatewayId: string,
   body: any
 ): Promise<Response> {
+  const { sessionKey, content } = body;
+
+  if (!sessionKey || !content) {
+    return new Response(
+      JSON.stringify({
+        error: 'sessionKey and content required',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  let ws: WebSocket | undefined;
   try {
-    const { sessionKey, content } = body;
-
-    if (!sessionKey || !content) {
-      return new Response(
-        JSON.stringify({
-          error: 'sessionKey and content required',
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     const gateway = await client.query(api.gateways.getById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
@@ -254,12 +283,20 @@ async function handleSendMessage(
       );
     }
 
-    // Acknowledge receipt - in production send to actual gateway session
+    ws = await connect({
+      url: gateway.url,
+      token: gateway.token,
+      disableDevicePairing: gateway.disableDevicePairing,
+      allowInsecureTls: gateway.allowInsecureTls,
+    });
+
+    // chat.send expects { sessionKey, message } per agentProvisioning.ts
+    await call(ws, 'chat.send', { sessionKey, message: content });
+
     return new Response(
       JSON.stringify({
         ok: true,
         sessionKey,
-        content,
         sentAt: Date.now(),
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -269,6 +306,10 @@ async function handleSendMessage(
       JSON.stringify({ error: error?.message || 'Failed to send message' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
+  } finally {
+    if (ws) {
+      try { ws.close(); } catch { /* ignore */ }
+    }
   }
 }
 
@@ -334,12 +375,36 @@ async function handleGatewayStatus(gatewayId: string): Promise<Response> {
 }
 
 /**
- * Provision (setup) a gateway session
+ * Provision (setup) an agent on a gateway session
+ * Calls provisionAgent() which executes a 7-step RPC sequence
  */
 async function handleProvision(
   gatewayId: string,
   body: any
 ): Promise<Response> {
+  const { agent, business, otherAgents, baseUrl, authToken } = body;
+
+  // Validate required fields
+  if (!agent || !agent._id || !agent.name || !agent.role) {
+    return new Response(
+      JSON.stringify({ error: 'agent with _id, name, and role is required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  if (!business || !business._id || !business.name || !business.slug) {
+    return new Response(
+      JSON.stringify({ error: 'business with _id, name, and slug is required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  if (!baseUrl) {
+    return new Response(
+      JSON.stringify({ error: 'baseUrl is required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  let ws: WebSocket | undefined;
   try {
     const gateway = await client.query(api.gateways.getById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -352,19 +417,42 @@ async function handleProvision(
       );
     }
 
+    ws = await connect({
+      url: gateway.url,
+      token: gateway.token,
+      disableDevicePairing: gateway.disableDevicePairing,
+      allowInsecureTls: gateway.allowInsecureTls,
+    });
+
+    await provisionAgent(ws, {
+      gatewayId,
+      agent,
+      business,
+      otherAgents: otherAgents ?? [],
+      baseUrl,
+      authToken: authToken ?? '',
+    });
+
+    // Derive the session key so the caller can address this agent's session
+    const sessionKey = getSessionKey(agent, business._id, gatewayId);
+
     return new Response(
       JSON.stringify({
         ok: true,
-        sessionKey: `session-${Date.now()}`,
+        sessionKey,
         provisioned: true,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
     return new Response(
-      JSON.stringify({ error: error?.message || 'Failed to provision' }),
+      JSON.stringify({ error: error?.message || 'Failed to provision agent' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
+  } finally {
+    if (ws) {
+      try { ws.close(); } catch { /* ignore */ }
+    }
   }
 }
 

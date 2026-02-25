@@ -25,8 +25,18 @@ module.exports = {
   ],
 
   // Module name mapping for @/ imports
+  // Must match tsconfig.json paths exactly for ts-jest to resolve correctly
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/types/(.*)$': '<rootDir>/src/types/$1',
+    '^@/components/(.*)$': '<rootDir>/src/components/$1',
+    '^@/contexts/(.*)$': '<rootDir>/src/contexts/$1',
+    '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
+    '^@/styles/(.*)$': '<rootDir>/src/styles/$1',
+    '^@/services/(.*)$': '<rootDir>/src/services/$1',
+    '^@/app/(.*)$': '<rootDir>/src/app/$1',
+    '^@/convex/(.*)$': '<rootDir>/convex/$1',
+    '^@/lib/(.*)$': '<rootDir>/lib/$1',
+    '^@/(.*)$': '<rootDir>/$1',  // Fallback for other root-level modules
   },
 
   // TypeScript configuration for ts-jest
