@@ -6,7 +6,44 @@ import { api } from "@/convex/_generated/api";
 import { useBusiness } from "@/components/BusinessProvider";
 import { GatewayForm } from "@/components/GatewayForm";
 import { GatewaySessionsPanel } from "@/components/GatewaySessionsPanel";
+import { useGatewaySessions } from "@/hooks/useGatewaySessions";
 import { Plus, Trash2, Activity } from "lucide-react";
+
+/**
+ * Gateway Sessions Panel with Hook
+ * Wraps GatewaySessionsPanel with useGatewaySessions hook
+ */
+function GatewaySessionsPanelWithHook({ gatewayId }: { gatewayId: string }) {
+  const { sessions, isLoading, error, sendMessage, fetchHistory } =
+    useGatewaySessions(gatewayId);
+
+  return (
+    <div className="p-6">
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-400">
+            <div className="animate-spin inline-block mr-2">⟳</div>
+            Loading sessions...
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-900/20 border border-red-700 rounded p-4 text-red-300 text-sm">
+          Error: {error}
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <GatewaySessionsPanel
+          gatewayId={gatewayId}
+          sessions={sessions}
+          onSendMessage={sendMessage}
+        />
+      )}
+    </div>
+  );
+}
 
 /**
  * Gateways Admin Page
@@ -154,9 +191,8 @@ export default function GatewaysPage() {
         {/* Detail View */}
         <div className="lg:col-span-2 border border-slate-700 rounded-lg bg-slate-900">
           {selectedGatewayId && gateways ? (
-            <GatewaySessionsPanel
+            <GatewaySessionsPanelWithHook
               gatewayId={selectedGatewayId}
-              sessions={[]} // Would be fetched from API
             />
           ) : (
             <div className="h-full flex items-center justify-center p-8">
