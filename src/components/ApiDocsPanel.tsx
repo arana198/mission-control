@@ -25,11 +25,11 @@ export function ApiDocsPanel() {
         </p>
 
         {/* Info Box */}
-        <div className="bg-blue-900/20 border border-blue-800/30 rounded p-4">
-          <p className="text-sm text-blue-100 font-semibold mb-2">📚 How to Add New Endpoints</p>
-          <p className="text-xs text-blue-200">
-            1. Add endpoint metadata to <code className="bg-blue-900/50 px-1 py-0.5 rounded">generateOpenAPISpec()</code> in{" "}
-            <code className="bg-blue-900/50 px-1 py-0.5 rounded">lib/openapi-generator.ts</code>
+        <div className="bg-primary/10 border border-primary/30 rounded p-4">
+          <p className="text-sm text-primary font-semibold mb-2">📚 How to Add New Endpoints</p>
+          <p className="text-xs text-primary/80">
+            1. Add endpoint metadata to <code className="bg-primary/20 px-1 py-0.5 rounded">generateOpenAPISpec()</code> in{" "}
+            <code className="bg-primary/20 px-1 py-0.5 rounded">lib/openapi-generator.ts</code>
             <br />
             2. Specify: method, path, summary, description, request/response schemas
             <br />

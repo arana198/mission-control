@@ -61,11 +61,11 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
   const severityColor = (severity: string) => {
     switch (severity) {
       case "critical":
-        return "bg-red-100 text-red-800";
+        return "bg-destructive/10 text-destructive";
       case "warning":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-warning/10 text-warning";
       default:
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary/10 text-primary";
     }
   };
 
@@ -92,7 +92,7 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
           </h3>
           <button
             onClick={() => setShowNewRuleForm(!showNewRuleForm)}
-            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center gap-2"
+            className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <Plus className="w-3 h-3" />
             Add Rule
@@ -204,14 +204,14 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                className="flex-1 px-4 py-2 bg-success text-success-foreground rounded text-sm hover:bg-success/90 transition-colors"
               >
                 Create Rule
               </button>
               <button
                 type="button"
                 onClick={() => setShowNewRuleForm(false)}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded text-sm hover:bg-gray-400 transition-colors"
+                className="flex-1 px-4 py-2 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80 transition-colors"
               >
                 Cancel
               </button>
@@ -258,15 +258,15 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
                     onClick={() => toggleRule({ ruleId: rule._id })}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                       rule.enabled
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        ? "bg-success/10 text-success hover:bg-success/20"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {rule.enabled ? "Enabled" : "Disabled"}
                   </button>
                   <button
                     onClick={() => deleteRule({ ruleId: rule._id })}
-                    className="px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    className="px-2 py-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -302,10 +302,10 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium ${
                       decision.result === "success"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-success/10 text-success"
                         : decision.result === "failed"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted/50 text-muted-foreground"
                     }`}
                   >
                     {decision.result}

@@ -253,7 +253,7 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
                 </button>
                 <button
                   onClick={() => setDeletingAgent(agent)}
-                  className="btn bg-red-600 hover:bg-red-700 text-white text-sm"
+                  className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm"
                   title="Remove agent from squad"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -347,7 +347,7 @@ function AgentCard({ agent, onClick, onDelete, compact = false }: { agent: Agent
       {onDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 rounded transition-all"
+          className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive rounded transition-all"
           aria-label={`Delete ${agent.name}`}
           type="button"
         >
@@ -414,7 +414,7 @@ function DeleteAgentModal({ agent, onConfirm, onClose }: {
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="card rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-6">
-          <div className="flex items-center gap-3 text-red-600 mb-4">
+          <div className="flex items-center gap-3 text-destructive mb-4">
             <AlertCircle className="w-6 h-6" />
             <h2 className="text-lg font-semibold">Remove Agent</h2>
           </div>
@@ -422,7 +422,7 @@ function DeleteAgentModal({ agent, onConfirm, onClose }: {
             Are you sure you want to remove <strong>{agent.name}</strong> from the squad?
           </p>
           {agent.status === "active" && (
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200 mb-4">
+            <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 text-sm text-warning mb-4">
               ⚠️ This agent is currently <strong>active</strong>. Removing them will unassign all their tasks.
             </div>
           )}
@@ -434,7 +434,7 @@ function DeleteAgentModal({ agent, onConfirm, onClose }: {
             <button
               onClick={handleConfirm}
               disabled={isDeleting}
-              className="btn bg-red-600 hover:bg-red-700 text-white flex-1 disabled:opacity-50"
+              className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground flex-1 disabled:opacity-50"
             >
               {isDeleting ? "Removing..." : "Remove Agent"}
             </button>

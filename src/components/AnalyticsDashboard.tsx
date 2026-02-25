@@ -106,7 +106,7 @@ export function AnalyticsDashboard() {
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">Page Loads</span>
-            <Zap className="w-4 h-4 text-yellow-600" />
+            <Zap className="w-4 h-4 text-warning" />
           </div>
           <p className="text-2xl font-bold">{metricsData?.pageLoads || 0}</p>
           <p className="text-xs text-muted-foreground mt-1">session</p>
@@ -116,7 +116,7 @@ export function AnalyticsDashboard() {
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">API Calls</span>
-            <Activity className="w-4 h-4 text-blue-600" />
+            <Activity className="w-4 h-4 text-primary" />
           </div>
           <p className="text-2xl font-bold">{metricsData?.apiCalls || 0}</p>
           <p className="text-xs text-muted-foreground mt-1">total</p>
@@ -126,7 +126,7 @@ export function AnalyticsDashboard() {
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">Interactions</span>
-            <TrendingUp className="w-4 h-4 text-green-600" />
+            <TrendingUp className="w-4 h-4 text-success" />
           </div>
           <p className="text-2xl font-bold">{metricsData?.interactions || 0}</p>
           <p className="text-xs text-muted-foreground mt-1">user actions</p>
@@ -159,7 +159,7 @@ export function AnalyticsDashboard() {
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-600 transition-all"
+                  className="h-full bg-primary transition-all"
                   style={{
                     width: `${Math.min((metricsData?.avgResponseTime || 0) / 10, 100)}%`,
                   }}

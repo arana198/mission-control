@@ -354,17 +354,17 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       </div>
 
       {/* Danger Zone: Delete Business */}
-      <div className="card p-6 border-l-4 border-red-500">
+      <div className="card p-6 border-l-4 border-destructive">
         <div className="flex items-center gap-2 mb-4">
-          <Trash2 className="w-5 h-5 text-red-600" />
-          <h3 className="font-semibold text-red-600">Danger Zone</h3>
+          <Trash2 className="w-5 h-5 text-destructive" />
+          <h3 className="font-semibold text-destructive">Danger Zone</h3>
         </div>
 
         <div className="mb-4">
           <p className="text-sm text-muted-foreground mb-3">
             Delete this business and all associated data permanently. This action cannot be undone.
           </p>
-          <p className="text-xs text-red-600 font-medium">
+          <p className="text-xs text-destructive font-medium">
             This will delete: all tasks, epics, messages, documents, goals, and settings for this business.
           </p>
         </div>
@@ -395,7 +395,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
                   }
                 }}
                 disabled={isDeleting}
-                className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 disabled:opacity-50"
+                className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground flex items-center gap-2 disabled:opacity-50"
               >
                 {isDeleting ? "Deleting..." : "Delete Business"}
               </button>
@@ -411,7 +411,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         ) : (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="btn bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
+            className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" />
             Delete Business

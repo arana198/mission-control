@@ -48,7 +48,7 @@ export function CalendarSyncPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Calendar className="w-6 h-6 text-blue-500" />
+          <Calendar className="w-6 h-6 text-primary" />
           <div>
             <h3 className="font-semibold">Google Calendar Sync</h3>
             <p className="text-xs text-muted-foreground">
@@ -58,8 +58,8 @@ export function CalendarSyncPanel() {
         </div>
         {connected && (
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
-            <span className="text-sm font-medium text-green-600">Active</span>
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <span className="text-sm font-medium text-success">Active</span>
           </div>
         )}
       </div>
