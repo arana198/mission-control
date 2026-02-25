@@ -13,15 +13,15 @@ jest.mock("convex/react", () => ({
 jest.mock("@/convex/_generated/api", () => ({
   api: {
     gateways: {
-      getByBusiness: "getByBusiness",
-      getById: "getById",
+      getBy: "getBy",
+      getWorkspaceById: "getWorkspaceById",
       deleteGateway: "deleteGateway",
     },
   },
 }));
 
-jest.mock("@/components/BusinessProvider", () => ({
-  useBusiness: jest.fn(),
+jest.mock("@/components/WorkspaceProvider", () => ({
+  useWorkspace: jest.fn(),
 }));
 
 jest.mock("@/hooks/useRole", () => ({
@@ -70,13 +70,13 @@ import "@testing-library/jest-dom";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { useQuery, useMutation } from "convex/react";
-import { useBusiness } from "@/components/BusinessProvider";
+import { useWorkspace } from "@/components/WorkspaceProvider";
 import { useRole } from "@/hooks/useRole";
 import GatewaysPage from "@/app/gateways/page";
 
 const mockUseQuery = useQuery as jest.Mock;
 const mockUseMutation = useMutation as jest.Mock;
-const mockUseBusiness = useBusiness as jest.Mock;
+const mockUse = useWorkspace as jest.Mock;
 const mockUseRole = useRole as jest.Mock;
 
 const mockGateways = [
@@ -104,22 +104,22 @@ const mockGateways = [
   },
 ];
 
-const mockCurrentBusiness = {
+const mockCurrent = {
   _id: "business_1",
-  name: "Test Business",
+  name: "Test ",
 };
 
 describe("GatewaysPage RBAC", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseBusiness.mockReturnValue({
-      currentBusiness: mockCurrentBusiness,
+    mockUse.mockReturnValue({
+      currentWorkspace: mockCurrent,
     });
 
     mockUseQuery.mockImplementation((queryFn: any) => {
-      // Return gateways when querying getByBusiness
-      if (queryFn?.toString?.().includes("getByBusiness")) {
+      // Return gateways when querying getBy
+      if (queryFn?.toString?.().includes("getBy")) {
         return mockGateways;
       }
       return null;

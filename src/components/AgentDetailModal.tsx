@@ -78,7 +78,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
   const handleTaskClick = (taskId: string) => {
     const currentUrl = `/global/agents?agent=${agent._id}`;
     const returnUrl = encodeURIComponent(currentUrl);
-    // Navigate to the first available business board with the task ID
+    // Navigate to the first available workspace board with the task ID
     // Note: This opens the first business's board; ideally we'd know the task's business
     router.push(`?task=${taskId}`);
   };

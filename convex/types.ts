@@ -31,7 +31,7 @@ export const ACTIVITY_TYPES = [
 export type ActivityType = typeof ACTIVITY_TYPES[number];
 
 export interface ActivityPayload {
-  businessId?: Id<"businesses">;
+  workspaceId?: Id<"workspaces">;
   type: ActivityType;
   agentId: string;
   agentName: string;

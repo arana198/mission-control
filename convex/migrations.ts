@@ -8,26 +8,26 @@ import { api } from "./_generated/api";
  */
 
 /**
- * MIG-04: Multi-Business Support (2026-02-19)
+ * MIG-04: Multi- Support (2026-02-19)
  *
  * Schema changes:
  * - NEW TABLE: businesses (name, slug, color, emoji, isDefault, createdAt, updatedAt)
- * - Added businessId to: tasks, epics, goals, activities, documents, strategicReports, messages, threadSubscriptions, executionLog
- * - Modified settings table: added optional businessId (null=global, set=business-scoped)
+ * - Added workspaceId to: tasks, epics, goals, activities, documents, strategicReports, messages, threadSubscriptions, executionLog
+ * - Modified settings table: added optional workspaceId (null=global, set=workspace-scoped)
  * - NOT modified: calendarEvents (stays globally shared), agents, agentMetrics, wakeRequests, notifications, memoryIndex
  *
  * Reason: Enable 2-5 businesses to share a single Mission Control instance with complete data isolation.
- * Per-business configuration (GitHub org/repo, ticket prefix, taskCounter), global settings (theme, features).
+ * per-workspace configuration (GitHub org/repo, ticket prefix, taskCounter), global settings (theme, features).
  *
  * Migration action:
- * 1. Create default business ("Mission Control Default") if no businesses exist
- * 2. Add businessId to all existing tasks, epics, goals, etc. (set to default business)
- * 3. Migrate global taskCounter to per-business counter
+ * 1. Create default workspace ("Mission Control Default") if no businesses exist
+ * 2. Add workspaceId to all existing tasks, epics, goals, etc. (set to default business)
+ * 3. Migrate global taskCounter to per-workspace counter
  * 4. Keep calendarEvents unchanged (globally shared for conflict detection)
  *
  * Idempotent: Check if businesses table has entries before creating default.
  */
-export const migrationMultiBusinessSupport = mutation({
+export const migrationMultiSupport = mutation({
   args: {
     businessName: convexVal.optional(convexVal.string()),
     businessSlug: convexVal.optional(convexVal.string()),
@@ -35,145 +35,145 @@ export const migrationMultiBusinessSupport = mutation({
   },
   handler: async (ctx, { businessName = "Mission Control Default", businessSlug = "default", batchSize = 100 }) => {
     // Check if businesses exist
-    const existingBusinesses = await ctx.db.query("businesses").collect();
+    const existinges = await ctx.db.query("workspaces").collect();
 
-    if (existingBusinesses.length === 0) {
+    if (existinges.length === 0) {
       // Create default business
-      const defaultBusiness = await ctx.db.insert("businesses", {
+      const default = await ctx.db.insert("workspaces", {
         name: businessName,
         slug: businessSlug,
         color: "#6366f1",
         emoji: "🚀",
-        description: "Default business migration from single-business setup",
+        description: "Default workspace migration from single-business setup",
         isDefault: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
 
-      // Migrate tasks - add businessId
+      // Migrate tasks - add workspaceId
       const tasks = await ctx.db.query("tasks").collect();
       const tasksBatch = tasks.slice(0, batchSize);
 
       for (const task of tasksBatch) {
-        if (!task.businessId) {
+        if (!task.workspaceId) {
           await ctx.db.patch(task._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate epics - add businessId
+      // Migrate epics - add workspaceId
       const epics = await ctx.db.query("epics").collect();
       const epicsBatch = epics.slice(0, batchSize);
 
       for (const epic of epicsBatch) {
-        if (!epic.businessId) {
+        if (!epic.workspaceId) {
           await ctx.db.patch(epic._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate goals - add businessId
+      // Migrate goals - add workspaceId
       const goals = await ctx.db.query("goals").collect();
       const goalsBatch = goals.slice(0, batchSize);
 
       for (const goal of goalsBatch) {
-        if (!goal.businessId) {
+        if (!goal.workspaceId) {
           await ctx.db.patch(goal._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate activities - add businessId
+      // Migrate activities - add workspaceId
       const activities = await ctx.db.query("activities").collect();
       const activitiesBatch = activities.slice(0, batchSize);
 
       for (const activity of activitiesBatch) {
-        if (!activity.businessId) {
+        if (!activity.workspaceId) {
           await ctx.db.patch(activity._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate documents - add businessId
+      // Migrate documents - add workspaceId
       const documents = await ctx.db.query("documents").collect();
       const documentsBatch = documents.slice(0, batchSize);
 
       for (const document of documentsBatch) {
-        if (!document.businessId) {
+        if (!document.workspaceId) {
           await ctx.db.patch(document._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate strategicReports - add businessId
+      // Migrate strategicReports - add workspaceId
       const reports = await ctx.db.query("strategicReports").collect();
       const reportsBatch = reports.slice(0, batchSize);
 
       for (const report of reportsBatch) {
-        if (!report.businessId) {
+        if (!report.workspaceId) {
           await ctx.db.patch(report._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate messages - add businessId
+      // Migrate messages - add workspaceId
       const messages = await ctx.db.query("messages").collect();
       const messagesBatch = messages.slice(0, batchSize);
 
       for (const message of messagesBatch) {
-        if (!message.businessId) {
+        if (!message.workspaceId) {
           await ctx.db.patch(message._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate threadSubscriptions - add businessId
+      // Migrate threadSubscriptions - add workspaceId
       const subscriptions = await ctx.db.query("threadSubscriptions").collect();
       const subscriptionsBatch = subscriptions.slice(0, batchSize);
 
       for (const sub of subscriptionsBatch) {
-        if (!sub.businessId) {
+        if (!sub.workspaceId) {
           await ctx.db.patch(sub._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate executionLog - add businessId
+      // Migrate executionLog - add workspaceId
       const logs = await ctx.db.query("executionLog").collect();
       const logsBatch = logs.slice(0, batchSize);
 
       for (const log of logsBatch) {
-        if (!log.businessId) {
+        if (!log.workspaceId) {
           await ctx.db.patch(log._id, {
-            businessId: defaultBusiness,
+            workspaceId: default,
           });
         }
       }
 
-      // Migrate global taskCounter to per-business counter
+      // Migrate global taskCounter to per-workspace counter
       const globalCounter = await ctx.db
         .query("settings")
         .withIndex("by_key", (q: any) => q.eq("key", "taskCounter"))
         .first();
 
-      if (globalCounter && !globalCounter.businessId) {
-        // Update existing to add businessId
+      if (globalCounter && !globalCounter.workspaceId) {
+        // Update existing to add workspaceId
         await ctx.db.patch(globalCounter._id, {
-          businessId: defaultBusiness,
+          workspaceId: default,
         });
       } else if (!globalCounter) {
-        // Create new per-business counter
+        // Create new per-workspace counter
         await ctx.db.insert("settings", {
           key: "taskCounter",
-          businessId: defaultBusiness,
+          workspaceId: default,
           value: "0",
           updatedAt: Date.now(),
         });
@@ -181,7 +181,7 @@ export const migrationMultiBusinessSupport = mutation({
 
       return {
         success: true,
-        defaultBusinessId: defaultBusiness,
+        defaultId: default,
         migratedTasks: Math.min(tasks.length, batchSize),
         migratedEpics: Math.min(epics.length, batchSize),
         migratedGoals: Math.min(goals.length, batchSize),
@@ -191,13 +191,13 @@ export const migrationMultiBusinessSupport = mutation({
         migratedMessages: Math.min(messages.length, batchSize),
         migratedSubscriptions: Math.min(subscriptions.length, batchSize),
         migratedLogs: Math.min(logs.length, batchSize),
-        message: "MIG-04: Multi-business support migration complete. Default business created and all entities migrated.",
+        message: "MIG-04: Multi-business support migration complete. Default workspace created and all entities migrated.",
       };
     }
 
     return {
       success: true,
-      message: "MIG-04: Businesses already exist. No migration needed.",
+      message: "MIG-04: es already exist. No migration needed.",
     };
   },
 });
@@ -347,20 +347,20 @@ export const migrateTasksToEpic = mutation({
       if (generalEpic) {
         targetEpicId = generalEpic._id;
       } else {
-        // Create a default epic - get businessId from default business
+        // Create a default epic - get workspaceId from default business
         const lead = await ctx.db.query("agents").first();
-        const defaultBusiness = await ctx.db
-          .query("businesses")
+        const default = await ctx.db
+          .query("workspaces")
           .withIndex("by_default", (q: any) => q.eq("isDefault", true))
           .first();
 
-        const businessId = defaultBusiness?._id;
-        if (!businessId) {
-          throw new Error("No default business found. Cannot create epic.");
+        const workspaceId = default?._id;
+        if (!workspaceId) {
+          throw new Error("No default workspace found. Cannot create epic.");
         }
 
         targetEpicId = await ctx.db.insert("epics", {
-          businessId,
+          workspaceId,
           title: "General Tasks",
           description: "Default epic for tasks that were created before epic association was required. Contains migrated tasks without an epic.",
           status: "active",
@@ -858,13 +858,13 @@ export const migrationAgentWorkspacePaths = mutation({
  * accessible to agents as context for their work.
  *
  * Migration action:
- * 1. For each business without missionStatement, set to their description or a default value
+ * 1. For each workspace without missionStatement, set to their description or a default value
  * 2. Idempotent: skip if missionStatement already exists
  */
 export const migrationAddMissionStatement = mutation({
   args: { defaultMissionStatement: convexVal.optional(convexVal.string()) },
   handler: async (ctx, { defaultMissionStatement = "To deliver exceptional value and solve real problems for our users." }) => {
-    const businesses = await ctx.db.query("businesses").collect();
+    const businesses = await ctx.db.query("workspaces").collect();
     let updated = 0;
 
     for (const b of businesses) {
@@ -964,7 +964,7 @@ export const migrationInitWiki = mutation({
  * - Added tags field to wikiPages: optional array of strings (max 10)
  * - Added favoritedBy field to wikiPages: optional array of userId strings
  * - Added viewCount field to wikiPages: optional number
- * - Added index: by_business_status on [businessId, status] for efficient status filtering
+ * - Added index: by_workspace_status on [workspaceId, status] for efficient status filtering
  *
  * Reason: Enable Confluence-like knowledge management features:
  * - Status: Track page lifecycle (draft → published → archived)
@@ -1024,7 +1024,7 @@ export const migrationWikiDriFields = mutation({
  * Schema changes:
  * - REMOVED: emoji, status, tags, favoritedBy, viewCount, driver, approver, contributors, dueDate, version, contentText
  * - REMOVED: wikiPageHistory table entirely
- * - KEPT: businessId, title, content (plain markdown), parentId, childIds, position, type, taskIds, epicId, authoring metadata
+ * - KEPT: workspaceId, title, content (plain markdown), parentId, childIds, position, type, taskIds, epicId, authoring metadata
  *
  * Reason: Simplify wiki from Confluence-style to simple markdown document store with pages/subpages.
  * Remove all metadata, collaboration features, version history, and status tracking.
@@ -1072,7 +1072,7 @@ export const migrationWikiSimplify = mutation({
         // Patch page to remove old fields (only update core fields to ensure schema compliance)
         await ctx.db.patch(page._id, {
           // Keep only fields in new schema
-          businessId: page.businessId,
+          workspaceId: page.workspaceId,
           title: page.title,
           content: page.content,
           parentId: page.parentId,
@@ -1102,20 +1102,20 @@ export const migrationWikiSimplify = mutation({
 });
 
 /**
- * MIG-10: Schema Optimizations — Ticket Index + CalendarEvents BusinessId (2026-02-23)
+ * MIG-10: Schema Optimizations — Ticket Index + CalendarEvents Id (2026-02-23)
  *
  * Schema changes:
- * - tasks: new "by_ticket_number" index (["businessId", "ticketNumber"]) for fast ticket lookups
- * - calendarEvents: add optional businessId field + "by_business" index for multi-tenant isolation
- * - taskSubscriptions: new "by_business" index for cascade delete compliance
+ * - tasks: new "by_ticket_number" index (["workspaceId", "ticketNumber"]) for fast ticket lookups
+ * - calendarEvents: add optional workspaceId field + "by_workspace" index for multi-tenant isolation
+ * - taskSubscriptions: new "by_workspace" index for cascade delete compliance
  *
  * Reason: Phase 1 of comprehensive Convex backend refactor
  * - Ticket index: eliminates full table scan in getTaskByTicketNumber
- * - CalendarEvents.businessId: enables business-scoped cascade delete
- * - TaskSubscriptions.by_business: required for businesses.remove() cascade
+ * - CalendarEvents.workspaceId: enables workspace-scoped cascade delete
+ * - TaskSubscriptions.by_workspace: required for businesses.remove() cascade
  *
  * Migration action:
- * - Backfill calendarEvents.businessId from related taskId → task.businessId
+ * - Backfill calendarEvents.workspaceId from related taskId → task.workspaceId
  * - All other changes are schema-only (no data mutation needed)
  *
  * Idempotent: Skips already-backfilled records; safe to run multiple times
@@ -1125,22 +1125,22 @@ export const migrationWikiSimplify = mutation({
 export const migrationSchemaOptimizations = mutation({
   args: { batchSize: convexVal.optional(convexVal.number()) },
   handler: async (ctx, { batchSize = 100 }) => {
-    // Backfill calendarEvents.businessId from related tasks
+    // Backfill calendarEvents.workspaceId from related tasks
     const events = await ctx.db.query("calendarEvents").collect();
     let backfilled = 0;
 
     for (const event of events) {
       // Idempotent: skip if already backfilled
-      if ((event as any).businessId) {
+      if ((event as any).workspaceId) {
         continue;
       }
 
       // Only backfill if event has a taskId
       if (event.taskId) {
         const task = await ctx.db.get(event.taskId);
-        if (task && (task as any).businessId) {
+        if (task && (task as any).workspaceId) {
           await ctx.db.patch(event._id, {
-            businessId: (task as any).businessId,
+            workspaceId: (task as any).workspaceId,
           } as any);
           backfilled++;
         }
@@ -1151,7 +1151,7 @@ export const migrationSchemaOptimizations = mutation({
       success: true,
       backfilled,
       total: events.length,
-      message: `MIG-10: Schema optimizations applied. Backfilled ${backfilled}/${events.length} calendar events with businessId.`,
+      message: `MIG-10: Schema optimizations applied. Backfilled ${backfilled}/${events.length} calendar events with workspaceId.`,
     };
   },
 });
@@ -1212,19 +1212,19 @@ export const migrationDenormalizeAgentMetrics = mutation({
 });
 
 /**
- * MIG-12: Activities Schema - Optional BusinessId (2026-02-23)
+ * MIG-12: Activities Schema - Optional Id (2026-02-23)
  *
  * Schema change:
- * - Modified activities table: made businessId optional v.optional(v.id("businesses"))
+ * - Modified activities table: made workspaceId optional v.optional(v.id("workspaces"))
  *
- * Reason: Agents are global (not business-scoped), so agent-scoped activities
- * (like heartbeat status changes) don't belong to a specific business.
- * This change allows such activities to be recorded without requiring a businessId,
- * while task-scoped activities can still include it for business filtering.
+ * Reason: Agents are global (not workspace-scoped), so agent-scoped activities
+ * (like heartbeat status changes) don't belong to a specific  workspace.
+ * This change allows such activities to be recorded without requiring a workspaceId,
+ * while task-scoped activities can still include it for workspace filtering.
  *
  * Migration action:
- * - No data migration needed: existing activities with businessId remain unchanged,
- *   new activities can be inserted without businessId
+ * - No data migration needed: existing activities with workspaceId remain unchanged,
+ *   new activities can be inserted without workspaceId
  *
  * Idempotent: Schema-only change, no data operation required.
  *
@@ -1250,7 +1250,7 @@ export const migrationDenormalizeAgentMetrics = mutation({
  *
  * Idempotent: Schema-only change, no data operation required.
  *
- * Used by: convex/alertEvaluator.ts evaluateRulesForBusiness (Phase 4C)
+ * Used by: convex/alertEvaluator.ts evaluateRulesFor (Phase 4C)
  */
 
 /**
@@ -1311,8 +1311,8 @@ export const migrationDenormalizeAgentMetrics = mutation({
  * - cron_jobs: Scheduled workflow executions (Phase 6C foundation)
  *
  * Schema changes to existing tables:
- * - executions: Added businessId (optional), workflowId (optional), renamed indexes
- * - executions: Added new indexes by_agent_time, by_status_time, by_workflow_id, by_business_id
+ * - executions: Added workspaceId (optional), workflowId (optional), renamed indexes
+ * - executions: Added new indexes by_agent_time, by_status_time, by_workflow_id, by_workspace_id
  *
  * Reason: Phase 6A implements the Agent Operating System control plane.
  *
@@ -1333,13 +1333,13 @@ export const migrationDenormalizeAgentMetrics = mutation({
  *
  * Migration action:
  * - No data migration needed: new tables initialized empty
- * - executions.businessId backfilled from tasks[].businessId where available
+ * - executions.workspaceId backfilled from tasks[].workspaceId where available
  * - Initial agent_status records created for all existing agents (idle, 0 queue)
  * - Metrics aggregator background job starts hourly on deployment
  * - Event cleanup cron starts, deletes events >24 hours old hourly
  *
  * Idempotent: Schema-only change for new tables. executions migration is
- * backfill-safe (skips already-populated businessId). agent_status initialization
+ * backfill-safe (skips already-populated workspaceId). agent_status initialization
  * is idempotent (creates only if missing).
  *
  * Used by: Phase 6A (convex/executions.ts, convex/agents-lifecycle.ts,
@@ -1359,7 +1359,7 @@ export const migrationDenormalizeAgentMetrics = mutation({
  *
  * Migration action:
  * 1. Get all businesses
- * 2. For each business, check if organizationMembers entry exists for userId="local-user"
+ * 2. For each workspace, check if organizationMembers entry exists for userId="local-user"
  * 3. If not, create one with role="owner", allBoardsRead=true, allBoardsWrite=true
  * 4. Log created entries
  *
@@ -1370,7 +1370,7 @@ export const migrateAddRBACSupport = mutation({
   async handler(ctx) {
     try {
       // Get all businesses
-      const businesses = await ctx.db.query("businesses").collect();
+      const businesses = await ctx.db.query("workspaces").collect();
 
       if (businesses.length === 0) {
         console.log("migrateAddRBACSupport: No businesses found, skipping");
@@ -1379,20 +1379,20 @@ export const migrateAddRBACSupport = mutation({
 
       let createdCount = 0;
 
-      // For each business, ensure there's an owner member
-      for (const business of businesses) {
-        // Check if organizationMembers entry already exists for this business + local-user
+      // For each workspace, ensure there's an owner member
+      for (const workspace of businesses) {
+        // Check if organizationMembers entry already exists for this workspace + local-user
         const existing = await ctx.db
           .query("organizationMembers")
-          .withIndex("by_business_user", (q) =>
-            q.eq("businessId", business._id).eq("userId", "local-user")
+          .withIndex("by_workspace_user", (q) =>
+            q.eq("workspaceId", workspace._id).eq("userId", "local-user")
           )
           .first();
 
         if (!existing) {
           // Create owner member
           await ctx.db.insert("organizationMembers", {
-            businessId: business._id,
+            workspaceId: workspace._id,
             userId: "local-user",
             userEmail: undefined,
             userName: undefined,
@@ -1403,7 +1403,7 @@ export const migrateAddRBACSupport = mutation({
             updatedAt: Date.now(),
           });
           createdCount++;
-          console.log(`migrateAddRBACSupport: Created owner member for business ${business._id}`);
+          console.log(`migrateAddRBACSupport: Created owner member for workspace ${workspace._id}`);
         }
       }
 
@@ -1425,9 +1425,9 @@ export const migrateAddRBACSupport = mutation({
  * 1. Execute schema upgrade (schema.ts already updated)
  *
  * 2. Run backfill in migration handler:
- *    - For each execution without businessId:
+ *    - For each execution without workspaceId:
  *      - Look up task via taskId
- *      - Copy task.businessId to execution.businessId
+ *      - Copy task.workspaceId to execution.workspaceId
  *      - Safe: only fills if null, skips if already set
  *
  * 3. Initialize agent_status:
@@ -1444,5 +1444,5 @@ export const migrateAddRBACSupport = mutation({
  *    - npm test convex/__tests__/executions.test.ts
  *    - npm test convex/__tests__/agent-lifecycle.test.ts
  *    - Verify agent_status records created for all agents
- *    - Verify executions.businessId backfilled correctly
+ *    - Verify executions.workspaceId backfilled correctly
  */

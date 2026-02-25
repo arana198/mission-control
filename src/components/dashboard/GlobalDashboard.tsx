@@ -10,7 +10,7 @@ import { ActivityFeed } from "../ActivityFeed";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { Suspense, lazy } from "react";
 import { CardGridSkeleton, LoadingSkeleton } from "../LoadingSkeletons";
-import { BusinessFilter } from "../BusinessFilter";
+import { WorkspaceFilter } from "../WorkspaceFilter";
 
 const CalendarView = lazy(() => import("../CalendarView").then(m => ({ default: m.CalendarView })));
 const BrainHub = lazy(() => import("../BrainHub").then(m => ({ default: m.BrainHub })));
@@ -27,20 +27,20 @@ interface GlobalDashboardProps {
 
 /**
  * Global Dashboard Component
- * Handles tabs that don't require specific businessId: agents, workload, activity, calendar, etc.
+ * Handles tabs that don't require specific workspaceId: agents, workload, activity, calendar, etc.
  */
 export function GlobalDashboard({ tab }: GlobalDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedBusinessFilter = searchParams?.get("businessId");
+  const selectedWorkspaceFilter = searchParams?.get("workspaceId");
 
   // Handle filter changes and persist to URL
-  const handleFilterChange = (businessId: string | null) => {
+  const handleFilterChange = (workspaceId: string | null) => {
     const params = new URLSearchParams(searchParams?.toString() || "");
-    if (businessId) {
-      params.set("businessId", businessId);
+    if (workspaceId) {
+      params.set("workspaceId", workspaceId);
     } else {
-      params.delete("businessId");
+      params.delete("workspaceId");
     }
     router.push(`?${params.toString()}`);
   };
@@ -48,21 +48,21 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
   // Global data fetching
   const agents = useQuery(api.agents.getAllAgents);
   const activities = useQuery(api.activities.getRecent,
-    selectedBusinessFilter ? { limit: 10, businessId: selectedBusinessFilter as any } : "skip"
+    selectedWorkspaceFilter ? { limit: 10, workspaceId: selectedWorkspaceFilter as any } : "skip"
   );
 
   // Filtered tasks for workload/activity views
   const firstAgentId = agents?.[0]?._id;
   const filteredTasks = useQuery(api.tasks.getFiltered,
-    selectedBusinessFilter && firstAgentId ? {
-      businessId: selectedBusinessFilter as any,
+    selectedWorkspaceFilter && firstAgentId ? {
+      workspaceId: selectedWorkspaceFilter as any,
       agentId: firstAgentId
     } : "skip"
   );
 
   // Global epics
   const epics = useQuery(api.epics.getAllEpics,
-    selectedBusinessFilter ? { businessId: selectedBusinessFilter as any } : "skip"
+    selectedWorkspaceFilter ? { workspaceId: selectedWorkspaceFilter as any } : "skip"
   );
 
   // Render content based on tab
@@ -155,7 +155,7 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
             <Suspense fallback={<LoadingSkeleton />}>
               <AgentInbox
                 agents={agents || []}
-                businessId={selectedBusinessFilter || ""}
+                workspaceId={selectedWorkspaceFilter || ""}
               />
             </Suspense>
           </ErrorBoundary>
@@ -166,7 +166,7 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
     }
   };
 
-  const showBusinessFilter = ["workload", "activity", "analytics", "inbox"].includes(tab);
+  const showWorkspaceFilter = ["workload", "activity", "analytics", "inbox"].includes(tab);
 
   return (
     <div className="p-6 border-l-4 border-l-muted-foreground/20">
@@ -175,9 +175,9 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
         🌐 Workspace View
       </div>
 
-      {showBusinessFilter && (
+      {showWorkspaceFilter && (
         <div className="mb-6 pb-4 border-b">
-          <BusinessFilter onFilterChange={handleFilterChange} />
+          <WorkspaceFilter onFilterChange={handleFilterChange} />
         </div>
       )}
       {renderContent()}

@@ -9,8 +9,8 @@
  * - deleteAgent uses by_assignee index (not full table scan)
  * - countUnread uses by_read index + take() (not collect() for length)
  * - markAllRead uses by_read index + parallel patches
- * - patternLearning queries use by_business index without as any
- * - calendarEvents queries use by_business index (post-MIG-10 backfill)
+ * - patternLearning queries use by_workspace index without as any
+ * - calendarEvents queries use by_workspace index (post-MIG-10 backfill)
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
@@ -119,10 +119,10 @@ class PaginationMockDatabase {
     // Simulate by_ticket_number index
     if (indexName === "by_ticket_number") {
       const mockQ = {
-        _businessId: null,
+        _workspaceId: null,
         _ticketNumber: null,
         eq: function (field: string, value: any) {
-          if (field === "businessId") this._businessId = value;
+          if (field === "workspaceId") this._workspaceId = value;
           if (field === "ticketNumber") this._ticketNumber = value;
           return this;
         },
@@ -130,18 +130,18 @@ class PaginationMockDatabase {
       filterFn(mockQ);
       return docs.filter(
         (d) =>
-          d.businessId === mockQ._businessId &&
+          d.workspaceId === mockQ._workspaceId &&
           d.ticketNumber === mockQ._ticketNumber
       );
     }
 
-    // Simulate by_business_status index
-    if (indexName === "by_business_status") {
+    // Simulate by_workspace_status index
+    if (indexName === "by_workspace_status") {
       const mockQ = {
-        _businessId: null,
+        _workspaceId: null,
         _status: null,
         eq: function (field: string, value: any) {
-          if (field === "businessId") this._businessId = value;
+          if (field === "workspaceId") this._workspaceId = value;
           if (field === "status") this._status = value;
           return this;
         },
@@ -149,22 +149,22 @@ class PaginationMockDatabase {
       filterFn(mockQ);
       return docs.filter(
         (d) =>
-          d.businessId === mockQ._businessId &&
+          d.workspaceId === mockQ._workspaceId &&
           d.status === mockQ._status
       );
     }
 
-    // Simulate by_business index
-    if (indexName === "by_business") {
+    // Simulate by_workspace index
+    if (indexName === "by_workspace") {
       const mockQ = {
-        _businessId: null,
+        _workspaceId: null,
         eq: function (field: string, value: any) {
-          if (field === "businessId") this._businessId = value;
+          if (field === "workspaceId") this._workspaceId = value;
           return this;
         },
       };
       filterFn(mockQ);
-      return docs.filter((d: any) => d.businessId === mockQ._businessId);
+      return docs.filter((d: any) => d.workspaceId === mockQ._workspaceId);
     }
 
     // Simulate by_assignee index
@@ -225,10 +225,10 @@ describe("Phase 3: Pagination and Indexes", () => {
   });
 
   describe("getTaskByTicketNumber: Use by_ticket_number index", () => {
-    it("should find task by businessId + ticketNumber using index", async () => {
-      const businessId = "business_1";
+    it("should find task by workspaceId + ticketNumber using index", async () => {
+      const workspaceId = "business_1";
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         ticketNumber: "T-123",
         title: "Test Task",
         description: "Test",
@@ -241,7 +241,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       const result = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", businessId).eq("ticketNumber", "T-123")
+          q.eq("workspaceId", workspaceId).eq("ticketNumber", "T-123")
         )
         .first();
 
@@ -252,12 +252,12 @@ describe("Phase 3: Pagination and Indexes", () => {
     });
 
     it("should return null if ticket not found", async () => {
-      const businessId = "business_1";
+      const workspaceId = "business_1";
 
       const result = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", businessId).eq("ticketNumber", "NONEXISTENT")
+          q.eq("workspaceId", workspaceId).eq("ticketNumber", "NONEXISTENT")
         )
         .first();
 
@@ -266,7 +266,7 @@ describe("Phase 3: Pagination and Indexes", () => {
 
     it("should not return task from different business", async () => {
       db.insert("tasks", {
-        businessId: "business_1",
+        workspaceId: "business_1",
         ticketNumber: "T-123",
         title: "Task 1",
         description: "Test",
@@ -274,7 +274,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       });
 
       db.insert("tasks", {
-        businessId: "business_2",
+        workspaceId: "business_2",
         ticketNumber: "T-123", // same number, different business
         title: "Task 2",
         description: "Test",
@@ -286,23 +286,23 @@ describe("Phase 3: Pagination and Indexes", () => {
       const result = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", "business_1").eq("ticketNumber", "T-123")
+          q.eq("workspaceId", "business_1").eq("ticketNumber", "T-123")
         )
         .first();
 
-      expect(result?.businessId).toBe("business_1");
+      expect(result?.workspaceId).toBe("business_1");
       expect(db.getStats().indexUsed).toBe(1);
     });
   });
 
   describe("getFiltered: Pagination with limits and indexes", () => {
     it("should respect limit of 200 max (hard safety cap)", async () => {
-      const businessId = "business_1";
+      const workspaceId = "business_1";
 
       // Insert 250 tasks
       for (let i = 0; i < 250; i++) {
         db.insert("tasks", {
-          businessId,
+          workspaceId,
           ticketNumber: `T-${i}`,
           title: `Task ${i}`,
           description: "Test",
@@ -314,18 +314,18 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Query with limit 300 (should be capped at 200)
       const results = await db
         .query("tasks")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .take(Math.min(300, 200));
 
       expect(results.length).toBeLessThanOrEqual(200);
       expect(results.length).toBe(200); // should return exactly 200
     });
 
-    it("should use by_business_status index when status filter present", async () => {
-      const businessId = "business_1";
+    it("should use by_workspace_status index when status filter present", async () => {
+      const workspaceId = "business_1";
 
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         ticketNumber: "T-1",
         title: "Ready Task",
         status: "ready",
@@ -333,7 +333,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       });
 
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         ticketNumber: "T-2",
         title: "Blocked Task",
         status: "blocked",
@@ -344,8 +344,8 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       const results = await db
         .query("tasks")
-        .withIndex("by_business_status", (q) =>
-          q.eq("businessId", businessId).eq("status", "ready")
+        .withIndex("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", "ready")
         )
         .take(50);
 
@@ -357,8 +357,8 @@ describe("Phase 3: Pagination and Indexes", () => {
     it("should return empty array if no results", async () => {
       const results = await db
         .query("tasks")
-        .withIndex("by_business", (q) =>
-          q.eq("businessId", "nonexistent_business")
+        .withIndex("by_workspace", (q) =>
+          q.eq("workspaceId", "nonexistent_business")
         )
         .take(50);
 
@@ -404,11 +404,11 @@ describe("Phase 3: Pagination and Indexes", () => {
   describe("deleteAgent: Use by_assignee index for efficient deletion", () => {
     it("should only delete tasks where agent is assigned", async () => {
       const agentId = "agent_1";
-      const businessId = "business_1";
+      const workspaceId = "business_1";
 
       // Task where agent IS assigned
       const assignedTaskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         ticketNumber: "T-1",
         title: "Assigned Task",
         assigneeIds: [agentId, "agent_2"],
@@ -417,7 +417,7 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       // Task where agent is NOT assigned
       const unassignedTaskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         ticketNumber: "T-2",
         title: "Unassigned Task",
         assigneeIds: ["agent_2"],
@@ -447,7 +447,7 @@ describe("Phase 3: Pagination and Indexes", () => {
       // Insert 50 tasks for different agents
       for (let i = 0; i < 50; i++) {
         db.insert("tasks", {
-          businessId: "business_1",
+          workspaceId: "business_1",
           ticketNumber: `T-${i}`,
           title: `Task ${i}`,
           assigneeIds: [i < 10 ? agentId : `agent_${i}`], // 10 tasks for agent_1
@@ -579,14 +579,14 @@ describe("Phase 3: Pagination and Indexes", () => {
     });
   });
 
-  describe("patternLearning: Use by_business index without as any", () => {
-    it("should query taskPatterns by business using index", async () => {
-      const businessId = "business_1";
+  describe("patternLearning: Use by_workspace index without as any", () => {
+    it("should query taskPatterns by workspace using index", async () => {
+      const workspaceId = "business_1";
 
       // Insert 5 patterns for business_1
       for (let i = 0; i < 5; i++) {
         db.insert("taskPatterns", {
-          businessId,
+          workspaceId,
           patternType: "duration",
           pattern: `Pattern ${i}`,
         });
@@ -594,29 +594,29 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       // Insert patterns for other businesses
       db.insert("taskPatterns", {
-        businessId: "business_2",
+        workspaceId: "business_2",
         patternType: "duration",
         pattern: "Other pattern",
       });
 
       db.resetStats();
 
-      // Query using by_business index (no as any needed)
+      // Query using by_workspace index (no as any needed)
       const patterns = await db
         .query("taskPatterns")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .collect();
 
       expect(patterns.length).toBe(5);
-      expect(patterns.every((p: any) => p.businessId === businessId)).toBe(true);
+      expect(patterns.every((p: any) => p.workspaceId === workspaceId)).toBe(true);
       expect(db.getStats().indexUsed).toBe(1); // index was used, no as any needed
     });
 
-    it("should return empty array for business with no patterns", async () => {
+    it("should return empty array for workspace with no patterns", async () => {
       const patterns = await db
         .query("taskPatterns")
-        .withIndex("by_business", (q) =>
-          q.eq("businessId", "empty_business")
+        .withIndex("by_workspace", (q) =>
+          q.eq("workspaceId", "empty_business")
         )
         .collect();
 
@@ -624,14 +624,14 @@ describe("Phase 3: Pagination and Indexes", () => {
     });
   });
 
-  describe("calendarEvents: Use by_business index with backfilled businessId", () => {
-    it("should query calendar events by business using index", async () => {
-      const businessId = "business_1";
+  describe("calendarEvents: Use by_workspace index with backfilled workspaceId", () => {
+    it("should query calendar events by workspace using index", async () => {
+      const workspaceId = "business_1";
 
-      // Insert calendar events with backfilled businessId (from MIG-10)
+      // Insert calendar events with backfilled workspaceId (from MIG-10)
       for (let i = 0; i < 10; i++) {
         db.insert("calendarEvents", {
-          businessId, // MIG-10 backfilled
+          workspaceId, // MIG-10 backfilled
           taskId: `task_${i}`,
           startTime: Date.now() + i * 3600000,
           endTime: Date.now() + (i + 1) * 3600000,
@@ -640,7 +640,7 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       // Insert for other business
       db.insert("calendarEvents", {
-        businessId: "business_2",
+        workspaceId: "business_2",
         taskId: "task_other",
         startTime: Date.now(),
         endTime: Date.now() + 3600000,
@@ -648,39 +648,39 @@ describe("Phase 3: Pagination and Indexes", () => {
 
       db.resetStats();
 
-      // Query using by_business index
+      // Query using by_workspace index
       const events = await db
         .query("calendarEvents")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .take(500);
 
       expect(events.length).toBe(10);
-      expect(events.every((e: any) => e.businessId === businessId)).toBe(true);
+      expect(events.every((e: any) => e.workspaceId === workspaceId)).toBe(true);
       expect(db.getStats().indexUsed).toBe(1); // index was used
     });
 
-    it("should return events in business-scoped context", async () => {
-      const businessId = "business_1";
+    it("should return events in workspace-scoped context", async () => {
+      const workspaceId = "business_1";
 
       db.insert("calendarEvents", {
-        businessId,
+        workspaceId,
         taskId: "task_1",
-        title: "Business 1 Event",
+        title: " 1 Event",
       });
 
       db.insert("calendarEvents", {
-        businessId: "business_2",
+        workspaceId: "business_2",
         taskId: "task_2",
-        title: "Business 2 Event",
+        title: " 2 Event",
       });
 
       const events = await db
         .query("calendarEvents")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .take(500);
 
       expect(events.length).toBe(1);
-      expect(events[0].title).toBe("Business 1 Event");
+      expect(events[0].title).toBe(" 1 Event");
     });
   });
 });

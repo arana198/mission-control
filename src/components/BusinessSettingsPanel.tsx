@@ -6,11 +6,11 @@ import { api } from "@/convex/_generated/api";
 import { Settings, Save, CheckCircle, AlertCircle, Type, Trash2, Star, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-interface BusinessSettingsPanelProps {
-  businessId: string;
+interface WorkspaceSettingsPanelProps {
+  workspaceId: string;
 }
 
-export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps) {
+export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
   const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
   const [ticketPrefix, setTicketPrefix] = useState("");
@@ -22,7 +22,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch current business
-  const business = useQuery(api.businesses.getById, { businessId: businessId as any });
+  const workspace = useQuery(api.workspaces.getWorkspaceById, { workspaceId: workspaceId as any });
   const ticketPrefixSetting = useQuery((api as any).github.getSetting, { key: "ticketPrefix" });
   const ticketPatternSetting = useQuery((api as any).github.getSetting, { key: "ticketPattern" });
   const githubRepoSetting = useQuery((api as any).github.getSetting, { key: "githubRepo" });
@@ -30,17 +30,17 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   // Auto-derive pattern from prefix
   const derivedPattern = ticketPrefix ? `${ticketPrefix}-\\d+` : "";
 
-  const updateBusiness = useMutation(api.businesses.update);
-  const setDefaultBusiness = useMutation(api.businesses.setDefault);
-  const deleteBusiness = useMutation(api.businesses.remove);
+  const update = useMutation(api.workspaces.update);
+  const setDefaultWorkspace = useMutation(api.workspaces.setDefault);
+  const delete = useMutation(api.workspaces.remove);
   const setSettingMutation = useMutation((api as any).github.setSetting);
 
   // Load current mission statement and GitHub settings
   useEffect(() => {
     if (business?.missionStatement) {
-      setMissionStatement(business.missionStatement);
+      setMissionStatement( workspace.missionStatement);
     }
-  }, [business]);
+  }, [workspace]);
 
   useEffect(() => {
     if (ticketPrefixSetting !== undefined && ticketPrefixSetting !== null) {
@@ -64,8 +64,8 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
     setIsSaving(true);
     try {
       // Save mission statement
-      await updateBusiness({
-        businessId: businessId as any,
+      await update({
+        workspaceId: workspaceId as any,
         missionStatement: missionStatement.trim(),
       });
 
@@ -104,15 +104,15 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
     if (business?.isDefault) {
       setSaveMessage({
         type: "error",
-        text: "This business is already the default"
+        text: "This workspace is already the default"
       });
       setTimeout(() => setSaveMessage(null), 3000);
       return;
     }
 
     try {
-      await setDefaultBusiness({
-        businessId: businessId as any,
+      await setDefaultWorkspace({
+        workspaceId: workspaceId as any,
       });
       setSaveMessage({
         type: "success",
@@ -122,21 +122,21 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
     } catch (error: any) {
       setSaveMessage({
         type: "error",
-        text: error.message || "Failed to set business as default"
+        text: error.message || "Failed to set workspace as default"
       });
       setTimeout(() => setSaveMessage(null), 3000);
     }
   };
 
-  const handleDeleteBusiness = async () => {
+  const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteBusiness({
-        businessId: businessId as any,
+      await delete({
+        workspaceId: workspaceId as any,
       });
       setSaveMessage({
         type: "success",
-        text: "Business deleted successfully. Redirecting..."
+        text: " deleted successfully. Redirecting..."
       });
       setTimeout(() => {
         router.push("/");
@@ -160,7 +160,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
           <Settings className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold">Business Settings</h2>
+          <h2 className="text-xl font-semibold"> Settings</h2>
           <p className="text-sm text-muted-foreground">Configure {business?.name}</p>
         </div>
       </div>
@@ -175,12 +175,12 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">
-              Business Purpose & Problem Being Solved
+               Purpose & Problem Being Solved
             </label>
             <textarea
               value={missionStatement}
               onChange={(e) => setMissionStatement(e.target.value)}
-              placeholder="What is your business mission? What problem are you solving?"
+              placeholder="What is your workspace mission? What problem are you solving?"
               className="input w-full min-h-32"
             />
             <p className="text-xs text-muted-foreground mt-2">
@@ -330,7 +330,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
               <Star className="w-5 h-5 text-warning" />
             </div>
             <div>
-              <h3 className="font-semibold">Default Business</h3>
+              <h3 className="font-semibold">Default </h3>
               <p className="text-sm text-muted-foreground">
                 {business?.isDefault
                   ? "This is your default business"
@@ -353,7 +353,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         </div>
       </div>
 
-      {/* Danger Zone: Delete Business */}
+      {/* Danger Zone: Delete  */}
       <div className="card p-6 border-l-4 border-destructive">
         <div className="flex items-center gap-2 mb-4">
           <Trash2 className="w-5 h-5 text-destructive" />
@@ -362,10 +362,10 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
 
         <div className="mb-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Delete this business and all associated data permanently. This action cannot be undone.
+            Delete this workspace and all associated data permanently. This action cannot be undone.
           </p>
           <p className="text-xs text-destructive font-medium">
-            This will delete: all tasks, epics, messages, documents, goals, and settings for this business.
+            This will delete: all tasks, epics, messages, documents, goals, and settings for this  workspace.
           </p>
         </div>
 
@@ -376,7 +376,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
             </p>
             <input
               type="text"
-              placeholder={business?.name || "Business name"}
+              placeholder={business?.name || " name"}
               className="input w-full mb-3"
               id="confirm-business-name"
             />
@@ -385,11 +385,11 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
                 onClick={() => {
                   const input = document.getElementById("confirm-business-name") as HTMLInputElement;
                   if (input?.value === business?.name) {
-                    handleDeleteBusiness();
+                    handleDelete();
                   } else {
                     setSaveMessage({
                       type: "error",
-                      text: "Business name does not match"
+                      text: " name does not match"
                     });
                     setTimeout(() => setSaveMessage(null), 3000);
                   }
@@ -397,7 +397,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
                 disabled={isDeleting}
                 className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground flex items-center gap-2 disabled:opacity-50"
               >
-                {isDeleting ? "Deleting..." : "Delete Business"}
+                {isDeleting ? "Deleting..." : "Delete "}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -414,7 +414,7 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
             className="btn bg-destructive hover:bg-destructive/90 text-destructive-foreground flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            Delete Business
+            Delete 
           </button>
         )}
       </div>

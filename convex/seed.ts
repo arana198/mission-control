@@ -1,5 +1,5 @@
 /**
- * Seed Data for Multi-Business Support
+ * Seed Data for Multi- Support
  *
  * ⚠️ DEVELOPMENT ONLY - DO NOT USE IN PRODUCTION
  *
@@ -8,7 +8,7 @@
  *
  * Usage:
  * - Development: Call seedAllData mutation manually via Convex dashboard or test
- * - Production: Businesses created through API endpoints by authenticated users
+ * - Production: es created through API endpoints by authenticated users
  */
 
 import { internal } from "./_generated/api";
@@ -20,7 +20,7 @@ export const seedAllData = internalMutation({
     console.warn("[SEED DATA - DEV ONLY] This should NOT run in production");
 
     // Create two demo businesses
-    const business1Id = await ctx.db.insert("businesses", {
+    const business1Id = await ctx.db.insert("workspaces", {
       name: "Mission Control HQ",
       slug: "mission-control-hq",
       color: "#6366f1", // Indigo
@@ -31,7 +31,7 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    const business2Id = await ctx.db.insert("businesses", {
+    const business2Id = await ctx.db.insert("workspaces", {
       name: "Project Alpha",
       slug: "project-alpha",
       color: "#f59e0b", // Amber
@@ -42,63 +42,63 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    console.log(`Created business 1: ${business1Id}`);
-    console.log(`Created business 2: ${business2Id}`);
+    console.log(`Created workspace 1: ${business1Id}`);
+    console.log(`Created workspace 2: ${business2Id}`);
 
     // Create settings for each business
-    // Business 1 settings
+    //  1 settings
     await ctx.db.insert("settings", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       key: "ticketPrefix",
       value: "MC",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       key: "taskCounter",
       value: "0",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       key: "githubOrg",
       value: "mission-control",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       key: "githubRepo",
       value: "core",
       updatedAt: Date.now(),
     });
 
-    // Business 2 settings
+    //  2 settings
     await ctx.db.insert("settings", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       key: "ticketPrefix",
       value: "PA",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       key: "taskCounter",
       value: "0",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       key: "githubOrg",
       value: "project-alpha",
       updatedAt: Date.now(),
     });
 
     await ctx.db.insert("settings", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       key: "githubRepo",
       value: "main",
       updatedAt: Date.now(),
@@ -121,9 +121,9 @@ export const seedAllData = internalMutation({
 
     console.log("Created global settings");
 
-    // Create demo epic for business 1
+    // Create demo epic for workspace 1
     const epic1Id = await ctx.db.insert("epics", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       title: "Q1 Infrastructure Modernization",
       description: "Upgrade core systems and improve deployment pipeline",
       status: "active",
@@ -134,11 +134,11 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    console.log(`Created epic for business 1: ${epic1Id}`);
+    console.log(`Created epic for workspace 1: ${epic1Id}`);
 
-    // Create demo epic for business 2
+    // Create demo epic for workspace 2
     const epic2Id = await ctx.db.insert("epics", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       title: "Advanced Features Development",
       description: "Implement next-generation capabilities and AI integration",
       status: "active",
@@ -149,11 +149,11 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    console.log(`Created epic for business 2: ${epic2Id}`);
+    console.log(`Created epic for workspace 2: ${epic2Id}`);
 
-    // Create demo goal for business 1
+    // Create demo goal for workspace 1
     await ctx.db.insert("goals", {
-      businessId: business1Id,
+      workspaceId: business1Id,
       title: "Achieve 99.9% Uptime",
       description: "Improve system reliability and reduce outages",
       category: "business",
@@ -170,11 +170,11 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    console.log("Created demo goal for business 1");
+    console.log("Created demo goal for workspace 1");
 
-    // Create demo goal for business 2
+    // Create demo goal for workspace 2
     await ctx.db.insert("goals", {
-      businessId: business2Id,
+      workspaceId: business2Id,
       title: "Deliver AI-Powered Features",
       description: "Implement machine learning capabilities",
       category: "business",
@@ -191,7 +191,7 @@ export const seedAllData = internalMutation({
       updatedAt: Date.now(),
     });
 
-    console.log("Created demo goal for business 2");
+    console.log("Created demo goal for workspace 2");
 
     return {
       isDevelopmentOnly: true,
@@ -200,10 +200,44 @@ export const seedAllData = internalMutation({
         { id: business2Id, name: "Project Alpha" },
       ],
       epics: [
-        { id: epic1Id, businessId: business1Id },
-        { id: epic2Id, businessId: business2Id },
+        { id: epic1Id, workspaceId: business1Id },
+        { id: epic2Id, workspaceId: business2Id },
       ],
       message: "[SEED DATA - DEV ONLY] Demo data initialized successfully. Production businesses created via API.",
+    };
+  },
+});
+
+/**
+ * Internal Mutation: Clear all data
+ * Deletes all records from all tables (development/testing only)
+ * Returns count of deleted records per table
+ */
+export const clearAllData = internalMutation({
+  handler: async (ctx) => {
+    const tables = [
+      "tasks", "epics", "goals", "messages", "activities", "documents",
+      "executionLog", "alerts", "alertRules", "alertEvents", "decisions",
+      "strategicReports", "settings", "calendarEvents", "taskComments",
+      "mentions", "taskSubscriptions", "presenceIndicators", "taskPatterns",
+      "anomalies", "wikiPages", "wikiComments", "notifications",
+      "threadSubscriptions", "workspaces", "agents", "keys",
+    ] as const;
+
+    const deletedCounts: Record<string, number> = {};
+
+    for (const table of tables) {
+      const all = await ctx.db.query(table as any).collect();
+      for (const doc of all) {
+        await ctx.db.delete(doc._id);
+      }
+      deletedCounts[table] = all.length;
+    }
+
+    return {
+      success: true,
+      deletedCounts,
+      totalRecordsDeleted: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
     };
   },
 });

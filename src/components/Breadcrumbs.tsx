@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 
 interface BreadcrumbsProps {
   tab?: string;
@@ -10,12 +10,12 @@ interface BreadcrumbsProps {
 
 /**
  * Breadcrumb navigation showing user's current location
- * Format: Business Emoji Name > Tab Name > [Optional Section]
- * Business name is clickable and navigates to overview
+ * Format:  Emoji Name > Tab Name > [Optional Section]
+ *  name is clickable and navigates to overview
  */
 export function Breadcrumbs({ tab, section }: BreadcrumbsProps) {
   const router = useRouter();
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
 
   const formatTabName = (t: string): string => {
     return t
@@ -24,23 +24,23 @@ export function Breadcrumbs({ tab, section }: BreadcrumbsProps) {
       .join(" ");
   };
 
-  const handleBusinessClick = () => {
-    if (currentBusiness) {
-      router.push(`/${currentBusiness.slug}/overview`);
+  const handleClick = () => {
+    if (currentWorkspace) {
+      router.push(`/${currentWorkspace.slug}/overview`);
     }
   };
 
   return (
     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      {currentBusiness && (
+      {currentWorkspace && (
         <>
           <button
-            onClick={handleBusinessClick}
+            onClick={handleClick}
             className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer group"
             title="Go to overview"
           >
-            <span className="group-hover:scale-110 transition-transform">{currentBusiness.emoji}</span>
-            <span className="font-medium text-foreground group-hover:underline">{currentBusiness.name}</span>
+            <span className="group-hover:scale-110 transition-transform">{currentWorkspace.emoji}</span>
+            <span className="font-medium text-foreground group-hover:underline">{currentWorkspace.name}</span>
           </button>
           {tab && (
             <>

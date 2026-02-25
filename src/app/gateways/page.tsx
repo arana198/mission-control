@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useBusiness } from "@/components/BusinessProvider";
+import { useWorkspace } from "@/components/WorkspaceProvider";
 import { GatewayForm } from "@/components/GatewayForm";
 import { GatewaySessionsPanel } from "@/components/GatewaySessionsPanel";
 import { GatewayHealthBadge } from "@/components/GatewayHealthBadge";
@@ -72,9 +72,9 @@ function GatewaySessionsPanelWithHook({
  * Phase 4: Complete UI Integration with polling and page visibility detection
  */
 export default function GatewaysPage() {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const { isAdmin, isLoading: roleLoading } = useRole(
-    currentBusiness?._id as any
+    currentWorkspace?._id as any
   );
   const notif = useNotification();
   const [showForm, setShowForm] = useState(false);
@@ -89,12 +89,12 @@ export default function GatewaysPage() {
 
   // Queries
   const gateways = useQuery(
-    api.gateways.getByBusiness,
-    currentBusiness ? { businessId: currentBusiness._id as any } : "skip"
+    api.gateways.getBy,
+    currentWorkspace ? { workspaceId: currentWorkspace._id as any } : "skip"
   );
 
   const editingGateway = useQuery(
-    api.gateways.getById,
+    api.gateways.getWorkspaceById,
     editGatewayId ? { gatewayId: editGatewayId as any } : "skip"
   );
 
@@ -122,11 +122,11 @@ export default function GatewaysPage() {
     }
   };
 
-  if (!currentBusiness) {
+  if (!currentWorkspace) {
     return (
       <div className="p-6 max-w-6xl mx-auto">
         <div className="bg-muted rounded p-4 border border-border text-center text-muted-foreground">
-          No business selected
+          No workspace selected
         </div>
       </div>
     );
@@ -164,7 +164,7 @@ export default function GatewaysPage() {
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Create New Gateway</h3>
           <GatewayForm
-            businessId={currentBusiness._id as any}
+            workspaceId={currentWorkspace._id as any}
             onClose={() => setShowForm(false)}
             onSuccess={() => {
               setShowForm(false);
@@ -313,7 +313,7 @@ export default function GatewaysPage() {
           <div className="bg-card rounded-lg max-w-lg w-full p-6 border border-border">
             <h2 className="text-xl font-semibold text-foreground mb-4">Edit Gateway</h2>
             <GatewayForm
-              businessId={currentBusiness!._id as any}
+              workspaceId={currentWorkspace!._id as any}
               gateway={editingGateway}
               onClose={() => setEditGatewayId(null)}
               onSuccess={() => {

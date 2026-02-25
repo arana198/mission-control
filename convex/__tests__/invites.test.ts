@@ -116,17 +116,17 @@ describe("invites", () => {
       //       acceptedAt = current timestamp
     });
 
-    test("should return { memberId, businessId }", () => {
+    test("should return { memberId, workspaceId }", () => {
       // Given: acceptInvite called successfully
       // When: Function returns
-      // Then: Returns { memberId: Id, businessId: Id }
+      // Then: Returns { memberId: Id, workspaceId: Id }
       //       IDs can be used for further queries
     });
   });
 
   describe("getInvites", () => {
     test("should return all invites for business", () => {
-      // Given: Business with 3 invites (2 pending, 1 accepted)
+      // Given:  with 3 invites (2 pending, 1 accepted)
       // When: getInvites called
       // Then: Returns array of 3 invites
       //       Each with boardAccess enriched
@@ -138,15 +138,15 @@ describe("invites", () => {
       // Then: Each invite has boardAccess array populated
     });
 
-    test("should return empty array for business with no invites", () => {
-      // Given: Business with no invites
+    test("should return empty array for workspace with no invites", () => {
+      // Given:  with no invites
       // When: getInvites called
       // Then: Returns []
     });
 
     test("should not return invites from other businesses", () => {
-      // Given: Business A has 2 invites, Business B has 1
-      // When: getInvites called for Business A
+      // Given:  A has 2 invites,  B has 1
+      // When: getInvites called for  A
       // Then: Only returns 2 (not the one from B)
     });
   });
@@ -244,8 +244,8 @@ describe("invites", () => {
 
     test("should handle invite with board access", () => {
       // Given: createInvite with boardAccess=[
-      //   { businessId, canRead=true, canWrite=false },
-      //   { businessId2, canRead=true, canWrite=true }
+      //   { workspaceId, canRead=true, canWrite=false },
+      //   { workspaceId2, canRead=true, canWrite=true }
       // ]
       // 1. Verify inviteBoardAccess records created
       // 2. acceptInvite(token)
@@ -253,7 +253,7 @@ describe("invites", () => {
       // 4. Verify each boardAccess has correct permissions
     });
 
-    test("should prevent accept without businessId/role match", () => {
+    test("should prevent accept without workspaceId/role match", () => {
       // Given: createInvite(role=member, allBoardsWrite=false)
       // When: acceptInvite called
       // Then: organizationMember created with exact role/permissions

@@ -107,35 +107,35 @@ describe("approvals", () => {
     });
   });
 
-  describe("getByBusiness", () => {
+  describe("getBy", () => {
     test("should return all approvals when no status filter", () => {
-      // Given: Business with 5 approvals (2 pending, 3 resolved)
-      // When: getByBusiness called without status
+      // Given:  with 5 approvals (2 pending, 3 resolved)
+      // When: getBy called without status
       // Then: Returns all 5
       //       Sorted: pending first, then by createdAt desc
     });
 
     test("should filter by status when provided", () => {
-      // Given: Business with 2 pending, 3 approved, 1 rejected
-      // When: getByBusiness called with status="pending"
+      // Given:  with 2 pending, 3 approved, 1 rejected
+      // When: getBy called with status="pending"
       // Then: Returns only 2 pending
     });
 
-    test("should return empty array for business with no approvals", () => {
-      // Given: Business with no approvals
-      // When: getByBusiness called
+    test("should return empty array for workspace with no approvals", () => {
+      // Given:  with no approvals
+      // When: getBy called
       // Then: Returns []
     });
 
     test("should not return approvals from other businesses", () => {
-      // Given: Business A has 3, Business B has 2
-      // When: getByBusiness called for Business A
+      // Given:  A has 3,  B has 2
+      // When: getBy called for  A
       // Then: Only returns 3 (not B's)
     });
 
     test("should sort pending first when no status filter", () => {
       // Given: Mixed pending and resolved approvals
-      // When: getByBusiness called
+      // When: getBy called
       // Then: Pending appear first in array
       //       Resolved sorted by createdAt descending
     });
@@ -143,19 +143,19 @@ describe("approvals", () => {
 
   describe("getPendingCount", () => {
     test("should return count of pending approvals", () => {
-      // Given: Business with 3 pending approvals
+      // Given:  with 3 pending approvals
       // When: getPendingCount called
       // Then: Returns 3
     });
 
     test("should return 0 for no pending approvals", () => {
-      // Given: Business with 2 approved, 1 rejected (no pending)
+      // Given:  with 2 approved, 1 rejected (no pending)
       // When: getPendingCount called
       // Then: Returns 0
     });
 
     test("should count only pending (not resolved)", () => {
-      // Given: Business with 2 pending, 5 resolved total
+      // Given:  with 2 pending, 5 resolved total
       // When: getPendingCount called
       // Then: Returns 2 (only pending)
     });
@@ -309,12 +309,12 @@ describe("approvals", () => {
     test("should handle complete approval lifecycle", () => {
       // Given: Fresh approval scenario
       // 1. createApproval(confidence=75, taskId=task1) → pending
-      // 2. getByBusiness() shows 1 pending
+      // 2. getBy() shows 1 pending
       // 3. getPendingCount() returns 1
       // 4. getByTask(task1) returns approval
       // 5. getTaskLinks(approvalId) returns task1
       // 6. resolveApproval(approvalId, "approved")
-      // 7. getByBusiness() still shows approval but status=approved
+      // 7. getBy() still shows approval but status=approved
       // 8. getPendingCount() returns 0
       // 9. reopenApproval(approvalId) → back to pending
       // 10. deleteApproval(approvalId) fails (pending)

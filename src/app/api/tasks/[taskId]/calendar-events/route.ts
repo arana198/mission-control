@@ -78,7 +78,7 @@ export async function POST(
       generatedBy: agentId,
     });
 
-    // Fire-and-forget activity logging (get businessId from task)
+    // Fire-and-forget activity logging (get workspaceId from task)
     try {
       const task = await convex.query(api.tasks.getTaskById, {
         taskId: taskId as any,
@@ -86,7 +86,7 @@ export async function POST(
 
       if (task) {
         await convex.mutation(api.activities.create, {
-          businessId: task.businessId as any,
+          workspaceId: task.workspaceId as any,
           type: "task_assigned",
           agentId,
           agentName: (agent as any).name,

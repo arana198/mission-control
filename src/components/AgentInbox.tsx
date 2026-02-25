@@ -19,7 +19,7 @@ import { TaskDetailModal } from "./TaskDetailModal";
 
 interface AgentInboxProps {
   agents: Agent[];
-  businessId: string;
+  workspaceId: string;
 }
 
 interface InboxData {
@@ -42,23 +42,23 @@ interface InboxData {
  * Agent Inbox Component
  * Personal task view organized by status with agent selector
  */
-export function AgentInbox({ agents, businessId }: AgentInboxProps) {
+export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
   const [selectedAgentId, setSelectedAgentId] = useState<string>(agents[0]?._id || "");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Fetch inbox data for selected agent
   const inboxData = useQuery(
     api.tasks.getInboxForAgent,
-    selectedAgentId && businessId ? { businessId: businessId as any, agentId: selectedAgentId as any } : "skip"
+    selectedAgentId && workspaceId ? { workspaceId: workspaceId as any, agentId: selectedAgentId as any } : "skip"
   );
 
   // Fetch all required data for task detail modal
   const allTasks = useQuery(api.tasks.getFiltered,
-    selectedAgentId && businessId ? { businessId: businessId as any, agentId: selectedAgentId as any } : "skip"
+    selectedAgentId && workspaceId ? { workspaceId: workspaceId as any, agentId: selectedAgentId as any } : "skip"
   );
   const allAgents = useQuery(api.agents.getAllAgents);
   const allEpics = useQuery(api.epics.getAllEpics,
-    businessId ? { businessId: businessId as any } : "skip"
+    workspaceId ? { workspaceId: workspaceId as any } : "skip"
   );
 
   const selectedAgent = useMemo(
@@ -66,15 +66,15 @@ export function AgentInbox({ agents, businessId }: AgentInboxProps) {
     [agents, selectedAgentId]
   );
 
-  if (!businessId) {
+  if (!workspaceId) {
     return (
       <div className="p-6 text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
           <Inbox className="w-6 h-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">No Business Selected</h3>
+        <h3 className="text-lg font-semibold mb-2">No  Selected</h3>
         <p className="text-muted-foreground max-w-md mx-auto">
-          Select a business from the filter dropdown to view your inbox.
+          Select a workspace from the filter dropdown to view your inbox.
         </p>
       </div>
     );
@@ -88,7 +88,7 @@ export function AgentInbox({ agents, businessId }: AgentInboxProps) {
         </div>
         <h3 className="text-lg font-semibold mb-2">No Agents</h3>
         <p className="text-muted-foreground max-w-md mx-auto">
-          No agents are registered in this business yet.
+          No agents are registered in this workspace yet.
         </p>
       </div>
     );

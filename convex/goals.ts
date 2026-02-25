@@ -15,11 +15,11 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 /**
  * GET all active goals
  */
-export const getActiveGoals = query(async (ctx, args: { businessId: Id<'businesses'> }) => {
+export const getActiveGoals = query(async (ctx, args: { workspaceId: Id<'workspaces'> }) => {
   return await ctx.db
     .query('goals')
     .filter(q => q.and(
-      q.eq(q.field('businessId'), args.businessId),
+      q.eq(q.field('workspaceId'), args.workspaceId),
       q.eq(q.field('status'), 'active')
     ))
     .collect();
@@ -95,7 +95,7 @@ export const getByProgress = query(async (ctx) => {
  * CREATE a new goal
  */
 export const create = mutation(async (ctx, args: {
-  businessId: Id<'businesses'>;  // REQUIRED: business scoping
+  workspaceId: Id<'workspaces'>;  // REQUIRED: workspace scoping
   title: string;
   description: string;
   category: 'business' | 'personal' | 'learning' | 'health';
@@ -105,7 +105,7 @@ export const create = mutation(async (ctx, args: {
   parentGoalId?: Id<'goals'>;
 }) => {
   const goalId = await ctx.db.insert('goals', {
-    businessId: args.businessId,  // ADD: business scoping
+    workspaceId: args.workspaceId,  // ADD: workspace scoping
     title: args.title,
     description: args.description,
     category: args.category,
@@ -308,7 +308,7 @@ export const archive = mutation(async (ctx, args: { id: Id<'goals'> }) => {
 
 /**
  * SEED demo goals with linked tasks (for testing/demo purposes)
- * NOTE: Goals are business-scoped. This demo function creates goals per business.
+ * NOTE: Goals are workspace-scoped. This demo function creates goals per  workspace.
  */
 export const seedDemoGoals = mutation(async (ctx) => {
   const tasks = await ctx.db.query('tasks').collect();
@@ -317,19 +317,19 @@ export const seedDemoGoals = mutation(async (ctx) => {
     return { error: 'No tasks available to link to goals' };
   }
 
-  // Group tasks by businessId
-  const tasksByBusiness = new Map<string, any[]>();
+  // Group tasks by workspaceId
+  const tasksBy = new Map<string, any[]>();
   for (const task of tasks) {
-    if (!tasksByBusiness.has(task.businessId)) {
-      tasksByBusiness.set(task.businessId, []);
+    if (!tasksBy.has(task.workspaceId)) {
+      tasksBy.set(task.workspaceId, []);
     }
-    tasksByBusiness.get(task.businessId)!.push(task);
+    tasksBy.get(task.workspaceId)!.push(task);
   }
 
   const createdGoals = [];
 
   // Create demo goals for each business
-  for (const [businessId, businessTasks] of tasksByBusiness) {
+  for (const [workspaceId, businessTasks] of tasksBy) {
     const demoGoals = [
       {
         title: 'Launch Q1 Product Features',
@@ -353,7 +353,7 @@ export const seedDemoGoals = mutation(async (ctx) => {
 
     for (const demoGoal of demoGoals) {
       const goalId = await ctx.db.insert('goals', {
-        businessId: businessId as Id<'businesses'>,
+        workspaceId: workspaceId as Id<'workspaces'>,
         title: demoGoal.title,
         description: demoGoal.description,
         category: demoGoal.category,
@@ -413,7 +413,7 @@ export const archiveDemoGoals = mutation(async (ctx) => {
  * Analyzes activity logs to derive velocity trends, top agents, and blocking patterns
  */
 export const getPatternInsights = query(async (ctx, args: {
-  businessId: Id<'businesses'>;
+  workspaceId: Id<'workspaces'>;
 }) => {
   const now = Date.now();
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -425,15 +425,15 @@ export const getPatternInsights = query(async (ctx, args: {
 
   const activitiesThisWeek = await ctx.db
     .query('activities')
-    .withIndex('by_business_created_at', (q: any) =>
-      q.eq('businessId', args.businessId).gte('createdAt', thisWeekStart)
+    .withIndex('by_workspace_created_at', (q: any) =>
+      q.eq('workspaceId', args.workspaceId).gte('createdAt', thisWeekStart)
     )
     .collect();
 
   const activitiesLastWeek = await ctx.db
     .query('activities')
-    .withIndex('by_business_created_at', (q: any) =>
-      q.eq('businessId', args.businessId)
+    .withIndex('by_workspace_created_at', (q: any) =>
+      q.eq('workspaceId', args.workspaceId)
         .gte('createdAt', lastWeekStart)
         .lt('createdAt', thisWeekStart)
     )

@@ -149,7 +149,7 @@ describe("Suite 2.6: getSystemHealth()", () => {
 
 /**
  * ========== PHASE 2: DEPENDS ON PHASE 1 ==========
- * Tests for business logic without Convex mutations
+ * Tests for workspace logic without Convex mutations
  */
 
 describe("Suite 1.2: updateExecutionStatus() - Status Transitions", () => {

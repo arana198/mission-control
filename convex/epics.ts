@@ -13,12 +13,12 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 // Get all epics
 export const getAllEpics = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     return await ctx.db
       .query("epics")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .order("desc")
       .take(500);
   },
@@ -28,20 +28,20 @@ export const getAllEpics = query({
 export const getEpicWithDetails = query({
   args: {
     epicId: convexVal.id("epics"),
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
   },
-  handler: async (ctx, { epicId, businessId }) => {
+  handler: async (ctx, { epicId, workspaceId }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) return null;
 
     // Verify epic belongs to the requested business
-    if (epic.businessId !== businessId) {
-      throw ApiError.forbidden("Epic does not belong to this business", { epicId, businessId, actualBusinessId: epic.businessId });
+    if (epic.workspaceId !== workspaceId) {
+      throw ApiError.forbidden("Epic does not belong to this business", { epicId, workspaceId, actualId: epic.workspaceId });
     }
 
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .filter((q: any) => q.eq(q.field("epicId"), epicId))
       .collect();
 
@@ -58,14 +58,14 @@ export const getEpicWithDetails = query({
 // Create epic
 export const createEpic = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     title: convexVal.string(),
     description: convexVal.string(),
     ownerId: convexVal.optional(convexVal.id("agents")),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, title, description, ownerId }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, title, description, ownerId }) => {
     const epicId = await ctx.db.insert("epics", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       title,
       description,
       status: "planning",
@@ -79,7 +79,7 @@ export const createEpic = mutation({
     // Log activity
     const ownerName = ownerId ? (await ctx.db.get(ownerId))?.name : "system";
     await ctx.db.insert("activities", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       type: "epic_created",
       agentId: ownerId ? ownerId : "system",
       agentName: ownerName || "system",
@@ -96,19 +96,19 @@ export const createEpic = mutation({
 // Update epic
 export const updateEpic = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     epicId: convexVal.id("epics"),
     title: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
     status: convexVal.optional(convexVal.union(convexVal.literal("planning"), convexVal.literal("active"), convexVal.literal("completed"))),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, epicId, ...updates }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, epicId, ...updates }) => {
     const epic = await ctx.db.get(epicId);
     if (!epic) throw ApiError.notFound("Epic", { epicId });
 
     // Verify epic belongs to the requested business
-    if (epic.businessId !== businessId) {
-      throw ApiError.forbidden("Epic does not belong to this business", { epicId, businessId, actualBusinessId: epic.businessId });
+    if (epic.workspaceId !== workspaceId) {
+      throw ApiError.forbidden("Epic does not belong to this business", { epicId, workspaceId, actualId: epic.workspaceId });
     }
 
     await ctx.db.patch(epicId, {
@@ -119,7 +119,7 @@ export const updateEpic = mutation({
     // Log status change (only when completed)
     if (updates.status === "completed" && updates.status !== epic.status) {
       await ctx.db.insert("activities", {
-        businessId,  // ADD: business scoping
+        workspaceId,  // ADD: workspace scoping
         type: "epic_completed",
         agentId: "system",
         agentName: "system",

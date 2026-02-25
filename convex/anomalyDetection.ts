@@ -35,7 +35,7 @@ function determineSeverity(deviation: number): Severity {
  */
 export const detectDurationDeviation = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
     taskId: v.id("tasks"),
     actualDuration: v.number(), // in days
@@ -56,7 +56,7 @@ export const detectDurationDeviation = mutation({
     }
 
     const anomalyId = await ctx.db.insert("anomalies", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       agentId: args.agentId,
       type: "duration_deviation",
       severity,
@@ -72,7 +72,7 @@ export const detectDurationDeviation = mutation({
     const agent = await ctx.db.get(args.agentId);
     if (agent) {
       await ctx.db.insert("activities", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
         agentName: agent.name || "Unknown",
@@ -90,7 +90,7 @@ export const detectDurationDeviation = mutation({
  */
 export const detectErrorRateSpike = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
     completedTasks: v.number(),
     failedTasks: v.number(),
@@ -111,7 +111,7 @@ export const detectErrorRateSpike = mutation({
     const severity = deviation > 3 ? "high" : deviation > 2 ? "medium" : "low";
 
     const anomalyId = await ctx.db.insert("anomalies", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       agentId: args.agentId,
       type: "error_rate",
       severity,
@@ -126,7 +126,7 @@ export const detectErrorRateSpike = mutation({
     const agent = await ctx.db.get(args.agentId);
     if (agent) {
       await ctx.db.insert("activities", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
         agentName: agent.name || "Unknown",
@@ -144,7 +144,7 @@ export const detectErrorRateSpike = mutation({
  */
 export const detectSkillMismatch = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
     taskId: v.id("tasks"),
     agentSkillLevel: v.number(), // 1-3 scale
@@ -159,7 +159,7 @@ export const detectSkillMismatch = mutation({
     const severity = args.taskComplexity - args.agentSkillLevel > 2 ? "high" : "medium";
 
     const anomalyId = await ctx.db.insert("anomalies", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       agentId: args.agentId,
       type: "skill_mismatch",
       severity,
@@ -175,7 +175,7 @@ export const detectSkillMismatch = mutation({
     const agent = await ctx.db.get(args.agentId);
     if (agent) {
       await ctx.db.insert("activities", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
         agentName: agent.name || "Unknown",
@@ -193,7 +193,7 @@ export const detectSkillMismatch = mutation({
  */
 export const detectStatusSpike = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
     changeCount: v.number(), // status changes in time window
     timeWindowMinutes: v.number(),
@@ -209,7 +209,7 @@ export const detectStatusSpike = mutation({
     const severity = changesPerMinute > 1 / 5 ? "high" : "low";
 
     const anomalyId = await ctx.db.insert("anomalies", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       agentId: args.agentId,
       type: "status_spike",
       severity,
@@ -224,7 +224,7 @@ export const detectStatusSpike = mutation({
     const agent = await ctx.db.get(args.agentId);
     if (agent) {
       await ctx.db.insert("activities", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         type: "task_assigned" as any, // Note: "anomaly_detected" not in ACTIVITY_TYPES, using task_assigned for now
         agentId: args.agentId as any,
         agentName: agent.name || "Unknown",
@@ -254,16 +254,16 @@ export const getAnomaliesByAgent = query({
 });
 
 /**
- * Get flagged anomalies for a business
+ * Get flagged anomalies for a workspace
  */
 export const getFlaggedAnomalies = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .filter((q: any) => q.eq(q.field("flagged"), true))
       .collect();
     return anomalies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -275,14 +275,14 @@ export const getFlaggedAnomalies = query({
  */
 export const getAnomaliesByTypeAndSeverity = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     type: v.optional(v.string()),
     severity: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let query = ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId));
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId));
 
     if (args.type) {
       query = query.filter((q: any) => q.eq(q.field("type"), args.type));
@@ -315,7 +315,7 @@ export const resolveAnomaly = mutation({
       const agent = await ctx.db.get(anomaly.agentId as any);
       if (agent && (agent as any).name) {
         await ctx.db.insert("activities", {
-          businessId: anomaly.businessId,
+          workspaceId: anomaly.workspaceId,
           type: "task_assigned" as any, // Note: "anomaly_resolved" not in ACTIVITY_TYPES
           agentId: anomaly.agentId as any,
           agentName: (agent as any).name || "Unknown",
@@ -362,12 +362,12 @@ export const getRecurringAnomalies = query({
  */
 export const getAnomalyStats = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     const anomalies = await ctx.db
       .query("anomalies")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     const flagged = anomalies.filter((a: any) => a.flagged === true);

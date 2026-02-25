@@ -111,7 +111,7 @@ class PerformanceMockDatabase {
     };
   }
 
-  getBusinesses() {
+  getes() {
     return this.data.get("businesses") || [];
   }
 
@@ -140,27 +140,27 @@ describe("Performance & Scale (Phase 5C)", () => {
   });
 
   describe("Query Optimization: deleteAgent", () => {
-    it("should query only tasks by_business, not full table scan", async () => {
-      // Setup: 2 businesses, 3 agents per business, 10 tasks per business
-      const biz1 = db.insert("businesses", { name: "Business 1" });
-      const biz2 = db.insert("businesses", { name: "Business 2" });
+    it("should query only tasks by_workspace, not full table scan", async () => {
+      // Setup: 2 businesses, 3 agents per workspace, 10 tasks per business
+      const biz1 = db.insert("businesses", { name: " 1" });
+      const biz2 = db.insert("businesses", { name: " 2" });
 
-      const agent1 = db.insert("agents", { name: "Agent 1", businessId: biz1 });
-      db.insert("agents", { name: "Agent 2", businessId: biz1 });
-      db.insert("agents", { name: "Agent 3", businessId: biz2 });
+      const agent1 = db.insert("agents", { name: "Agent 1", workspaceId: biz1 });
+      db.insert("agents", { name: "Agent 2", workspaceId: biz1 });
+      db.insert("agents", { name: "Agent 3", workspaceId: biz2 });
 
       // Create tasks
       for (let i = 0; i < 10; i++) {
         db.insert("tasks", {
           title: `Task B1-${i}`,
-          businessId: biz1,
+          workspaceId: biz1,
           assigneeIds: [agent1],
         });
       }
       for (let i = 0; i < 10; i++) {
         db.insert("tasks", {
           title: `Task B2-${i}`,
-          businessId: biz2,
+          workspaceId: biz2,
           assigneeIds: [],
         });
       }
@@ -170,40 +170,40 @@ describe("Performance & Scale (Phase 5C)", () => {
       const allTasks = await db.query("tasks").collect();
       const beforeCallCount = db.getCallCount("query:tasks");
 
-      // NEW (good): Query by business only
+      // NEW (good): Query by workspace only
       db.resetCallCounts();
-      const businesses = db.getBusinesses();
+      const businesses = db.getes();
       for (const biz of businesses) {
         const bizTasks = await db
           .query("tasks")
-          .withIndex("by_business", (q: any) => q.eq?.("businessId", biz._id) ?? true)
+          .withIndex("by_workspace", (q: any) => q.eq?.("workspaceId", biz._id) ?? true)
           .collect();
         // Simulate unassignment
       }
       const afterCallCount = db.getCallCount("query:tasks");
 
       // Both should read the same data, but optimized version uses index
-      expect(afterCallCount).toBeLessThanOrEqual(beforeCallCount + 1); // +1 for per-business loop
+      expect(afterCallCount).toBeLessThanOrEqual(beforeCallCount + 1); // +1 for per-workspace loop
     });
 
-    it("does not remove agent from other business tasks", async () => {
-      const biz1 = db.insert("businesses", { name: "Business 1" });
-      const biz2 = db.insert("businesses", { name: "Business 2" });
+    it("does not remove agent from other workspace tasks", async () => {
+      const biz1 = db.insert("businesses", { name: " 1" });
+      const biz2 = db.insert("businesses", { name: " 2" });
       const agent = db.insert("agents", { name: "Shared Agent" });
 
       const task1 = db.insert("tasks", {
         title: "Biz1 Task",
-        businessId: biz1,
+        workspaceId: biz1,
         assigneeIds: [agent],
       });
       const task2 = db.insert("tasks", {
         title: "Biz2 Task",
-        businessId: biz2,
+        workspaceId: biz2,
         assigneeIds: [agent],
       });
 
       // Simulate deletion in biz1
-      const biz1Tasks = (await db.query("tasks").collect()).filter((t: any) => t.businessId === biz1);
+      const biz1Tasks = (await db.query("tasks").collect()).filter((t: any) => t.workspaceId === biz1);
       const updated = db.patch(task1, {
         assigneeIds: [],
       });
@@ -279,20 +279,20 @@ describe("Performance & Scale (Phase 5C)", () => {
   });
 
   describe("Query Optimization: activities.getRecent index", () => {
-    it("uses by_business_created_at index when businessId provided", async () => {
-      const biz1 = db.insert("businesses", { name: "Business 1" });
-      const biz2 = db.insert("businesses", { name: "Business 2" });
+    it("uses by_workspace_created_at index when workspaceId provided", async () => {
+      const biz1 = db.insert("businesses", { name: " 1" });
+      const biz2 = db.insert("businesses", { name: " 2" });
 
       // Create 50 activities for each business
       for (let i = 0; i < 50; i++) {
         db.insert("activities", {
-          businessId: biz1,
+          workspaceId: biz1,
           type: "task_assigned",
           message: `Activity ${i}`,
           createdAt: Date.now() - i * 1000,
         });
         db.insert("activities", {
-          businessId: biz2,
+          workspaceId: biz2,
           type: "task_assigned",
           message: `Activity B2-${i}`,
           createdAt: Date.now() - i * 1000,
@@ -302,14 +302,14 @@ describe("Performance & Scale (Phase 5C)", () => {
       // OLD (bad): Load 100, filter in JS
       db.resetCallCounts();
       const allActivities = await db.query("activities").collect();
-      const filtered = allActivities.filter((a: any) => a.businessId === biz1).slice(0, 50);
+      const filtered = allActivities.filter((a: any) => a.workspaceId === biz1).slice(0, 50);
       const oldCallCount = db.getCallCount("query:activities");
 
       // NEW (good): Use index, no JS filter
       db.resetCallCounts();
       const biz1Activities = await db
         .query("activities")
-        .withIndex("by_business_created_at", (q: any) => true)
+        .withIndex("by_workspace_created_at", (q: any) => true)
         .order("desc")
         .take(50)
         .collect();
@@ -320,12 +320,12 @@ describe("Performance & Scale (Phase 5C)", () => {
     });
 
     it("returns limited activities, not all activities", async () => {
-      const biz1 = db.insert("businesses", { name: "Business 1" });
+      const biz1 = db.insert("businesses", { name: " 1" });
 
       // Create 100 activities
       for (let i = 0; i < 100; i++) {
         db.insert("activities", {
-          businessId: biz1,
+          workspaceId: biz1,
           type: "task_assigned",
           message: `Activity ${i}`,
           createdAt: Date.now() - i * 1000,
@@ -335,7 +335,7 @@ describe("Performance & Scale (Phase 5C)", () => {
       // Query should return at most 50
       const result = await db
         .query("activities")
-        .withIndex("by_business_created_at", (q: any) => true)
+        .withIndex("by_workspace_created_at", (q: any) => true)
         .order("desc")
         .take(50)
         .collect();
@@ -346,7 +346,7 @@ describe("Performance & Scale (Phase 5C)", () => {
 
   describe("Query Optimization: getInboxForAgent cap", () => {
     it("caps inbox results at 200 to prevent unbounded query", async () => {
-      const biz = db.insert("businesses", { name: "Business 1" });
+      const biz = db.insert("businesses", { name: " 1" });
       const agent = db.insert("agents", { name: "Agent 1" });
 
       // Create 500 tasks for the agent
@@ -355,7 +355,7 @@ describe("Performance & Scale (Phase 5C)", () => {
         taskIds.push(
           db.insert("tasks", {
             title: `Task ${i}`,
-            businessId: biz,
+            workspaceId: biz,
             assigneeIds: [agent],
             status: i < 100 ? "in_progress" : i < 200 ? "ready" : "done",
             createdAt: Date.now() - i * 1000,
@@ -364,7 +364,7 @@ describe("Performance & Scale (Phase 5C)", () => {
       }
 
       // Query should return capped results
-      let allTasks = await db.query("tasks").withIndex("by_business", (q: any) => true).collect();
+      let allTasks = await db.query("tasks").withIndex("by_workspace", (q: any) => true).collect();
       const agentTasks = allTasks.filter((t: any) => t.assigneeIds?.includes(agent));
 
       // Apply cap
@@ -375,30 +375,30 @@ describe("Performance & Scale (Phase 5C)", () => {
     });
 
     it("returns tasks in descending order by createdAt", async () => {
-      const biz = db.insert("businesses", { name: "Business 1" });
+      const biz = db.insert("businesses", { name: " 1" });
       const agent = db.insert("agents", { name: "Agent 1" });
 
       // Create 3 tasks (they'll have _creationTime added by insert)
       const task1 = db.insert("tasks", {
         title: "Task 1",
-        businessId: biz,
+        workspaceId: biz,
         assigneeIds: [agent],
       });
       // Small delay to ensure different timestamps
       await new Promise(resolve => setTimeout(resolve, 1));
       const task2 = db.insert("tasks", {
         title: "Task 2",
-        businessId: biz,
+        workspaceId: biz,
         assigneeIds: [agent],
       });
       await new Promise(resolve => setTimeout(resolve, 1));
       const task3 = db.insert("tasks", {
         title: "Task 3",
-        businessId: biz,
+        workspaceId: biz,
         assigneeIds: [agent],
       });
 
-      let allTasks = await db.query("tasks").withIndex("by_business", (q: any) => true).collect();
+      let allTasks = await db.query("tasks").withIndex("by_workspace", (q: any) => true).collect();
       const agentTasks = allTasks.filter((t: any) => t.assigneeIds?.includes(agent));
 
       // Sort descending by _creationTime

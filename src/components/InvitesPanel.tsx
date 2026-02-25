@@ -11,14 +11,14 @@ import { useState } from "react";
  * Phase 2 RBAC UI: Manage pending and accepted invitations
  */
 interface InvitesPanelProps {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
 }
 
-export function InvitesPanel({ businessId }: InvitesPanelProps) {
+export function InvitesPanel({ workspaceId }: InvitesPanelProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Queries
-  const invites = useQuery(api.invites.getInvites, { businessId });
+  const invites = useQuery(api.invites.getInvites, { workspaceId });
 
   // Mutations
   const deleteInvite = useMutation(api.invites.deleteInvite);

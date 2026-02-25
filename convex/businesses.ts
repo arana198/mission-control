@@ -4,8 +4,8 @@ import { batchDelete } from "./utils/batchDelete";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
- * Businesses Module
- * CRUD operations for multi-business support (2-5 businesses per workspace)
+ * es Module
+ * CRUD operations for multi-business support (2-5 workspaces per workspace)
  *
  * Phase 1: Error standardization - all mutations now use ApiError with request IDs
  */
@@ -17,53 +17,53 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    const businesses = await ctx.db.query("businesses").collect();
-    return businesses.sort((a, b) => a.name.localeCompare(b.name));
+    const workspaces = await ctx.db.query("workspaces").collect();
+    return workspaces.sort((a, b) => a.name.localeCompare(b.name));
   },
 });
 
 /**
- * Query: Get business by ID
- * Parameters: businessId
- * Returns: Business object or null if not found
+ * Query: Get workspace by ID
+ * Parameters: workspaceId
+ * Returns:  object or null if not found
  */
-export const getById = query({
-  args: { businessId: convexVal.id("businesses") },
-  handler: async (ctx, { businessId }) => {
-    return await ctx.db.get(businessId);
+export const getWorkspaceById = query({
+  args: { workspaceId: convexVal.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    return await ctx.db.get(workspaceId);
   },
 });
 
 /**
- * Query: Get business by slug
+ * Query: Get workspace by slug
  * Parameters: slug (URL-safe identifier)
- * Returns: Business object or null if not found
+ * Returns:  object or null if not found
  */
 export const getBySlug = query({
   args: { slug: convexVal.string() },
   handler: async (ctx, { slug }) => {
-    const businesses = await ctx.db
-      .query("businesses")
+    const workspaces = await ctx.db
+      .query("workspaces")
       .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .collect();
 
-    return businesses.length > 0 ? businesses[0] : null;
+    return workspaces.length > 0 ? workspaces[0] : null;
   },
 });
 
 /**
  * Query: Get default business
- * Returns: Business object with isDefault: true (exactly one always exists)
+ * Returns:  object with isDefault: true (exactly one always exists)
  */
-export const getDefault = query({
+export const getDefaultWorkspace = query({
   args: {},
   handler: async (ctx) => {
-    const businesses = await ctx.db
-      .query("businesses")
+    const workspaces = await ctx.db
+      .query("workspaces")
       .withIndex("by_default", (q: any) => q.eq("isDefault", true))
       .collect();
 
-    return businesses.length > 0 ? businesses[0] : null;
+    return workspaces.length > 0 ? workspaces[0] : null;
   },
 });
 
@@ -79,7 +79,7 @@ export const create = mutation({
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
-    missionStatement: convexVal.string(), // Required: business purpose/problem being solved
+    missionStatement: convexVal.string(), // Required: workspace purpose/problem being solved
   },
   handler: wrapConvexHandler(async (ctx, { name, slug, color, emoji, description, missionStatement }) => {
     // Validate slug format: lowercase, alphanumeric, hyphens only
@@ -93,33 +93,33 @@ export const create = mutation({
 
     // Check slug uniqueness
     const existing = await ctx.db
-      .query("businesses")
+      .query("workspaces")
       .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .collect();
 
     if (existing.length > 0) {
       throw ApiError.conflict(
-        `Business with slug "${slug}" already exists`,
-        { slug, existingBusinessId: existing[0]._id }
+        ` with slug "${slug}" already exists`,
+        { slug, existingId: existing[0]._id }
       );
     }
 
-    // Check max 5 businesses limit
-    const allBusinesses = await ctx.db.query("businesses").collect();
-    if (allBusinesses.length >= 5) {
+    // Check max 5 workspaces limit
+    const alles = await ctx.db.query("workspaces").collect();
+    if (alles.length >= 5) {
       throw ApiError.limitExceeded(
-        "Maximum 5 businesses allowed per workspace",
-        { limit: 5, current: allBusinesses.length }
+        "Maximum 5 workspaces allowed per workspace",
+        { limit: 5, current: alles.length }
       );
     }
 
-    // If first business, make it default
-    const isDefault = allBusinesses.length === 0;
+    // If first workspace, make it default
+    const isDefault = alles.length === 0;
 
     // If making this default, unset previous default
     if (isDefault) {
       const previousDefault = await ctx.db
-        .query("businesses")
+        .query("workspaces")
         .withIndex("by_default", (q: any) => q.eq("isDefault", true))
         .collect();
 
@@ -129,7 +129,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    const businessId = await ctx.db.insert("businesses", {
+    const workspaceId = await ctx.db.insert("workspaces", {
       name,
       slug,
       color: color || "#6366f1", // Default indigo
@@ -141,36 +141,36 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // Initialize per-business settings (taskCounter starts at 0)
+    // Initialize per-workspace settings (taskCounter starts at 0)
     await ctx.db.insert("settings", {
       key: "taskCounter",
-      businessId,
+      workspaceId,
       value: "0",
       updatedAt: now,
     });
 
-    return await ctx.db.get(businessId);
+    return await ctx.db.get(workspaceId);
   }),
 });
 
 /**
- * Mutation: Update business details
+ * Mutation: Update workspace details
  * Slug cannot be changed (immutable)
  * Can update: name, color, emoji, description, missionStatement
  */
 export const update = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.optional(convexVal.string()),
     color: convexVal.optional(convexVal.string()),
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
     missionStatement: convexVal.optional(convexVal.string()),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, name, color, emoji, description, missionStatement }) => {
-    const business = await ctx.db.get(businessId);
-    if (!business) {
-      throw ApiError.notFound("Business", { businessId });
+  handler: wrapConvexHandler(async (ctx, { workspaceId, name, color, emoji, description, missionStatement }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) {
+      throw ApiError.notFound("Workspace", { workspaceId });
     }
 
     const updates: Record<string, any> = { updatedAt: Date.now() };
@@ -181,32 +181,32 @@ export const update = mutation({
     if (description !== undefined) updates.description = description;
     if (missionStatement !== undefined) updates.missionStatement = missionStatement;
 
-    await ctx.db.patch(businessId, updates);
-    return await ctx.db.get(businessId);
+    await ctx.db.patch(workspaceId, updates);
+    return await ctx.db.get(workspaceId);
   }),
 });
 
 /**
  * Mutation: Set default business
  * Atomically unsets previous default and sets new one
- * Idempotent: calling with already-default business is no-op
+ * Idempotent: calling with already-default workspace is no-op
  */
 export const setDefault = mutation({
-  args: { businessId: convexVal.id("businesses") },
-  handler: wrapConvexHandler(async (ctx, { businessId }) => {
-    const business = await ctx.db.get(businessId);
-    if (!business) {
-      throw ApiError.notFound("Business", { businessId });
+  args: { workspaceId: convexVal.id("workspaces") },
+  handler: wrapConvexHandler(async (ctx, { workspaceId }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) {
+      throw ApiError.notFound("Workspace", { workspaceId });
     }
 
     // If already default, return (idempotent)
-    if (business.isDefault) {
-      return business;
+    if (workspace.isDefault) {
+      return workspace;
     }
 
     // Find current default
     const currentDefault = await ctx.db
-      .query("businesses")
+      .query("workspaces")
       .withIndex("by_default", (q: any) => q.eq("isDefault", true))
       .collect();
 
@@ -216,65 +216,65 @@ export const setDefault = mutation({
     }
 
     // Set new default
-    await ctx.db.patch(businessId, { isDefault: true, updatedAt: Date.now() });
-    return await ctx.db.get(businessId);
+    await ctx.db.patch(workspaceId, { isDefault: true, updatedAt: Date.now() });
+    return await ctx.db.get(workspaceId);
   }),
 });
 
 /**
- * Mutation: Remove a business and all its data
+ * Mutation: Remove a workspace and all its data
  * Constraints:
- * - Cannot delete if only 1 business exists
+ * - Cannot delete if only 1 workspace exists
  * - Cannot delete default business
  * Cascades:
  * - Deletes all tasks, epics, messages, activities
  * - Deletes all documents, calendar events, goals
  * - Deletes all related metrics and logs
  * - Deletes all settings and alerts
- * - Deletes all 25 business-scoped tables (includes MIG-10 additions)
+ * - Deletes all 25 workspace-scoped tables (includes MIG-10 additions)
  *
  * Optimization: Uses batchDelete() utility to handle 100+ records without timeout.
  * Performance: Linear time complexity O(n), no O(n²) cascades.
  */
 export const remove = mutation({
-  args: { businessId: convexVal.id("businesses") },
-  handler: wrapConvexHandler(async (ctx, { businessId }) => {
-    const business = await ctx.db.get(businessId);
-    if (!business) {
-      throw ApiError.notFound("Business", { businessId });
+  args: { workspaceId: convexVal.id("workspaces") },
+  handler: wrapConvexHandler(async (ctx, { workspaceId }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) {
+      throw ApiError.notFound("Workspace", { workspaceId });
     }
 
     // Check if only business
-    const allBusinesses = await ctx.db.query("businesses").collect();
-    if (allBusinesses.length <= 1) {
+    const alles = await ctx.db.query("workspaces").collect();
+    if (alles.length <= 1) {
       throw ApiError.conflict(
-        "Cannot delete the only business in workspace",
-        { businessId, totalBusinesses: allBusinesses.length }
+        "Cannot delete the only workspace in workspace",
+        { workspaceId, totales: alles.length }
       );
     }
 
     // Check if default
-    if (business.isDefault) {
+    if (workspace.isDefault) {
       throw ApiError.conflict(
-        "Cannot delete the default business. Set another as default first.",
-        { businessId, isDefault: true }
+        "Cannot delete the default  workspace. Set another as default first.",
+        { workspaceId, isDefault: true }
       );
     }
 
-    // === Cascade Delete: Remove all business-scoped data ===
+    // === Cascade Delete: Remove all workspace-scoped data ===
     // Uses unified pattern: query with index → collect IDs → batchDelete
     // This avoids timeout issues with individual delete loops
 
     const deletedCounts: Record<string, number> = {};
 
-    // Helper: Collect IDs for a business-scoped table with index
+    // Helper: Collect IDs for a workspace-scoped table with index
     async function collectAndDelete(
       table: string,
       indexName: string
     ): Promise<number> {
       const records = await ctx.db
         .query(table as any)
-        .withIndex(indexName, (q: any) => q.eq("businessId", businessId))
+        .withIndex(indexName, (q: any) => q.eq("workspaceId", workspaceId))
         .collect();
 
       if (records.length === 0) return 0;
@@ -284,42 +284,42 @@ export const remove = mutation({
       return deleted;
     }
 
-    // Delete from all 25 business-scoped tables (using indexes)
-    deletedCounts.tasks = await collectAndDelete("tasks", "by_business");
-    deletedCounts.epics = await collectAndDelete("epics", "by_business");
-    deletedCounts.goals = await collectAndDelete("goals", "by_business");
-    deletedCounts.messages = await collectAndDelete("messages", "by_business");
-    deletedCounts.activities = await collectAndDelete("activities", "by_business");
-    deletedCounts.documents = await collectAndDelete("documents", "by_business");
-    deletedCounts.threadSubscriptions = await collectAndDelete("threadSubscriptions", "by_business");
-    deletedCounts.executionLog = await collectAndDelete("executionLog", "by_business");
-    deletedCounts.alerts = await collectAndDelete("alerts", "by_business");
-    deletedCounts.alertRules = await collectAndDelete("alertRules", "by_business");
-    deletedCounts.alertEvents = await collectAndDelete("alertEvents", "by_business");
-    deletedCounts.decisions = await collectAndDelete("decisions", "by_business");
-    deletedCounts.strategicReports = await collectAndDelete("strategicReports", "by_business");
-    deletedCounts.settings = await collectAndDelete("settings", "by_business_key");
+    // Delete from all 25 workspace-scoped tables (using indexes)
+    deletedCounts.tasks = await collectAndDelete("tasks", "by_workspace");
+    deletedCounts.epics = await collectAndDelete("epics", "by_workspace");
+    deletedCounts.goals = await collectAndDelete("goals", "by_workspace");
+    deletedCounts.messages = await collectAndDelete("messages", "by_workspace");
+    deletedCounts.activities = await collectAndDelete("activities", "by_workspace");
+    deletedCounts.documents = await collectAndDelete("documents", "by_workspace");
+    deletedCounts.threadSubscriptions = await collectAndDelete("threadSubscriptions", "by_workspace");
+    deletedCounts.executionLog = await collectAndDelete("executionLog", "by_workspace");
+    deletedCounts.alerts = await collectAndDelete("alerts", "by_workspace");
+    deletedCounts.alertRules = await collectAndDelete("alertRules", "by_workspace");
+    deletedCounts.alertEvents = await collectAndDelete("alertEvents", "by_workspace");
+    deletedCounts.decisions = await collectAndDelete("decisions", "by_workspace");
+    deletedCounts.strategicReports = await collectAndDelete("strategicReports", "by_workspace");
+    deletedCounts.settings = await collectAndDelete("settings", "by_workspace_key");
 
-    // Delete calendar events using by_business index (MIG-10 backfill provides businessId)
-    deletedCounts.calendarEvents = await collectAndDelete("calendarEvents", "by_business");
+    // Delete calendar events using by_workspace index (MIG-10 backfill provides workspaceId)
+    deletedCounts.calendarEvents = await collectAndDelete("calendarEvents", "by_workspace");
 
     // Delete task-scoped tables added in Phase 2
-    deletedCounts.taskComments = await collectAndDelete("taskComments", "by_business");
-    deletedCounts.mentions = await collectAndDelete("mentions", "by_business");
-    deletedCounts.taskSubscriptions = await collectAndDelete("taskSubscriptions", "by_business");
-    deletedCounts.presenceIndicators = await collectAndDelete("presenceIndicators", "by_business");
-    deletedCounts.taskPatterns = await collectAndDelete("taskPatterns", "by_business");
-    deletedCounts.anomalies = await collectAndDelete("anomalies", "by_business");
-    deletedCounts.wikiPages = await collectAndDelete("wikiPages", "by_business");
-    deletedCounts.wikiComments = await collectAndDelete("wikiComments", "by_business");
-    deletedCounts.notifications = await collectAndDelete("notifications", "by_business");
+    deletedCounts.taskComments = await collectAndDelete("taskComments", "by_workspace");
+    deletedCounts.mentions = await collectAndDelete("mentions", "by_workspace");
+    deletedCounts.taskSubscriptions = await collectAndDelete("taskSubscriptions", "by_workspace");
+    deletedCounts.presenceIndicators = await collectAndDelete("presenceIndicators", "by_workspace");
+    deletedCounts.taskPatterns = await collectAndDelete("taskPatterns", "by_workspace");
+    deletedCounts.anomalies = await collectAndDelete("anomalies", "by_workspace");
+    deletedCounts.wikiPages = await collectAndDelete("wikiPages", "by_workspace");
+    deletedCounts.wikiComments = await collectAndDelete("wikiComments", "by_workspace");
+    deletedCounts.notifications = await collectAndDelete("notifications", "by_workspace");
 
-    // Delete the business itself
-    await ctx.db.delete(businessId);
+    // Delete the workspace itself
+    await ctx.db.delete(workspaceId);
 
     return {
       success: true,
-      deletedBusinessId: businessId,
+      deletedId: workspaceId,
       deletedData: deletedCounts,
       totalRecordsDeleted: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
     };

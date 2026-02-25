@@ -14,7 +14,7 @@ import { GitBranch, GitCommit, Loader2, RefreshCw, ExternalLink, AlertCircle, Pa
  * - Matched ticket IDs as badges
  * - Source badge (github, cache, or local)
  */
-export function TaskCommits({ taskId, businessId }: { taskId: string; businessId?: string }) {
+export function TaskCommits({ taskId, workspaceId }: { taskId: string; workspaceId?: string }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +68,8 @@ export function TaskCommits({ taskId, businessId }: { taskId: string; businessId
   };
 
   const handleConfigureGitHub = () => {
-    if (businessId) {
-      router.push(`/business-${businessId}/settings`);
+    if (workspaceId) {
+      router.push(`/business-${workspaceId}/settings`);
     }
   };
 
@@ -117,7 +117,7 @@ export function TaskCommits({ taskId, businessId }: { taskId: string; businessId
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div className="flex-1 text-sm">
               <p className="font-medium">{error}</p>
-              {error.includes("GitHub repo") && businessId && (
+              {error.includes("GitHub repo") && workspaceId && (
                 <button
                   onClick={handleConfigureGitHub}
                   className="text-xs mt-2 underline hover:opacity-75"

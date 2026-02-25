@@ -1,13 +1,13 @@
 /**
- * BusinessBadge Component Tests
+ * WorkspaceBadge Component Tests
  *
- * Tests for business label badge shown in activity entries
- * Validates: badge display, business styling, color/emoji usage
+ * Tests for workspace label badge shown in activity entries
+ * Validates: badge display, workspace styling, color/emoji usage
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
 
-interface Business {
+interface Workspace {
   _id: string;
   name: string;
   slug: string;
@@ -16,10 +16,10 @@ interface Business {
   isDefault: boolean;
 }
 
-// Mock BusinessBadge component behavior
-class BusinessBadgeMock {
+// Mock WorkspaceBadge component behavior
+class WorkspaceBadgeMock {
   constructor(
-    private business: Business | null = null,
+    private business:  | null = null,
     private variant: "inline" | "small" | "large" | "emoji-only" = "inline",
     private size: "sm" | "md" | "lg" = "md",
     private className: string = "",
@@ -29,30 +29,30 @@ class BusinessBadgeMock {
 
   render(): string {
     if (!this.business) return "";
-    return `${this.business.emoji} ${this.business.name}`;
+    return `${this. workspace.emoji} ${this. workspace.name}`;
   }
 
   renderCompact(): string {
     if (!this.business) return "";
-    return `${this.business.emoji} ${this.business.name.substring(0, 2)}`;
+    return `${this. workspace.emoji} ${this. workspace.name.substring(0, 2)}`;
   }
 
   renderEmojiOnly(): string {
     if (!this.business) return "";
-    return this.business.emoji;
+    return this. workspace.emoji;
   }
 
   getBackgroundColor(): string {
     if (!this.business) return "#e5e7eb";
-    return this.business.color;
+    return this. workspace.color;
   }
 
   getTextColor(): string {
     if (!this.business) return "#000000";
     // Simple contrast calculation - light colors get dark text
-    const r = parseInt(this.business.color.substring(1, 3), 16);
-    const g = parseInt(this.business.color.substring(3, 5), 16);
-    const b = parseInt(this.business.color.substring(5, 7), 16);
+    const r = parseInt(this. workspace.color.substring(1, 3), 16);
+    const g = parseInt(this. workspace.color.substring(3, 5), 16);
+    const b = parseInt(this. workspace.color.substring(5, 7), 16);
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness > 155 ? "#000000" : "#ffffff";
   }
@@ -92,7 +92,7 @@ class BusinessBadgeMock {
 
   getActivityEntryFormat(): string {
     if (!this.business) return "";
-    return `Business: ${this.render()}`;
+    return `: ${this.render()}`;
   }
 
   truncateIfNeeded(maxLength: number = 20): string {
@@ -109,12 +109,12 @@ class BusinessBadgeMock {
   }
 }
 
-describe("BusinessBadge Component", () => {
-  let business: Business;
-  let badge: BusinessBadgeMock;
+describe("WorkspaceBadge Component", () => {
+  let business: ;
+  let badge: WorkspaceBadgeMock;
 
   beforeEach(() => {
-    business = {
+    workspace = {
       _id: "biz_1",
       name: "Mission Control HQ",
       slug: "mission-control-hq",
@@ -122,22 +122,22 @@ describe("BusinessBadge Component", () => {
       color: "#6366f1",
       isDefault: true,
     };
-    badge = new BusinessBadgeMock(business);
+    badge = new WorkspaceBadgeMock(workspace);
   });
 
   describe("Rendering", () => {
-    it("should render business badge", async () => {
-      // Expected: badge visible with business info
+    it("should render workspace badge", async () => {
+      // Expected: badge visible with workspace info
       expect(badge.render()).toBeDefined();
       expect(badge.render()).toBe("🚀 Mission Control HQ");
     });
 
-    it("should display business emoji", async () => {
+    it("should display workspace emoji", async () => {
       // Expected: emoji visible in badge
       expect(badge.render()).toContain("🚀");
     });
 
-    it("should display business name", async () => {
+    it("should display workspace name", async () => {
       // Expected: name visible in badge
       expect(badge.render()).toContain("Mission Control HQ");
     });
@@ -147,35 +147,35 @@ describe("BusinessBadge Component", () => {
       expect(badge.getDisplay()).toBe("🚀 Mission Control HQ");
     });
 
-    it("should handle long business names gracefully", async () => {
-      // Arrange: name = "Very Long Business Name That Might Overflow"
-      const longBusiness = {
+    it("should handle long workspace names gracefully", async () => {
+      // Arrange: name = "Very Long Workspace Name That Might Overflow"
+      const long = {
         ...business,
-        name: "Very Long Business Name That Might Overflow Completely",
+        name: "Very Long Workspace Name That Might Overflow Completely",
       };
-      const longBadge = new BusinessBadgeMock(longBusiness);
+      const longBadge = new WorkspaceBadgeMock(long);
       // Expected: truncates appropriately
       expect(longBadge.truncateIfNeeded(20).length).toBeLessThanOrEqual(20);
     });
 
     it("should handle missing emoji gracefully", async () => {
-      // Arrange: business without emoji
-      const noBusiness = { ...business, emoji: "" };
-      const noBadge = new BusinessBadgeMock(noBusiness);
+      // Arrange: workspace without emoji
+      const no = { ...business, emoji: "" };
+      const noBadge = new WorkspaceBadgeMock(no);
       // Expected: shows name and color
       expect(noBadge.render()).toBeDefined();
     });
   });
 
   describe("Styling", () => {
-    it("should use business color for background", async () => {
-      // Expected: background-color set to business.color
+    it("should use workspace color for background", async () => {
+      // Expected: background-color set to  workspace.color
       expect(badge.getBackgroundColor()).toBe("#6366f1");
     });
 
-    it("should apply business color styling", async () => {
+    it("should apply workspace color styling", async () => {
       // Expected: badge styled with business's color
-      expect(badge.getBackgroundColor()).toBe(business.color);
+      expect(badge.getBackgroundColor()).toBe( workspace.color);
     });
 
     it("should use contrasting text color for readability", async () => {
@@ -186,16 +186,16 @@ describe("BusinessBadge Component", () => {
     });
 
     it("should have distinct visual styling per business", async () => {
-      // Expected: Business A badge looks different from Business B
+      // Expected:  A badge looks different from  B
       const bizB = {
         ...business,
         _id: "biz_2",
-        name: "Business B",
+        name: " B",
         slug: "business-b",
         emoji: "⚡",
         color: "#ec4899",
       };
-      const badgeB = new BusinessBadgeMock(bizB);
+      const badgeB = new WorkspaceBadgeMock(bizB);
       expect(badge.getBackgroundColor()).not.toBe(badgeB.getBackgroundColor());
     });
 
@@ -214,32 +214,32 @@ describe("BusinessBadge Component", () => {
   describe("Variants", () => {
     it("should support inline variant (for activity entries)", async () => {
       // Expected: compact inline badge suitable for activity list
-      const inlineBadge = new BusinessBadgeMock(business, "inline");
+      const inlineBadge = new WorkspaceBadgeMock(business, "inline");
       expect(inlineBadge.getDisplay()).toBeDefined();
     });
 
     it("should support small variant", async () => {
       // Expected: smaller badge for compact spaces
-      const smallBadge = new BusinessBadgeMock(business, "small");
+      const smallBadge = new WorkspaceBadgeMock(business, "small");
       smallBadge.setVariant("small");
       expect(smallBadge.getDisplay()).toBeDefined();
     });
 
     it("should support large variant for prominent display", async () => {
       // Expected: larger badge for headers/titles
-      const largeBadge = new BusinessBadgeMock(business, "large");
+      const largeBadge = new WorkspaceBadgeMock(business, "large");
       expect(largeBadge.getDisplay()).toBeDefined();
     });
 
     it("should support emoji-only variant", async () => {
       // Expected: only emoji shown (for tight spacing)
-      const emojiBadge = new BusinessBadgeMock(business, "emoji-only");
+      const emojiBadge = new WorkspaceBadgeMock(business, "emoji-only");
       expect(emojiBadge.getDisplay()).toBe("🚀");
     });
 
     it("should support outline variant", async () => {
       // Expected: outlined badge (not filled)
-      const outlineBadge = new BusinessBadgeMock(business);
+      const outlineBadge = new WorkspaceBadgeMock(workspace);
       expect(outlineBadge.getDisplay()).toBeDefined();
     });
   });
@@ -248,19 +248,19 @@ describe("BusinessBadge Component", () => {
     it("should appear in activity entry at appropriate position", async () => {
       // Expected: badge positioned in activity entry
       const format = badge.getActivityEntryFormat();
-      expect(format).toContain("Business:");
+      expect(format).toContain(":");
     });
 
     it("should align with other activity badges", async () => {
       // Expected: consistent alignment across multiple entries
       const format1 = badge.getActivityEntryFormat();
-      const badge2 = new BusinessBadgeMock({
+      const badge2 = new WorkspaceBadgeMock({
         ...business,
-        name: "Other Business",
+        name: "Other ",
       });
       const format2 = badge2.getActivityEntryFormat();
-      expect(format1).toContain("Business:");
-      expect(format2).toContain("Business:");
+      expect(format1).toContain(":");
+      expect(format2).toContain(":");
     });
 
     it("should not disrupt activity text flow", async () => {
@@ -275,8 +275,8 @@ describe("BusinessBadge Component", () => {
       expect(format).toContain("🚀");
     });
 
-    it("should show which business an activity belongs to", async () => {
-      // Expected: clearly indicates business context
+    it("should show which workspace an activity belongs to", async () => {
+      // Expected: clearly indicates workspace context
       const format = badge.getActivityEntryFormat();
       expect(format).toContain("Mission Control HQ");
     });
@@ -286,7 +286,7 @@ describe("BusinessBadge Component", () => {
     it("should support optional click handler", async () => {
       // Expected: optional onClick prop that filters by business
       let clicked = false;
-      const clickBadge = new BusinessBadgeMock(business, "inline", "md", "", () => {
+      const clickBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
         clicked = true;
       });
       clickBadge.setClickable(true);
@@ -297,17 +297,17 @@ describe("BusinessBadge Component", () => {
     it("should show cursor pointer if clickable", async () => {
       // Expected: cursor: pointer on hover if onClick provided
       let clicked = false;
-      const clickBadge = new BusinessBadgeMock(business, "inline", "md", "", () => {
+      const clickBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
         clicked = true;
       });
       clickBadge.setClickable(true);
       expect(clickBadge.hasCursor()).toBe(true);
     });
 
-    it("should navigate to business when clicked", async () => {
+    it("should navigate to workspace when clicked", async () => {
       // Act: click badge
       let navigated = false;
-      const navBadge = new BusinessBadgeMock(business, "inline", "md", "", () => {
+      const navBadge = new WorkspaceBadgeMock(business, "inline", "md", "", () => {
         navigated = true;
       });
       navBadge.setClickable(true);
@@ -316,7 +316,7 @@ describe("BusinessBadge Component", () => {
       expect(navigated).toBe(true);
     });
 
-    it("should show tooltip with business slug on hover", async () => {
+    it("should show tooltip with workspace slug on hover", async () => {
       // Expected: tooltip shows slug
       expect(badge.getTooltipText()).toBe("mission-control-hq");
       expect(badge.hasTooltip()).toBe(true);
@@ -324,32 +324,32 @@ describe("BusinessBadge Component", () => {
   });
 
   describe("Props and Customization", () => {
-    it("should accept business object as prop", async () => {
-      // Expected: business prop controls displayed content
-      const customBadge = new BusinessBadgeMock({
+    it("should accept workspace object as prop", async () => {
+      // Expected: workspace prop controls displayed content
+      const customBadge = new WorkspaceBadgeMock({
         ...business,
-        name: "Custom Business",
+        name: "Custom ",
       });
-      expect(customBadge.render()).toContain("Custom Business");
+      expect(customBadge.render()).toContain("Custom ");
     });
 
     it("should accept variant prop", async () => {
       // Expected: variant="inline" | "small" | "large" | "emoji-only"
-      const emojiBadge = new BusinessBadgeMock(business, "emoji-only");
+      const emojiBadge = new WorkspaceBadgeMock(business, "emoji-only");
       expect(emojiBadge.getDisplay()).toBe("🚀");
     });
 
     it("should accept size prop", async () => {
       // Expected: size="sm" | "md" | "lg"
-      const smBadge = new BusinessBadgeMock(business, "inline", "sm");
-      const lgBadge = new BusinessBadgeMock(business, "inline", "lg");
+      const smBadge = new WorkspaceBadgeMock(business, "inline", "sm");
+      const lgBadge = new WorkspaceBadgeMock(business, "inline", "lg");
       expect(smBadge.getPadding()).not.toBe(lgBadge.getPadding());
     });
 
     it("should accept className prop for custom styling", async () => {
       // Expected: can apply additional CSS classes
-      const customBadge = new BusinessBadgeMock(
-        business,
+      const customBadge = new WorkspaceBadgeMock(
+        workspace,
         "inline",
         "md",
         "custom-class"
@@ -360,8 +360,8 @@ describe("BusinessBadge Component", () => {
     it("should accept optional onClick handler", async () => {
       // Expected: onClick callback when badge clicked
       let callCount = 0;
-      const clickableBadge = new BusinessBadgeMock(
-        business,
+      const clickableBadge = new WorkspaceBadgeMock(
+        workspace,
         "inline",
         "md",
         "",
@@ -374,10 +374,10 @@ describe("BusinessBadge Component", () => {
   });
 
   describe("Display Variants", () => {
-    it("should display as 'Business: X' in activity context", async () => {
-      // Expected: format like "Business: 🚀 Mission Control HQ"
+    it("should display as ': X' in activity context", async () => {
+      // Expected: format like ": 🚀 Mission Control HQ"
       expect(badge.getActivityEntryFormat()).toBe(
-        "Business: 🚀 Mission Control HQ"
+        ": 🚀 Mission Control HQ"
       );
     });
 
@@ -393,23 +393,23 @@ describe("BusinessBadge Component", () => {
 
     it("should truncate long names with ellipsis", async () => {
       // Expected: "Mission Control..." if too long
-      const longBusiness = {
+      const long = {
         ...business,
-        name: "This Is A Very Very Long Business Name",
+        name: "This Is A Very Very Long Workspace Name",
       };
-      const longBadge = new BusinessBadgeMock(longBusiness);
+      const longBadge = new WorkspaceBadgeMock(long);
       const truncated = longBadge.truncateIfNeeded(20);
       expect(truncated).toContain("...");
     });
 
-    it("should support tooltip with full business name", async () => {
+    it("should support tooltip with full workspace name", async () => {
       // Expected: tooltip shows complete slug
-      expect(badge.getTooltipText()).toBe(business.slug);
+      expect(badge.getTooltipText()).toBe(workspace.slug);
     });
   });
 
   describe("Color Handling", () => {
-    it("should use business hex color directly", async () => {
+    it("should use workspace hex color directly", async () => {
       // Expected: background-color: #6366f1
       expect(badge.getBackgroundColor()).toBe("#6366f1");
     });
@@ -422,8 +422,8 @@ describe("BusinessBadge Component", () => {
 
     it("should handle invalid color gracefully", async () => {
       // Arrange: color = "invalid-color"
-      const invalidBusiness = { ...business, color: "#000000" };
-      const invalidBadge = new BusinessBadgeMock(invalidBusiness);
+      const invalid = { ...business, color: "#000000" };
+      const invalidBadge = new WorkspaceBadgeMock(invalid);
       // Expected: falls back to handling
       expect(invalidBadge.getBackgroundColor()).toBe("#000000");
     });
@@ -431,34 +431,34 @@ describe("BusinessBadge Component", () => {
     it("should apply color opacity when needed", async () => {
       // Expected: optional opacity for subtle backgrounds
       const business2 = { ...business, color: "#6366f1" };
-      const badge2 = new BusinessBadgeMock(business2);
+      const badge2 = new WorkspaceBadgeMock(business2);
       expect(badge2.getBackgroundColor()).toBeDefined();
     });
 
     it("should support dark mode color adjustments", async () => {
       // Expected: colors adjusted for dark theme
-      const darkBusiness = { ...business, color: "#1f2937" };
-      const darkBadge = new BusinessBadgeMock(darkBusiness);
+      const dark = { ...business, color: "#1f2937" };
+      const darkBadge = new WorkspaceBadgeMock(dark);
       expect(darkBadge.getTextColor()).toBe("#ffffff");
     });
   });
 
   describe("Error Handling", () => {
-    it("should handle missing business prop", async () => {
+    it("should handle missing workspace prop", async () => {
       // Expected: doesn't crash, shows placeholder
-      const nullBadge = new BusinessBadgeMock(null);
+      const nullBadge = new WorkspaceBadgeMock(null);
       expect(nullBadge.render()).toBe("");
     });
 
     it("should handle null business", async () => {
       // Expected: graceful fallback
-      const nullBadge = new BusinessBadgeMock(null);
+      const nullBadge = new WorkspaceBadgeMock(null);
       expect(nullBadge).toBeDefined();
     });
 
-    it("should handle business with missing fields", async () => {
-      // Arrange: business missing name or emoji
-      const partialBusiness = {
+    it("should handle workspace with missing fields", async () => {
+      // Arrange: workspace missing name or emoji
+      const partial = {
         _id: "biz_1",
         name: "",
         slug: "test",
@@ -466,7 +466,7 @@ describe("BusinessBadge Component", () => {
         color: "#6366f1",
         isDefault: false,
       };
-      const partialBadge = new BusinessBadgeMock(partialBusiness);
+      const partialBadge = new WorkspaceBadgeMock(partial);
       // Expected: doesn't crash
       expect(partialBadge.render()).toBeDefined();
     });

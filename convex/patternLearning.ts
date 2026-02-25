@@ -19,7 +19,7 @@ interface TaskSequence {
  */
 export const detectPatterns = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     epicId: v.id("epics"),
     taskSequence: v.array(v.string()), // task types in order
     succeeded: v.boolean(),
@@ -29,10 +29,10 @@ export const detectPatterns = mutation({
     // Create pattern signature: "task1→task2→task3"
     const patternSignature = args.taskSequence.join("→");
 
-    // Find existing pattern using by_business index
+    // Find existing pattern using by_workspace index
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
     const existing = patterns.find(
       (p: any) => p.pattern === patternSignature
@@ -63,7 +63,7 @@ export const detectPatterns = mutation({
     } else {
       // Create new pattern
       return await ctx.db.insert("taskPatterns", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         pattern: patternSignature,
         taskTypeSequence: args.taskSequence,
         occurrences: 1,
@@ -78,16 +78,16 @@ export const detectPatterns = mutation({
 });
 
 /**
- * Get all patterns for a business
+ * Get all patterns for a workspace
  */
-export const getPatternsByBusiness = query({
+export const getPatternsBy = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
     return patterns.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   },
@@ -98,13 +98,13 @@ export const getPatternsByBusiness = query({
  */
 export const getCommonPatterns = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Sort by occurrences desc, then success rate desc
@@ -127,13 +127,13 @@ export const getCommonPatterns = query({
  */
 export const suggestPatternsForEpic = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     taskTypes: v.array(v.string()), // task types user wants to include
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Find patterns that match the task types
@@ -163,13 +163,13 @@ export const suggestPatternsForEpic = query({
  */
 export const getAntiPatterns = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     successThreshold: v.number(),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Filter to low-success patterns with minimum occurrences
@@ -188,13 +188,13 @@ export const getAntiPatterns = query({
  */
 export const estimateDuration = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     taskTypes: v.array(v.string()),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Find matching patterns
@@ -228,13 +228,13 @@ export const estimateDuration = query({
  */
 export const getDormantPatterns = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     daysSinceLastSeen: v.number(),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     const thresholdMs = args.daysSinceLastSeen * 24 * 60 * 60 * 1000;
@@ -250,12 +250,12 @@ export const getDormantPatterns = query({
  */
 export const getPatternAnalytics = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     const patterns = await ctx.db
       .query("taskPatterns")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     const totalPatterns = patterns.length;

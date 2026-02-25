@@ -11,17 +11,17 @@ import { UserPlus, Trash2, Shield, User } from "lucide-react";
  * Phase 2 RBAC UI: Manage organization members
  */
 interface MembersPanelProps {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
 }
 
-export function MembersPanel({ businessId }: MembersPanelProps) {
+export function MembersPanel({ workspaceId }: MembersPanelProps) {
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin" | "owner">("member");
   const [error, setError] = useState<string | null>(null);
 
   // Queries
-  const members = useQuery(api.organizationMembers.getMembers, { businessId });
+  const members = useQuery(api.organizationMembers.getMembers, { workspaceId });
 
   // Mutations
   const removeMember = useMutation(api.organizationMembers.removeMember);
@@ -121,7 +121,7 @@ export function MembersPanel({ businessId }: MembersPanelProps) {
                   }
                   try {
                     await createInvite({
-                      businessId,
+                      workspaceId,
                       email: inviteEmail,
                       role: inviteRole,
                       allBoardsRead: true,

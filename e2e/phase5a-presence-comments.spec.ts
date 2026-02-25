@@ -13,7 +13,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Phase 5A: Presence & Comments", () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to a business page (requires auth setup)
+    // Navigate to a workspace page (requires auth setup)
     await page.goto("/");
   });
 

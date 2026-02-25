@@ -105,7 +105,7 @@ describe("Phase 5: Type Safety & Shared Domain Types", () => {
 
     it("should construct ActivityPayload with correct types", () => {
       interface ActivityPayload {
-        businessId?: string;
+        workspaceId?: string;
         type: string;
         agentId: string;
         agentName: string;

@@ -66,7 +66,7 @@ export const createComment = mutation({
     taskId: v.id("tasks"),
     agentId: v.id("agents"),
     agentName: v.string(),
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     content: v.string(),
     parentCommentId: v.optional(v.id("taskComments")),
     mentions: v.optional(v.array(v.id("agents"))),
@@ -75,7 +75,7 @@ export const createComment = mutation({
     const now = Date.now();
 
     const commentId = await ctx.db.insert("taskComments", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       taskId: args.taskId,
       agentId: args.agentId,
       agentName: args.agentName,
@@ -91,7 +91,7 @@ export const createComment = mutation({
     if (args.mentions && args.mentions.length > 0) {
       for (const mentionedId of args.mentions) {
         await ctx.db.insert("mentions", {
-          businessId: args.businessId,
+          workspaceId: args.workspaceId,
           mentionedAgentId: mentionedId,
           mentionedBy: args.agentId,
           context: "task_comment",
@@ -103,7 +103,7 @@ export const createComment = mutation({
 
         // Also create notification
         await ctx.db.insert("notifications", {
-          businessId: args.businessId,
+          workspaceId: args.workspaceId,
           recipientId: mentionedId,
           type: "mention",
           content: `${args.agentName} mentioned you in a task comment`,
@@ -126,7 +126,7 @@ export const createComment = mutation({
       if (sub.agentId !== args.agentId) {
         if (sub.notifyOn === "all" || sub.notifyOn === "comments") {
           await ctx.db.insert("notifications", {
-            businessId: args.businessId,
+            workspaceId: args.workspaceId,
             recipientId: sub.agentId,
             type: "mention",
             content: `${args.agentName} commented on a task you're subscribed to`,
@@ -229,7 +229,7 @@ export const editComment = mutation({
  */
 export const subscribeToTask = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     taskId: v.id("tasks"),
     agentId: v.id("agents"),
     notifyOn: v.optional(
@@ -243,7 +243,7 @@ export const subscribeToTask = mutation({
   },
   handler: async (
     ctx,
-    { businessId, taskId, agentId, notifyOn = "all" }
+    { workspaceId, taskId, agentId, notifyOn = "all" }
   ) => {
     // Check if already subscribed
     const existing = await ctx.db
@@ -262,7 +262,7 @@ export const subscribeToTask = mutation({
     }
 
     return await ctx.db.insert("taskSubscriptions", {
-      businessId,
+      workspaceId,
       taskId,
       agentId,
       notifyOn,
@@ -336,9 +336,9 @@ export const markMentionAsRead = mutation({
 export const getUnreadMentions = query({
   args: {
     agentId: v.id("agents"),
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
-  handler: async (ctx, { agentId, businessId }) => {
+  handler: async (ctx, { agentId, workspaceId }) => {
     return await ctx.db
       .query("mentions")
       .withIndex("by_read", (q: any) =>

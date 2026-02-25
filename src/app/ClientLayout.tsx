@@ -4,8 +4,8 @@ import { ReactNode, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { useTheme } from "@/components/ThemeProvider";
-import { BusinessSelector } from "@/components/BusinessSelector";
-import { useBusiness } from "@/components/BusinessProvider";
+import { WorkspaceSelector } from "@/components/WorkspaceSelector";
+import { useWorkspace } from "@/components/WorkspaceProvider";
 import { BrandMark } from "@/components/BrandMark";
 import { LiveFeedPanel } from "@/components/LiveFeedPanel";
 import { BoardChatPanel } from "@/components/BoardChatPanel";
@@ -25,7 +25,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace, workspaces, isLoading } = useWorkspace();
   const [openPanel, setOpenPanel] = useState<PanelType>(null);
   const [selectedTaskId, setSelectedTaskForChat] = useState<string | null>(null);
 
@@ -37,15 +37,36 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   // Debug logging
   if (typeof window !== 'undefined') {
     console.log('✓ ClientLayout mounted', {
-      currentBusiness: currentBusiness?.name,
+      currentWorkspace: currentWorkspace?.name,
       notificationsCount: notificationsData.length
     });
+  }
+
+  // Show empty state if no workspaces exist and data is not loading
+  if (!isLoading && workspaces.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center max-w-md p-8">
+          <Building2 className="w-16 h-16 text-primary mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Welcome to Mission Control</h1>
+          <p className="text-muted-foreground mb-6">
+            Create your first workspace to get started.
+          </p>
+          <button
+            onClick={() => router.push("/workspaces/new")}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
+          >
+            Create Your First Workspace
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Extract current tab from pathname
   const currentTab = ((pathname || "").split("/").pop() || "overview");
 
-  // Extract business slug from pathname
+  // Extract workspace slug from pathname
   const pathParts = (pathname || "").split("/").filter(Boolean);
   const businessSlugFromUrl = pathParts[0];
 
@@ -69,7 +90,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         { id: "board", label: "Board", icon: Activity, isGlobal: false },
         { id: "epics", label: "Epics", icon: Zap, isGlobal: false },
         { id: "wiki", label: "Wiki", icon: MessageSquare, isGlobal: false },
-        { id: "settings", label: "Settings", icon: Settings, isGlobal: false, disabled: true },
+        { id: "settings", label: "Settings", icon: Settings, isGlobal: false },
       ],
     },
     {
@@ -77,7 +98,8 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       items: [
         { id: "workload", label: "Workload", icon: BarChart3, isGlobal: true },
         { id: "api-docs", label: "API Docs", icon: Package, isGlobal: true },
-        { id: "bottlenecks", label: "Bottlenecks", icon: Cpu, isGlobal: true, disabled: true },
+        { id: "bottlenecks", label: "Bottlenecks", icon: Cpu, isGlobal: true },
+        { id: "businesses", label: "es", icon: Store, isGlobal: true },
         { id: "control", label: "Control", icon: Building2, isGlobal: true },
       ],
     },
@@ -91,10 +113,9 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           <div className="flex items-center justify-between h-full px-6">
             <div className="flex items-center gap-4">
               <BrandMark />
-              <h1 className="text-xl font-semibold">Mission Control</h1>
             </div>
             <div className="flex items-center gap-4">
-              <BusinessSelector />
+              <WorkspaceSelector />
               <button
                 onClick={() => toggleTheme()}
                 className="p-2 hover:bg-muted rounded-lg transition-colors"
@@ -170,7 +191,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         <LiveFeedPanel
           isOpen={openPanel === "livefeed"}
           onClose={() => setOpenPanel(null)}
-          businessId={currentBusiness?._id}
+          workspaceId={currentWorkspace?._id}
         />
         <BoardChatPanel
           isOpen={openPanel === "chat"}

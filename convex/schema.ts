@@ -8,16 +8,16 @@ import { v as convexVal } from "convex/values";
 
 export default defineSchema({
   /**
-   * BUSINESSES - Multi-tenant Support
-   * 2-5 businesses sharing a single Mission Control instance
+   * WORKSPACES - Multi-tenant Support
+   * 2-5 workspaces sharing a single Mission Control instance
    */
-  businesses: defineTable({
+  workspaces: defineTable({
     name: convexVal.string(),
     slug: convexVal.string(),                      // URL-safe unique identifier
     color: convexVal.optional(convexVal.string()), // Hex color for UI
-    emoji: convexVal.optional(convexVal.string()), // Business emoji/icon
+    emoji: convexVal.optional(convexVal.string()), // Workspace emoji/icon
     description: convexVal.optional(convexVal.string()),
-    missionStatement: convexVal.optional(convexVal.string()), // Business purpose/problem being solved
+    missionStatement: convexVal.optional(convexVal.string()), // Workspace purpose/problem being solved
     isDefault: convexVal.boolean(),                // Exactly one default at all times
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
@@ -95,7 +95,7 @@ export default defineSchema({
    * Every agent action logged for observability (immutable audit trail)
    */
   executions: defineTable({
-    businessId: convexVal.optional(convexVal.id("businesses")), // optional for system-level executions
+    workspaceId: convexVal.optional(convexVal.id("workspaces")), // optional for system-level executions
     agentId: convexVal.id("agents"),
     agentName: convexVal.string(),           // denormalized
     taskId: convexVal.optional(convexVal.id("tasks")),
@@ -134,7 +134,7 @@ export default defineSchema({
     .index("by_agent_time", ["agentId", "startTime"])
     .index("by_status_time", ["status", "startTime"])
     .index("by_workflow_id", ["workflowId"])
-    .index("by_business_id", ["businessId"])
+    .index("by_workspace_id", ["workspaceId"])
     .index("by_agent", ["agentId"])
     .index("by_status", ["status"])
     .index("by_start_time", ["startTime"])
@@ -142,11 +142,11 @@ export default defineSchema({
 
   /**
    * EPICS - Large Initiatives
-   * Group tasks into strategic objectives (business-scoped)
+   * Group tasks into strategic objectives (workspace-scoped)
    */
   epics: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this epic belongs to
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: which workspace this epic belongs to
 
     title: convexVal.string(),
     description: convexVal.string(),
@@ -162,18 +162,18 @@ export default defineSchema({
     updatedAt: convexVal.number(),
     completedAt: convexVal.optional(convexVal.number()),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_status", ["status"])
     .index("by_owner", ["ownerId"])
     .index("by_created_at", ["createdAt"]),
 
   /**
    * TASKS - The Work Queue
-   * Kanban-style task management with hierarchy (business-scoped)
+   * Kanban-style task management with hierarchy (workspace-scoped)
    */
   tasks: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this task belongs to
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: which workspace this task belongs to
 
     title: convexVal.string(),
     description: convexVal.string(),
@@ -258,9 +258,9 @@ export default defineSchema({
       completedBy: convexVal.optional(convexVal.string()), // Agent/user who completed it
     }))),
   })
-    .index("by_business", ["businessId"])
-    .index("by_business_status", ["businessId", "status"])
-    .index("by_ticket_number", ["businessId", "ticketNumber"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_status", ["workspaceId", "status"])
+    .index("by_ticket_number", ["workspaceId", "ticketNumber"])
     .index("by_status", ["status"])
     .index("by_epic", ["epicId"])
     .index("by_parent", ["parentId"])
@@ -273,11 +273,11 @@ export default defineSchema({
 
   /**
    * MESSAGES - Threaded Discussions
-   * Comments on tasks with @mentions and threading (business-scoped via taskId)
+   * Comments on tasks with @mentions and threading (workspace-scoped via taskId)
    */
   messages: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: scoped via taskId's business
 
     taskId: convexVal.id("tasks"),
     fromId: convexVal.string(),            // agent ID or "user"
@@ -308,7 +308,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
     editedAt: convexVal.optional(convexVal.number()),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_task", ["taskId"])
     .index("by_parent", ["parentId"])
     .index("by_from", ["fromId"])
@@ -316,13 +316,13 @@ export default defineSchema({
 
   /**
    * ACTIVITIES - The Feed (Audit Log)
-   * Real-time stream with full denormalization (business-scoped but globally viewable)
+   * Real-time stream with full denormalization (workspace-scoped but globally viewable)
    */
   activities: defineTable({
-    // === BUSINESS SCOPING ===
-    // NOTE: businessId is optional to support agent-scoped activities (like heartbeat changes)
-    // that don't belong to a specific business (agents are global)
-    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: for task/business-scoped activities
+    // === workspace SCOPING ===
+    // NOTE: workspaceId is optional to support agent-scoped activities (like heartbeat changes)
+    // that don't belong to a specific workspace (agents are global)
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),  // Optional: for task/workspace-scoped activities
 
     type: convexVal.union(
       convexVal.literal("task_created"),
@@ -365,8 +365,8 @@ export default defineSchema({
 
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
-    .index("by_business_created_at", ["businessId", "createdAt"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_created_at", ["workspaceId", "createdAt"])
     .index("by_created_at", ["createdAt"])
     .index("by_agent", ["agentId"])
     .index("by_task", ["taskId"])
@@ -378,7 +378,7 @@ export default defineSchema({
    * Real-time alerts with delivery tracking
    */
   notifications: defineTable({
-    businessId: convexVal.optional(convexVal.id("businesses")),  // for scoped notifications
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),  // for scoped notifications
     recipientId: convexVal.optional(convexVal.id("agents")),   // who gets notified (optional for broadcast alerts)
     type: convexVal.union(
       convexVal.literal("mention"),
@@ -428,29 +428,29 @@ export default defineSchema({
 
   /**
    * THREAD_SUBSCRIPTIONS - Auto-Notify
-   * Agents auto-subscribed to relevant threads (business-scoped via taskId)
+   * Agents auto-subscribed to relevant threads (workspace-scoped via taskId)
    */
   threadSubscriptions: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: scoped via taskId's business
 
     agentId: convexVal.id("agents"),
     taskId: convexVal.id("tasks"),
     level: convexVal.union(convexVal.literal("all"), convexVal.literal("mentions_only")),
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_agent_task", ["agentId", "taskId"])
     .index("by_task", ["taskId"])
     .index("by_agent", ["agentId"]),
 
   /**
    * DOCUMENTS - Deliverables
-   * Research, protocols, specs, drafts (business-scoped)
+   * Research, protocols, specs, drafts (workspace-scoped)
    */
   documents: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this document belongs to
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: which workspace this document belongs to
 
     title: convexVal.string(),
     content: convexVal.string(),
@@ -470,7 +470,7 @@ export default defineSchema({
     updatedAt: convexVal.number(),
     version: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_task", ["taskId"])
     .index("by_epic", ["epicId"])
     .index("by_type", ["type"])
@@ -529,11 +529,11 @@ export default defineSchema({
 
   /**
    * GOALS - Long-term Objectives
-   * AI-native goal tracking with memory integration (business-scoped)
+   * AI-native goal tracking with memory integration (workspace-scoped)
    */
   goals: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this goal belongs to
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: which workspace this goal belongs to
 
     title: convexVal.string(),
     description: convexVal.string(),
@@ -569,7 +569,7 @@ export default defineSchema({
     updatedAt: convexVal.number(),
     completedAt: convexVal.optional(convexVal.number()),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_status", ["status"])
     .index("by_owner", ["owner"])
     .index("by_created_at", ["createdAt"])
@@ -580,8 +580,8 @@ export default defineSchema({
    * Human calendar + AI-scheduled tasks in one view
    */
   calendarEvents: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.optional(convexVal.id("businesses")), // MIG-10: backfilled from taskId
+    // === workspace SCOPING ===
+    workspaceId: convexVal.optional(convexVal.id("workspaces")), // MIG-10: backfilled from taskId
 
     title: convexVal.string(),
     description: convexVal.optional(convexVal.string()),
@@ -618,7 +618,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_start_time", ["startTime"])
     .index("by_type", ["type"])
     .index("by_task", ["taskId"])
@@ -657,11 +657,11 @@ export default defineSchema({
 
   /**
    * STRATEGIC_REPORTS - Weekly Analysis
-   * Generated reports on goal progress + recommendations (business-scoped)
+   * Generated reports on goal progress + recommendations (workspace-scoped)
    */
   strategicReports: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: which business this report is for
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: which workspace this report is for
 
     week: convexVal.number(),             // ISO week number
     year: convexVal.number(),
@@ -687,33 +687,33 @@ export default defineSchema({
 
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
-    .index("by_business_week", ["businessId", "year", "week"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_week", ["workspaceId", "year", "week"])
     .index("by_week", ["year", "week"])
     .index("by_created_at", ["createdAt"]),
 
   /**
    * SETTINGS - Configuration
-   * Split between global (no businessId) and business-scoped (with businessId)
+   * Split between global (no workspaceId) and workspace-scoped (with workspaceId)
    * Global keys: theme, taskCounterFormat, features
-   * Business keys: githubOrg, githubRepo, ticketPrefix, taskCounter
+   *  keys: githubOrg, githubRepo, ticketPrefix, taskCounter
    */
   settings: defineTable({
     key: convexVal.string(),               // e.g., "theme", "githubRepo", "taskCounter"
     value: convexVal.string(),             // JSON-encoded value
-    businessId: convexVal.optional(convexVal.id("businesses")), // null=global, set=business-scoped
+    workspaceId: convexVal.optional(convexVal.id("workspaces")), // null=global, set=workspace-scoped
     updatedAt: convexVal.number(),
   })
     .index("by_key", ["key"])
-    .index("by_business_key", ["businessId", "key"]),
+    .index("by_workspace_key", ["workspaceId", "key"]),
 
   /**
    * EXECUTION_LOG - Task Execution History
-   * Track when tasks run, outcomes, time spent (business-scoped via taskId)
+   * Track when tasks run, outcomes, time spent (workspace-scoped via taskId)
    */
   executionLog: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),  // REQUIRED: scoped via taskId's business
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: scoped via taskId's business
 
     taskId: convexVal.id("tasks"),
     agentId: convexVal.optional(convexVal.string()),  // who executed it
@@ -742,7 +742,7 @@ export default defineSchema({
 
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_task", ["taskId"])
     .index("by_status", ["status"])
     .index("by_agent", ["agentId"])
@@ -753,7 +753,7 @@ export default defineSchema({
    * Real-time notifications when issues are detected
    */
   alerts: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.optional(convexVal.string()),  // null = system notification
     type: convexVal.union(
       convexVal.literal("queue_overload"),
@@ -778,9 +778,9 @@ export default defineSchema({
     readAt: convexVal.optional(convexVal.number()),
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_agent", ["agentId"])
-    .index("by_business_read", ["businessId", "read"])
+    .index("by_workspace_read", ["workspaceId", "read"])
     .index("by_created_at", ["createdAt"]),
 
   /**
@@ -788,7 +788,7 @@ export default defineSchema({
    * Rules that trigger notifications when thresholds crossed
    */
   alertRules: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.string(),  // "Queue overload", "Task blocked"
     description: convexVal.optional(convexVal.string()),
     enabled: convexVal.boolean(),
@@ -832,7 +832,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_enabled", ["enabled"]),
 
   /**
@@ -840,7 +840,7 @@ export default defineSchema({
    * What OpenClaw decided to do and why
    */
   decisions: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
 
     // What action
     action: convexVal.union(
@@ -880,7 +880,7 @@ export default defineSchema({
 
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_task", ["taskId"])
     .index("by_action", ["action"])
     .index("by_decided_by", ["decidedBy"])
@@ -891,7 +891,7 @@ export default defineSchema({
    * When alerts fired and their context
    */
   alertEvents: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     ruleId: convexVal.id("alertRules"),
     ruleName: convexVal.string(),
 
@@ -904,18 +904,18 @@ export default defineSchema({
 
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_rule", ["ruleId"])
     .index("by_created_at", ["createdAt"]),
 
   /**
    * WIKI PAGES - Simple markdown-based document store
-   * Tree-structured knowledge base organized by business + pages and subpages
+   * Tree-structured knowledge base organized by workspace + pages and subpages
    * No Confluence-style features: just markdown content, hierarchy, and basic metadata
    */
   wikiPages: defineTable({
-    // === BUSINESS SCOPING ===
-    businessId: convexVal.id("businesses"),
+    // === workspace SCOPING ===
+    workspaceId: convexVal.id("workspaces"),
 
     // === CONTENT ===
     title: convexVal.string(),
@@ -944,10 +944,10 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_parent", ["parentId"])
-    .index("by_business_parent", ["businessId", "parentId"])
-    .index("by_business_type", ["businessId", "type"]),
+    .index("by_workspace_parent", ["workspaceId", "parentId"])
+    .index("by_workspace_type", ["workspaceId", "type"]),
 
   /**
    * WIKI COMMENTS - Threaded discussions on pages
@@ -955,7 +955,7 @@ export default defineSchema({
    * Supports one level of threading (parent comment + replies)
    */
   wikiComments: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     pageId: convexVal.id("wikiPages"),
     fromId: convexVal.string(),
     fromName: convexVal.string(),
@@ -966,7 +966,7 @@ export default defineSchema({
     editedAt: convexVal.optional(convexVal.number()),
   })
     .index("by_page", ["pageId"])
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_parent", ["parentId"]),
 
   /**
@@ -974,7 +974,7 @@ export default defineSchema({
    * Supports nested replies with emoji reactions and @mentions
    */
   taskComments: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     taskId: convexVal.id("tasks"),
     agentId: convexVal.id("agents"),
     agentName: convexVal.string(),
@@ -995,14 +995,14 @@ export default defineSchema({
     .index("by_task", ["taskId"])
     .index("by_task_created_at", ["taskId", "createdAt"])
     .index("by_agent", ["agentId"])
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_parent", ["parentCommentId"]),
 
   /**
    * MENTIONS - @mention tracking for notifications (Phase 5A)
    */
   mentions: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     mentionedAgentId: convexVal.id("agents"),
     mentionedBy: convexVal.id("agents"),
 
@@ -1022,13 +1022,13 @@ export default defineSchema({
   })
     .index("by_mentioned_agent", ["mentionedAgentId"])
     .index("by_read", ["mentionedAgentId", "read"])
-    .index("by_business", ["businessId"]),
+    .index("by_workspace", ["workspaceId"]),
 
   /**
    * TASK SUBSCRIPTIONS - Agent subscriptions for task notifications (Phase 5A)
    */
   taskSubscriptions: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     taskId: convexVal.id("tasks"),
     agentId: convexVal.id("agents"),
 
@@ -1041,7 +1041,7 @@ export default defineSchema({
 
     subscribedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_agent_task", ["agentId", "taskId"])
     .index("by_task", ["taskId"])
     .index("by_agent", ["agentId"]),
@@ -1050,7 +1050,7 @@ export default defineSchema({
    * PRESENCE INDICATORS - Real-time agent status and activity (Phase 5A)
    */
   presenceIndicators: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.id("agents"),
 
     status: convexVal.union(
@@ -1065,7 +1065,7 @@ export default defineSchema({
 
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_agent", ["agentId"])
     .index("by_status", ["status"]),
 
@@ -1090,7 +1090,7 @@ export default defineSchema({
    * Identifies and tracks successful task workflows
    */
   taskPatterns: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     pattern: convexVal.string(), // e.g., "design→backend→frontend"
     taskTypeSequence: convexVal.array(convexVal.string()), // ["design_task", "backend_task", "frontend_task"]
     occurrences: convexVal.number(),
@@ -1100,7 +1100,7 @@ export default defineSchema({
     lastSeen: convexVal.number(),
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_success_rate", ["successRate"]),
 
   /**
@@ -1108,7 +1108,7 @@ export default defineSchema({
    * Flags deviations from expected patterns and performance
    */
   anomalies: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.id("agents"),
     type: convexVal.union(
       convexVal.literal("duration_deviation"),
@@ -1130,7 +1130,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
   })
     .index("by_agent", ["agentId"])
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_severity", ["severity"])
     .index("by_flagged", ["flagged"]),
 
@@ -1191,10 +1191,10 @@ export default defineSchema({
 
   /**
    * WORKFLOWS - Multi-Agent Pipeline Definitions (Phase 6C)
-   * DAG-based workflow orchestration (business-scoped)
+   * DAG-based workflow orchestration (workspace-scoped)
    */
   workflows: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.string(),
     description: convexVal.optional(convexVal.string()),
 
@@ -1209,7 +1209,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_active", ["isActive"]),
 
   /**
@@ -1274,10 +1274,10 @@ export default defineSchema({
 
   /**
    * CRON_JOBS - Scheduled Workflow Executions (Phase 6C)
-   * Store cron schedules and execution history (business-scoped)
+   * Store cron schedules and execution history (workspace-scoped)
    */
   cron_jobs: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.string(),
     description: convexVal.optional(convexVal.string()),
 
@@ -1304,7 +1304,7 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_active", ["isActive"])
     .index("by_workflow", ["workflowId"]),
 
@@ -1313,7 +1313,7 @@ export default defineSchema({
    * Enables role-based access control (owner/admin/member) with per-board permissions
    */
   organizationMembers: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     userId: convexVal.string(),
     userEmail: convexVal.optional(convexVal.string()),
     userName: convexVal.optional(convexVal.string()),
@@ -1327,23 +1327,23 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])
-    .index("by_business_user", ["businessId", "userId"]),
+    .index("by_workspace_user", ["workspaceId", "userId"]),
 
   boardAccess: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     memberId: convexVal.id("organizationMembers"),
     canRead: convexVal.boolean(),
     canWrite: convexVal.boolean(),
     createdAt: convexVal.number(),
   })
     .index("by_member", ["memberId"])
-    .index("by_business", ["businessId"])
-    .index("by_member_business", ["memberId", "businessId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_member_business", ["memberId", "workspaceId"]),
 
   invites: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     token: convexVal.string(),
     email: convexVal.string(),
     role: convexVal.union(
@@ -1359,12 +1359,12 @@ export default defineSchema({
     createdAt: convexVal.number(),
   })
     .index("by_token", ["token"])
-    .index("by_business", ["businessId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_email", ["email"]),
 
   inviteBoardAccess: defineTable({
     inviteId: convexVal.id("invites"),
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     canRead: convexVal.boolean(),
     canWrite: convexVal.boolean(),
   }).index("by_invite", ["inviteId"]),
@@ -1374,7 +1374,7 @@ export default defineSchema({
    * Confidence-based action approval requests with rubric scoring
    */
   approvals: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.optional(convexVal.id("agents")),
     taskId: convexVal.optional(convexVal.id("tasks")),
     actionType: convexVal.string(),
@@ -1393,8 +1393,8 @@ export default defineSchema({
     resolvedAt: convexVal.optional(convexVal.number()),
     createdAt: convexVal.number(),
   })
-    .index("by_business", ["businessId"])
-    .index("by_business_status", ["businessId", "status"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_status", ["workspaceId", "status"])
     .index("by_agent", ["agentId"])
     .index("by_task", ["taskId"])
     .index("by_status", ["status"]),
@@ -1412,7 +1412,7 @@ export default defineSchema({
    * WebSocket gateway configurations for Claude Code agent provisioning
    */
   gateways: defineTable({
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.string(),
     url: convexVal.string(),
     token: convexVal.optional(convexVal.string()),
@@ -1423,6 +1423,6 @@ export default defineSchema({
     isHealthy: convexVal.optional(convexVal.boolean()),
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
-  }).index("by_business", ["businessId"]),
+  }).index("by_workspace", ["workspaceId"]),
 
 });

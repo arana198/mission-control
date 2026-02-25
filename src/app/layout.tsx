@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ReactNode } from "react";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { BusinessProvider } from "@/components/BusinessProvider";
+import { WorkspaceProvider } from "@/components/WorkspaceProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClientLayout } from "./ClientLayout";
 import "./globals.css";
@@ -36,9 +36,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ErrorBoundary>
           <ConvexClientProvider>
             <ThemeProvider>
-              <BusinessProvider>
+              <WorkspaceProvider>
                 <ClientLayout>{children}</ClientLayout>
-              </BusinessProvider>
+              </WorkspaceProvider>
             </ThemeProvider>
           </ConvexClientProvider>
         </ErrorBoundary>

@@ -3,7 +3,7 @@
  * Get decision audit trail for pattern analysis
  *
  * Query params:
- * - businessId: required
+ * - workspaceId: required
  * - since: optional (timestamp in ms)
  * - action: optional (escalated, reassigned, unblocked, marked_executed, deprioritized)
  * - limit: optional (default: 50)
@@ -16,20 +16,20 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const businessId = searchParams.get("businessId");
+    const workspaceId = searchParams.get("workspaceId");
     const since = searchParams.get("since");
     const action = searchParams.get("action");
     const limit = searchParams.get("limit");
 
-    if (!businessId) {
+    if (!workspaceId) {
       return Response.json(
-        { error: "businessId parameter required" },
+        { error: "workspaceId parameter required" },
         { status: 400 }
       );
     }
 
-    const decisions = await convex.query(api.decisions.getByBusiness, {
-      businessId: businessId as any,
+    const decisions = await convex.query(api.decisions.getBy, {
+      workspaceId: workspaceId as any,
       since: since ? parseInt(since) : undefined,
       action: action || undefined,
       limit: limit ? parseInt(limit) : 50,
@@ -37,12 +37,12 @@ export async function GET(request: Request) {
 
     // Also get pattern analysis
     const patterns = await convex.query(api.decisions.analyzePatterns, {
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
       since: since ? parseInt(since) : undefined,
     });
 
     return Response.json({
-      businessId,
+      workspaceId,
       decisions,
       patterns,
       count: decisions.length,

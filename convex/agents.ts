@@ -50,12 +50,12 @@ export const getByName = query({
 // Update agent status
 export const updateStatus = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.id("agents"),
     status: convexVal.union(convexVal.literal("idle"), convexVal.literal("active"), convexVal.literal("blocked")),
     currentTaskId: convexVal.optional(convexVal.id("tasks")),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, agentId, status, currentTaskId }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, agentId, status, currentTaskId }) => {
     const agent = await ctx.db.get(agentId);
     if (!agent) throw ApiError.notFound("Agent", { agentId });
 
@@ -67,7 +67,7 @@ export const updateStatus = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId,
+      workspaceId,
       type: "agent_status_changed",
       agentId,
       agentName: agent.name,
@@ -223,7 +223,7 @@ export const register = mutation({
     });
 
     // Note: Agent registration is a global event, not business-specific, so we don't log activity
-    // Activities are always scoped to a business, but agent registration spans all businesses
+    // Activities are always scoped to a workspace, but agent registration spans all businesses
 
     return { agentId, apiKey: args.generatedApiKey, isNew: true };
   }),
@@ -345,7 +345,7 @@ export const rotateKey = mutation({
 
     await ctx.db.patch(agentId, updates);
 
-    // Log rotation activity (if agent has businessId context, log to activities)
+    // Log rotation activity (if agent has workspaceId context, log to activities)
     // For now, return rotation info
     return {
       agentId,
@@ -395,7 +395,7 @@ export const verifyKeyWithGrace = query({
 /**
  * Delete an agent and unassign from all tasks
  * Called by admin/dashboard operator
- * PERF: Phase 5C - Query tasks by business instead of full table scan
+ * PERF: Phase 5C - Query tasks by workspace instead of full table scan
  */
 export const deleteAgent = mutation({
   args: {
@@ -407,12 +407,12 @@ export const deleteAgent = mutation({
     if (!agent) throw ApiError.notFound("Agent", { agentId });
 
     // Remove agent from all task assigneeIds
-    // PERF FIX: Query tasks by business (bounded) instead of full table scan
-    const businesses = await ctx.db.query("businesses").collect();
-    for (const business of businesses) {
+    // PERF FIX: Query tasks by workspace (bounded) instead of full table scan
+    const businesses = await ctx.db.query("workspaces").collect();
+    for (const workspace of businesses) {
       const tasks = await ctx.db
         .query("tasks")
-        .withIndex("by_business", (q: any) => q.eq("businessId", business._id))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspace._id))
         .collect();
 
       for (const task of tasks) {

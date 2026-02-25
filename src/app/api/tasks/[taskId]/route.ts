@@ -297,15 +297,15 @@ async function handleUpdateTags(body: any, taskId: string): Promise<Response> {
  */
 async function handleEscalate(body: any, taskId: string): Promise<Response> {
   try {
-    const { businessId, reason, decidedBy } = body;
+    const { workspaceId, reason, decidedBy } = body;
 
-    if (!businessId || !reason || !decidedBy) {
+    if (!workspaceId || !reason || !decidedBy) {
       return jsonResponse(
         {
           success: false,
           error: {
             code: "VALIDATION_ERROR",
-            message: "Missing required fields: businessId, reason, decidedBy",
+            message: "Missing required fields: workspaceId, reason, decidedBy",
           },
         },
         400

@@ -1,13 +1,13 @@
 /**
- * BusinessProvider Tests
+ * WorkspaceProvider Tests
  *
- * Tests for React Context provider that manages current business state
- * Validates: URL-based business derivation, localStorage fallback, context API
+ * Tests for React Context provider that manages current workspace state
+ * Validates: URL-based workspace derivation, localStorage fallback, context API
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
 
-interface Business {
+interface Workspace {
   _id: string;
   name: string;
   slug: string;
@@ -16,41 +16,41 @@ interface Business {
   isDefault: boolean;
 }
 
-interface BusinessContextValue {
-  currentBusiness: Business | null;
-  businesses: Business[];
-  setCurrentBusiness: (business: Business) => void;
+interface WorkspaceContextValue {
+  currentWorkspace:  | null;
+  businesses: [];
+  setCurrentWorkspace: (business: ) => void;
   isLoading: boolean;
 }
 
-// Mock BusinessProvider
-class BusinessProviderMock {
-  private currentBusiness: Business | null = null;
-  private businesses: Business[] = [];
+// Mock WorkspaceProvider
+class WorkspaceProviderMock {
+  private currentWorkspace:  | null = null;
+  private businesses: [] = [];
   private isLoading = false;
   private localStorage: Record<string, string> = {};
   private currentTab = "overview";
 
-  constructor(businesses: Business[], defaultBusinessSlug?: string) {
+  constructor(businesses: [], defaultSlug?: string) {
     this.businesses = businesses;
-    if (defaultBusinessSlug) {
-      this.currentBusiness =
-        businesses.find((b) => b.slug === defaultBusinessSlug) ||
+    if (defaultSlug) {
+      this.currentWorkspace =
+        businesses.find((b) => b.slug === defaultSlug) ||
         businesses.find((b) => b.isDefault) ||
-        businesses[0] ||
+        workspaces[0] ||
         null;
     } else {
-      this.currentBusiness =
-        businesses.find((b) => b.isDefault) || businesses[0] || null;
+      this.currentWorkspace =
+        businesses.find((b) => b.isDefault) || workspaces[0] || null;
     }
   }
 
   // Simulate URL param reading
   setFromURLParams(businessSlug: string | null): void {
     if (businessSlug) {
-      const business = this.businesses.find((b) => b.slug === businessSlug);
-      if (business) {
-        this.currentBusiness = business;
+      const workspace = this.businesses.find((b) => b.slug === businessSlug);
+      if (workspace) {
+        this.currentWorkspace = workspace;
       }
     }
   }
@@ -65,19 +65,19 @@ class BusinessProviderMock {
   }
 
   // Main context value
-  getContextValue(): BusinessContextValue {
+  getContextValue(): ContextValue {
     return {
-      currentBusiness: this.currentBusiness,
+      currentWorkspace: this.currentWorkspace,
       businesses: this.businesses,
-      setCurrentBusiness: this.setCurrentBusiness.bind(this),
+      setCurrentWorkspace: this.setCurrentWorkspace.bind(this),
       isLoading: this.isLoading,
     };
   }
 
-  setCurrentBusiness(business: Business): void {
-    if (this.businesses.some((b) => b._id === business._id)) {
-      this.currentBusiness = business;
-      this.localStorage["mission-control:businessSlug"] = business.slug;
+  setCurrentWorkspace(business: ): void {
+    if (this.businesses.some((b) => b._id === workspace._id)) {
+      this.currentWorkspace = workspace;
+      this.localStorage["mission-control:businessSlug"] = workspace.slug;
     }
   }
 
@@ -93,17 +93,17 @@ class BusinessProviderMock {
     this.isLoading = loading;
   }
 
-  getCurrentBusiness(): Business | null {
-    return this.currentBusiness;
+  getCurrent():  | null {
+    return this.currentWorkspace;
   }
 }
 
-describe("BusinessProvider", () => {
-  let mockBusinesses: Business[];
-  let provider: BusinessProviderMock;
+describe("WorkspaceProvider", () => {
+  let mockes: [];
+  let provider: WorkspaceProviderMock;
 
   beforeEach(() => {
-    mockBusinesses = [
+    mockes = [
       {
         _id: "biz_1",
         name: "Mission Control HQ",
@@ -130,17 +130,17 @@ describe("BusinessProvider", () => {
       },
     ];
 
-    provider = new BusinessProviderMock(mockBusinesses);
+    provider = new WorkspaceProviderMock(mockes);
   });
 
-  describe("URL-Based Business Derivation", () => {
-    it("should derive businessId from URL params", async () => {
+  describe("URL-Based  Derivation", () => {
+    it("should derive workspaceId from URL params", async () => {
       // Arrange: URL contains businessSlug parameter
-      // Act: render BusinessProvider
+      // Act: render WorkspaceProvider
       provider.setFromURLParams("mission-control-hq");
 
-      // Expected: currentBusiness reflects URL businessSlug
-      expect(provider.getCurrentBusiness()?.slug).toBe("mission-control-hq");
+      // Expected: currentWorkspace reflects URL businessSlug
+      expect(provider.getCurrent()?.slug).toBe("mission-control-hq");
     });
 
     it("should read businessSlug from useParams hook", async () => {
@@ -150,7 +150,7 @@ describe("BusinessProvider", () => {
 
       // Expected: context provides matching business
       const context = provider.getContextValue();
-      expect(context.currentBusiness?.slug).toBe("mission-control-hq");
+      expect(context.currentWorkspace?.slug).toBe("mission-control-hq");
     });
 
     it("should update when URL businessSlug changes", async () => {
@@ -161,23 +161,23 @@ describe("BusinessProvider", () => {
       provider.setFromURLParams("project-alpha");
 
       // Expected: context updates to new business
-      expect(provider.getCurrentBusiness()?.slug).toBe("project-alpha");
+      expect(provider.getCurrent()?.slug).toBe("project-alpha");
     });
 
     it("should handle missing businessSlug in URL", async () => {
       // Arrange: URL has no businessSlug
       // Act: provider uses fallback logic
-      const provider2 = new BusinessProviderMock(mockBusinesses);
+      const provider2 = new WorkspaceProviderMock(mockes);
 
       // Expected: falls back to default (isDefault)
-      expect(provider2.getCurrentBusiness()?.isDefault).toBe(true);
+      expect(provider2.getCurrent()?.isDefault).toBe(true);
     });
   });
 
   describe("localStorage Fallback", () => {
     it("should read businessSlug from localStorage if not in URL", async () => {
       // Arrange: localStorage has stored business
-      const provider2 = new BusinessProviderMock([]);
+      const provider2 = new WorkspaceProviderMock([]);
       provider2.setLocalStorage("mission-control:businessSlug", "project-alpha");
       const storedSlug = provider2.getFromLocalStorage(
         "mission-control:businessSlug"
@@ -187,11 +187,11 @@ describe("BusinessProvider", () => {
       expect(storedSlug).toBe("project-alpha");
     });
 
-    it("should persist current business to localStorage on change", async () => {
+    it("should persist current workspace to localStorage on change", async () => {
       // Arrange: user switches business
-      // Act: call setCurrentBusiness
-      const newBusiness = mockBusinesses[1];
-      provider.setCurrentBusiness(newBusiness);
+      // Act: call setCurrentWorkspace
+      const new = mockes[1];
+      provider.setCurrentWorkspace(new);
 
       // Expected: localStorage updated
       const stored = provider.getFromLocalStorage(
@@ -202,7 +202,7 @@ describe("BusinessProvider", () => {
 
     it("should use key 'mission-control:businessSlug' for storage", async () => {
       // Verify: localStorage key is exactly "mission-control:businessSlug"
-      provider.setCurrentBusiness(mockBusinesses[1]);
+      provider.setCurrentWorkspace(mockes[1]);
       const stored = provider.getFromLocalStorage(
         "mission-control:businessSlug"
       );
@@ -211,41 +211,41 @@ describe("BusinessProvider", () => {
     });
   });
 
-  describe("Default Business Fallback", () => {
-    it("should use isDefault business if URL and localStorage empty", async () => {
+  describe("Default  Fallback", () => {
+    it("should use isDefault workspace if URL and localStorage empty", async () => {
       // Arrange: no URL businessSlug
-      const provider2 = new BusinessProviderMock(mockBusinesses);
+      const provider2 = new WorkspaceProviderMock(mockes);
 
       // Expected: uses default business
-      expect(provider2.getCurrentBusiness()?.isDefault).toBe(true);
+      expect(provider2.getCurrent()?.isDefault).toBe(true);
     });
 
-    it("should query api.businesses.getDefault", async () => {
-      // Verify: would query getDefault in real implementation
+    it("should query api.workspaces.getDefaultWorkspace", async () => {
+      // Verify: would query getDefaultWorkspace in real implementation
       const context = provider.getContextValue();
-      expect(context.currentBusiness).toBeDefined();
+      expect(context.currentWorkspace).toBeDefined();
     });
 
-    it("should fall back to first business if no default exists", async () => {
+    it("should fall back to first workspace if no default exists", async () => {
       // Arrange: no default
-      const nonDefaultBusinesses = mockBusinesses.map((b) => ({
+      const nonDefaultes = mockes.map((b) => ({
         ...b,
         isDefault: false,
       }));
-      const provider2 = new BusinessProviderMock(nonDefaultBusinesses);
+      const provider2 = new WorkspaceProviderMock(nonDefaultes);
 
       // Expected: uses first business
-      expect(provider2.getCurrentBusiness()?.name).toBe("Mission Control HQ");
+      expect(provider2.getCurrent()?.name).toBe("Mission Control HQ");
     });
   });
 
   describe("Context API", () => {
-    it("should provide currentBusiness via context", async () => {
+    it("should provide currentWorkspace via context", async () => {
       // Arrange: render provider with businesses
       const context = provider.getContextValue();
 
-      // Expected: currentBusiness is available
-      expect(context.currentBusiness).toBeDefined();
+      // Expected: currentWorkspace is available
+      expect(context.currentWorkspace).toBeDefined();
     });
 
     it("should provide businesses array via context", async () => {
@@ -254,10 +254,10 @@ describe("BusinessProvider", () => {
       expect(context.businesses).toHaveLength(3);
     });
 
-    it("should provide setCurrentBusiness function via context", async () => {
+    it("should provide setCurrentWorkspace function via context", async () => {
       // Expected: context has function
       const context = provider.getContextValue();
-      expect(typeof context.setCurrentBusiness).toBe("function");
+      expect(typeof context.setCurrentWorkspace).toBe("function");
     });
 
     it("should provide isLoading state via context", async () => {
@@ -269,28 +269,28 @@ describe("BusinessProvider", () => {
     it("should provide error state via context", async () => {
       // Note: error state would be added to context in real impl
       const context = provider.getContextValue();
-      expect(context).toHaveProperty("currentBusiness");
+      expect(context).toHaveProperty("currentWorkspace");
     });
   });
 
-  describe("setCurrentBusiness Function", () => {
-    it("should update currentBusiness in context", async () => {
-      // Act: call setCurrentBusiness
-      provider.setCurrentBusiness(mockBusinesses[1]);
+  describe("setCurrentWorkspace Function", () => {
+    it("should update currentWorkspace in context", async () => {
+      // Act: call setCurrentWorkspace
+      provider.setCurrentWorkspace(mockes[1]);
 
-      // Expected: currentBusiness updated
-      expect(provider.getCurrentBusiness()?.slug).toBe("project-alpha");
+      // Expected: currentWorkspace updated
+      expect(provider.getCurrent()?.slug).toBe("project-alpha");
     });
 
-    it("should call router.push with new business URL", async () => {
+    it("should call router.push with new workspace URL", async () => {
       // Arrange: current tab is "board"
       provider.setCurrentTab("board");
 
-      // Act: setCurrentBusiness
-      provider.setCurrentBusiness(mockBusinesses[1]);
+      // Act: setCurrentWorkspace
+      provider.setCurrentWorkspace(mockes[1]);
 
       // Expected: would navigate to /project-alpha/board
-      expect(provider.getCurrentBusiness()?.slug).toBe("project-alpha");
+      expect(provider.getCurrent()?.slug).toBe("project-alpha");
       expect(provider.getCurrentTab()).toBe("board");
     });
 
@@ -299,15 +299,15 @@ describe("BusinessProvider", () => {
       provider.setCurrentTab("board");
 
       // Act: switch business
-      provider.setCurrentBusiness(mockBusinesses[1]);
+      provider.setCurrentWorkspace(mockes[1]);
 
       // Expected: tab preserved
       expect(provider.getCurrentTab()).toBe("board");
     });
 
     it("should update localStorage when changing business", async () => {
-      // Act: setCurrentBusiness
-      provider.setCurrentBusiness(mockBusinesses[1]);
+      // Act: setCurrentWorkspace
+      provider.setCurrentWorkspace(mockes[1]);
 
       // Expected: localStorage updated
       expect(provider.getFromLocalStorage("mission-control:businessSlug")).toBe(
@@ -315,9 +315,9 @@ describe("BusinessProvider", () => {
       );
     });
 
-    it("should validate businessId exists before switching", async () => {
-      // Arrange: businessId doesn't exist
-      const invalidBusiness: Business = {
+    it("should validate workspaceId exists before switching", async () => {
+      // Arrange: workspaceId doesn't exist
+      const invalid:  = {
         _id: "nonexistent",
         name: "Nonexistent",
         slug: "nonexistent",
@@ -327,18 +327,18 @@ describe("BusinessProvider", () => {
       };
 
       // Act: attempt to switch
-      provider.setCurrentBusiness(invalidBusiness);
+      provider.setCurrentWorkspace(invalid);
 
       // Expected: doesn't change (business not found)
-      expect(provider.getCurrentBusiness()?.slug).not.toBe("nonexistent");
+      expect(provider.getCurrent()?.slug).not.toBe("nonexistent");
     });
   });
 
-  describe("Business Data Fetching", () => {
-    it("should query api.businesses.getAll on mount", async () => {
+  describe(" Data Fetching", () => {
+    it("should query api.workspaces.getAll on mount", async () => {
       // Verify: provider has all businesses
       const context = provider.getContextValue();
-      expect(context.businesses.length).toBeGreaterThan(0);
+      expect(context.workspaces.length).toBeGreaterThan(0);
     });
 
     it("should handle getAll query loading state", async () => {
@@ -355,7 +355,7 @@ describe("BusinessProvider", () => {
     it("should handle getAll query errors", async () => {
       // In real impl, error would be in context
       const context = provider.getContextValue();
-      expect(context).toHaveProperty("currentBusiness");
+      expect(context).toHaveProperty("currentWorkspace");
     });
   });
 
@@ -365,13 +365,13 @@ describe("BusinessProvider", () => {
       provider.setFromURLParams("nonexistent");
 
       // Expected: doesn't switch to invalid business
-      expect(provider.getCurrentBusiness()?.slug).not.toBe("nonexistent");
+      expect(provider.getCurrent()?.slug).not.toBe("nonexistent");
     });
 
-    it("should redirect root URL to default business overview", async () => {
+    it("should redirect root URL to default workspace overview", async () => {
       // Arrange: no URL params
       // Expected: uses default business
-      expect(provider.getCurrentBusiness()?.isDefault).toBe(true);
+      expect(provider.getCurrent()?.isDefault).toBe(true);
     });
 
     it("should allow access to /global/* routes without businessSlug", async () => {
@@ -391,7 +391,7 @@ describe("BusinessProvider", () => {
     it("should initialize businessContext on first render", async () => {
       // Expected: context populated
       const context = provider.getContextValue();
-      expect(context.currentBusiness).toBeDefined();
+      expect(context.currentWorkspace).toBeDefined();
     });
 
     it("should show loading state during initialization", async () => {
@@ -405,7 +405,7 @@ describe("BusinessProvider", () => {
     it("should handle initialization errors gracefully", async () => {
       // Even with errors, context should work
       const context = provider.getContextValue();
-      expect(context).toHaveProperty("currentBusiness");
+      expect(context).toHaveProperty("currentWorkspace");
     });
   });
 });

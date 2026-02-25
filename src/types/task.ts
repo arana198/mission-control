@@ -12,7 +12,7 @@ export interface ChecklistItem {
 
 export interface Task {
   _id: string;
-  businessId?: string;
+  workspaceId?: string;
   title: string;
   description?: string;
   status: string;

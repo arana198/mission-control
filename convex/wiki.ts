@@ -11,7 +11,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
  * - Tests written first in convex/__tests__/wiki.test.ts
  * - Full type safety with Zod validation
  * - Bidirectional denormalization maintained (parentId + childIds)
- * - Business-scoped queries ensure data isolation
+ * - -scoped queries ensure data isolation
  * - Error handling with ApiError patterns
  *
  * Phase 1: Error standardization - all mutations now use ApiError with request IDs
@@ -22,7 +22,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 // ════════════════════════════════════════════════════════════════════════════════
 
 export interface WikiPage extends Doc<"wikiPages"> {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
   title: string;
   content: string; // Plain markdown
   parentId?: Id<"wikiPages">;
@@ -46,7 +46,7 @@ export interface WikiPageWithChildren extends WikiPage {
 }
 
 export interface WikiComment extends Doc<"wikiComments"> {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
   pageId: Id<"wikiPages">;
   fromId: string;
   fromName: string;
@@ -59,7 +59,7 @@ export interface WikiComment extends Doc<"wikiComments"> {
 
 // Placeholder for WikiPageHistory (not currently implemented - for compatibility)
 export interface WikiPageHistory extends Doc<"wikiPages"> {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
   title: string;
   content: string;
   version: number;
@@ -73,18 +73,18 @@ export interface WikiPageHistory extends Doc<"wikiPages"> {
 // ════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Get full page tree for a business
+ * Get full page tree for a workspace
  * Returns departments (root pages) with their nested children
  * Useful for sidebar tree navigation
  */
 export const getTree = query({
-  args: { businessId: convexVal.id("businesses") },
-  handler: async (ctx, { businessId }) => {
+  args: { workspaceId: convexVal.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
     // Get all root-level pages (no parent) for this business
     const allPages = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_parent", (q: any) =>
-        q.eq("businessId", businessId).eq("parentId", undefined as any)
+      .withIndex("by_workspace_parent", (q: any) =>
+        q.eq("workspaceId", workspaceId).eq("parentId", undefined as any)
       )
       .collect();
 
@@ -92,8 +92,8 @@ export const getTree = query({
     const buildTree = async (parentId: Id<"wikiPages">): Promise<any[]> => {
       const children = await ctx.db
         .query("wikiPages")
-        .withIndex("by_business_parent", (q: any) =>
-          q.eq("businessId", businessId).eq("parentId", parentId)
+        .withIndex("by_workspace_parent", (q: any) =>
+          q.eq("workspaceId", workspaceId).eq("parentId", parentId)
         )
         .collect();
 
@@ -162,17 +162,17 @@ export const getComments = query({
  */
 export const createDepartment = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     title: convexVal.string(),
     createdBy: convexVal.string(),
     createdByName: convexVal.string(),
   },
-  handler: async (ctx, { businessId, title, createdBy, createdByName }) => {
+  handler: async (ctx, { workspaceId, title, createdBy, createdByName }) => {
     // Get current department count (for position)
     const departments = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_type", (q: any) =>
-        q.eq("businessId", businessId).eq("type", "department")
+      .withIndex("by_workspace_type", (q: any) =>
+        q.eq("workspaceId", workspaceId).eq("type", "department")
       )
       .collect();
 
@@ -180,7 +180,7 @@ export const createDepartment = mutation({
 
     // Create the department page
     const pageId = await ctx.db.insert("wikiPages", {
-      businessId,
+      workspaceId,
       title,
       content: "",
       parentId: undefined,
@@ -204,7 +204,7 @@ export const createDepartment = mutation({
  */
 export const createPage = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     parentId: convexVal.id("wikiPages"),
     title: convexVal.string(),
     content: convexVal.string(),
@@ -216,7 +216,7 @@ export const createPage = mutation({
   handler: wrapConvexHandler(async (
     ctx,
     {
-      businessId,
+      workspaceId,
       parentId,
       title,
       content,
@@ -235,8 +235,8 @@ export const createPage = mutation({
     // Get current child count (for position)
     const children = await ctx.db
       .query("wikiPages")
-      .withIndex("by_business_parent", (q: any) =>
-        q.eq("businessId", businessId).eq("parentId", parentId)
+      .withIndex("by_workspace_parent", (q: any) =>
+        q.eq("workspaceId", workspaceId).eq("parentId", parentId)
       )
       .collect();
 
@@ -244,7 +244,7 @@ export const createPage = mutation({
 
     // Create the sub-page
     const pageId = await ctx.db.insert("wikiPages", {
-      businessId,
+      workspaceId,
       title,
       content,
       parentId,
@@ -452,7 +452,7 @@ export const reorderPages = mutation({
 export const addComment = mutation({
   args: {
     pageId: convexVal.id("wikiPages"),
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     fromId: convexVal.string(),
     fromName: convexVal.string(),
     content: convexVal.string(),
@@ -460,11 +460,11 @@ export const addComment = mutation({
   },
   handler: wrapConvexHandler(async (
     ctx,
-    { pageId, businessId, fromId, fromName, content, parentId }
+    { pageId, workspaceId, fromId, fromName, content, parentId }
   ) => {
     // Create the comment
     const commentId = await ctx.db.insert("wikiComments", {
-      businessId,
+      workspaceId,
       pageId,
       fromId,
       fromName,

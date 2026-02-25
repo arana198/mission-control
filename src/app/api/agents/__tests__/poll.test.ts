@@ -55,7 +55,7 @@ describe("POST /api/agents/poll", () => {
     const { POST } = await import("../[agentId]/poll/route");
 
     mockVerify.mockResolvedValue(null);
-    const req = makeRequest({ agentId: "abc123", agentKey: "bad_key", businessId: "business-123" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "bad_key", workspaceId: "business-123" });
     const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(401);
   });
@@ -71,7 +71,7 @@ describe("POST /api/agents/poll", () => {
 
     mockMutation.mockResolvedValueOnce({ marked: 1 }); // markAllRead
 
-    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", workspaceId: "business-123" });
     const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -89,7 +89,7 @@ describe("POST /api/agents/poll", () => {
     mockMutation.mockResolvedValue({ success: true, timestamp: Date.now() });
     mockQuery.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
-    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", businessId: "business-123" });
+    const req = makeRequest({ agentId: "abc123", agentKey: "ak_x", workspaceId: "business-123" });
     const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -100,12 +100,12 @@ describe("POST /api/agents/poll", () => {
   it("returns 400 for missing agentKey", async () => {
     const { POST } = await import("../[agentId]/poll/route");
 
-    const req = makeRequest({ agentId: "abc123", businessId: "business-123" });
+    const req = makeRequest({ agentId: "abc123", workspaceId: "business-123" });
     const res = await POST(req, { params: { agentId: "agent-123", taskId: "task-456" } });
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 for missing businessId", async () => {
+  it("returns 400 for missing workspaceId", async () => {
     const { POST } = await import("../[agentId]/poll/route");
 
     const req = makeRequest({ agentId: "abc123", agentKey: "ak_x" });

@@ -11,7 +11,7 @@ import { Save, X, Eye, EyeOff, Check, AlertCircle, Loader2 } from "lucide-react"
  * Phase 5: Create/edit gateway configurations with connection validation
  */
 interface GatewayFormProps {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
   gateway?: {
     _id: Id<"gateways">;
     name: string;
@@ -25,7 +25,7 @@ interface GatewayFormProps {
   onSuccess?: () => void;
 }
 
-export function GatewayForm({ businessId, gateway, onClose, onSuccess }: GatewayFormProps) {
+export function GatewayForm({ workspaceId, gateway, onClose, onSuccess }: GatewayFormProps) {
   const isEditMode = !!gateway;
 
   const [formData, setFormData] = useState({
@@ -112,7 +112,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
         } as any);
       } else {
         await createGateway({
-          businessId,
+          workspaceId,
           name: formData.name,
           url: formData.url,
           token: formData.token || undefined,

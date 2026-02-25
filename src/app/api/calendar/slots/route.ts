@@ -2,7 +2,7 @@
  * GET /api/calendar/slots
  *
  * Find available time slots in the calendar for scheduling work
- * Returns up to 5 best slots based on business hours preference and agent preferences
+ * Returns up to 5 best slots based on workspace hours preference and agent preferences
  *
  * IDEMPOTENCY: IDEMPOTENT
  * - Reason: Query operation (read-only, no side effects)

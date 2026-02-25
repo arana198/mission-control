@@ -74,9 +74,9 @@ class PresenceMockDatabase {
     };
   }
 
-  getPresenceByBusiness(businessId: string) {
+  getPresenceBy(workspaceId: string) {
     return (this.data.get("presenceIndicators") || []).filter(
-      (p: any) => p.businessId === businessId
+      (p: any) => p.workspaceId === workspaceId
     );
   }
 
@@ -93,14 +93,14 @@ class PresenceMockDatabase {
 
 describe("Presence System (convex/presence.ts)", () => {
   let db: PresenceMockDatabase;
-  let businessId: string;
+  let workspaceId: string;
   let agentId1: string;
   let agentId2: string;
   let agentId3: string;
 
   beforeEach(() => {
     db = new PresenceMockDatabase();
-    businessId = db.insert("businesses", { name: "Test Biz" });
+    workspaceId = db.insert("businesses", { name: "Test Biz" });
     agentId1 = db.insert("agents", { name: "Alice", role: "Developer" });
     agentId2 = db.insert("agents", { name: "Bob", role: "Designer" });
     agentId3 = db.insert("agents", { name: "Charlie", role: "PM" });
@@ -114,7 +114,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("creates presence indicator with online status", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Working on API",
@@ -132,7 +132,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("updates existing presence indicator status", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "In meeting",
@@ -158,7 +158,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const statuses = ["online", "away", "do_not_disturb", "offline"];
       const presenceIds = statuses.map((status, idx) =>
         db.insert("presenceIndicators", {
-          businessId,
+          workspaceId,
           agentId: [agentId1, agentId2, agentId3, "agent-4"][idx],
           status,
           lastActivity: Date.now(),
@@ -178,7 +178,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
     it("sets optional currentActivity", () => {
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Code review",
@@ -192,7 +192,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
     it("creates new presence if doesn't exist", () => {
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Just started",
@@ -210,11 +210,11 @@ describe("Presence System (convex/presence.ts)", () => {
   // Phase 5A: Query Presence Tests
   // =====================================
 
-  describe("Query: getBusinessPresence", () => {
+  describe("Query: getPresence", () => {
     it("retrieves all presence indicators for business", () => {
       const now = Date.now();
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         lastActivity: now,
@@ -222,7 +222,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId2,
         status: "away",
         lastActivity: now,
@@ -230,14 +230,14 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       db.insert("presenceIndicators", {
-        businessId: "other-biz",
+        workspaceId: "other-biz",
         agentId: agentId3,
         status: "online",
         lastActivity: now,
         updatedAt: now,
       });
 
-      const businessPresence = db.getPresenceByBusiness(businessId);
+      const businessPresence = db.getPresenceBy(workspaceId);
       expect(businessPresence).toHaveLength(2);
       expect(businessPresence.map((p: any) => p.agentId).sort()).toEqual(
         [agentId1, agentId2].sort()
@@ -249,7 +249,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("retrieves presence for specific agent", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Working",
@@ -272,7 +272,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("retrieves only online agents for business", () => {
       const now = Date.now();
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         lastActivity: now,
@@ -280,7 +280,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId2,
         status: "away",
         lastActivity: now,
@@ -288,14 +288,14 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId3,
         status: "offline",
         lastActivity: now,
         updatedAt: now,
       });
 
-      const allPresence = db.getPresenceByBusiness(businessId);
+      const allPresence = db.getPresenceBy(workspaceId);
       const onlineOnly = allPresence.filter((p: any) => p.status === "online");
       expect(onlineOnly).toHaveLength(1);
       expect(onlineOnly[0].agentId).toBe(agentId1);
@@ -312,7 +312,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const fiveMinutesAgo = now - 5 * 60 * 1000 - 1000; // 5min + 1sec
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         lastActivity: fiveMinutesAgo,
@@ -341,7 +341,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const twoMinutesAgo = now - 2 * 60 * 1000;
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         lastActivity: twoMinutesAgo,
@@ -364,7 +364,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const tenMinutesAgo = now - 10 * 60 * 1000;
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         lastActivity: tenMinutesAgo,
@@ -385,7 +385,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const fortyMinutesAgo = now - 40 * 60 * 1000;
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "offline",
         lastActivity: fortyMinutesAgo,
@@ -407,7 +407,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const customThreshold = 15 * 60 * 1000; // 15 minutes
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         lastActivity: tenMinutesAgo,
@@ -434,7 +434,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const thirtyOneMinutesAgo = now - 31 * 60 * 1000;
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         lastActivity: thirtyOneMinutesAgo,
@@ -459,7 +459,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const twentyMinutesAgo = now - 20 * 60 * 1000;
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         lastActivity: twentyMinutesAgo,
@@ -478,7 +478,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const fortyMinutesAgo = now - 40 * 60 * 1000;
 
       const presence1 = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         lastActivity: fortyMinutesAgo,
@@ -486,7 +486,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       const presence2 = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId2,
         status: "do_not_disturb",
         lastActivity: fortyMinutesAgo,
@@ -494,7 +494,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       const presence3 = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId3,
         status: "online",
         lastActivity: Date.now() - 5 * 60 * 1000, // 5 min ago
@@ -502,7 +502,7 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       // Simulate cleanup
-      const allPresence = db.getPresenceByBusiness(businessId);
+      const allPresence = db.getPresenceBy(workspaceId);
       let cleaned = 0;
       for (const p of allPresence) {
         if (now - p.lastActivity > 30 * 60 * 1000 && p.status !== "offline") {
@@ -515,7 +515,7 @@ describe("Presence System (convex/presence.ts)", () => {
       }
 
       expect(cleaned).toBe(2);
-      const updated = db.getPresenceByBusiness(businessId);
+      const updated = db.getPresenceBy(workspaceId);
       const offlineCount = updated.filter((p: any) => p.status === "offline").length;
       expect(offlineCount).toBe(2);
     });
@@ -526,7 +526,7 @@ describe("Presence System (convex/presence.ts)", () => {
       const customThreshold = 15 * 60 * 1000; // 15 minutes
 
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         lastActivity: twentyMinutesAgo,
@@ -548,7 +548,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("updates lastActivity and currentActivity without changing status", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Task 1",
@@ -571,7 +571,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
     it("creates presence record if doesn't exist", () => {
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Started work",
@@ -588,7 +588,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("resets away status when activity recorded", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "away",
         currentActivity: "Away",
@@ -617,7 +617,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("retrieves presence with agent details", () => {
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Code review",
@@ -627,7 +627,7 @@ describe("Presence System (convex/presence.ts)", () => {
 
       // In real implementation, would join with agent table
       const presence = db.get(presenceId);
-      expect(presence.businessId).toBe(businessId);
+      expect(presence.workspaceId).toBe(workspaceId);
       expect(presence.agentId).toBe(agentId1);
       expect(presence.status).toBe("online");
     });
@@ -635,7 +635,7 @@ describe("Presence System (convex/presence.ts)", () => {
     it("includes all presence fields for business", () => {
       const now = Date.now();
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId1,
         status: "online",
         currentActivity: "Task 1",
@@ -644,30 +644,30 @@ describe("Presence System (convex/presence.ts)", () => {
       });
 
       db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: agentId2,
         status: "away",
         lastActivity: now - 6 * 60 * 1000,
         updatedAt: now - 6 * 60 * 1000,
       });
 
-      const allPresence = db.getPresenceByBusiness(businessId);
+      const allPresence = db.getPresenceBy(workspaceId);
       expect(allPresence).toHaveLength(2);
-      expect(allPresence.every((p: any) => p.businessId === businessId)).toBe(true);
+      expect(allPresence.every((p: any) => p.workspaceId === workspaceId)).toBe(true);
     });
 
     it("filters out agents with null agent data", () => {
       // Simulate case where agent was deleted
       const now = Date.now();
       const presenceId = db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId: "deleted-agent",
         status: "offline",
         lastActivity: now,
         updatedAt: now,
       });
 
-      const allPresence = db.getPresenceByBusiness(businessId);
+      const allPresence = db.getPresenceBy(workspaceId);
       // In real implementation, would filter where agent !== null
       expect(allPresence).toHaveLength(1);
     });

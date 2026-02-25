@@ -7,25 +7,25 @@ import { query, mutation } from "./_generated/server";
  */
 
 // Get recent activities (for the feed)
-// PERF: Phase 5C - Use index-based filtering instead of JS filtering when businessId provided
+// PERF: Phase 5C - Use index-based filtering instead of JS filtering when workspaceId provided
 export const getRecent = query({
   args: {
     limit: convexVal.optional(convexVal.number()),
-    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),  // Optional: filter by business
   },
-  handler: async (ctx, { limit, businessId }) => {
+  handler: async (ctx, { limit, workspaceId }) => {
     const pageLimit = limit || 50;
 
-    if (businessId) {
-      // Use by_business_created_at index when businessId provided (no JS filtering needed)
+    if (workspaceId) {
+      // Use by_workspace_created_at index when workspaceId provided (no JS filtering needed)
       return await ctx.db
         .query("activities")
-        .withIndex("by_business_created_at", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace_created_at", (q: any) => q.eq("workspaceId", workspaceId))
         .order("desc")
         .take(pageLimit);
     }
 
-    // Fallback to by_created_at index when no businessId filter
+    // Fallback to by_created_at index when no workspaceId filter
     return await ctx.db
       .query("activities")
       .withIndex("by_created_at")
@@ -69,18 +69,18 @@ export const getByType = query({
       convexVal.literal("tasks_queried")
     ),
     limit: convexVal.optional(convexVal.number()),
-    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),  // Optional: filter by business
   },
-  handler: async (ctx, { type, limit, businessId }) => {
+  handler: async (ctx, { type, limit, workspaceId }) => {
     let activities = await ctx.db
       .query("activities")
       .withIndex("by_type", (indexQuery) => indexQuery.eq("type", type))
       .order("desc")
       .take((limit || 30) * 2);  // Load extra to account for filtering
 
-    // Filter by business if provided
-    if (businessId) {
-      activities = activities.filter((a: any) => a.businessId === businessId);
+    // Filter by workspace if provided
+    if (workspaceId) {
+      activities = activities.filter((a: any) => a.workspaceId === workspaceId);
     }
 
     return activities.slice(0, limit || 30);
@@ -90,7 +90,7 @@ export const getByType = query({
 // Create activity entry
 export const create = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     type: convexVal.union(
       convexVal.literal("task_created"),
       convexVal.literal("task_updated"),
@@ -120,9 +120,9 @@ export const create = mutation({
     oldValue: convexVal.optional(convexVal.any()),
     newValue: convexVal.optional(convexVal.any()),
   },
-  handler: async (ctx, { businessId, type, agentId, agentName, message, agentRole, taskId, taskTitle, ticketNumber, epicId, epicTitle, oldValue, newValue }) => {
+  handler: async (ctx, { workspaceId, type, agentId, agentName, message, agentRole, taskId, taskTitle, ticketNumber, epicId, epicTitle, oldValue, newValue }) => {
     return await ctx.db.insert("activities", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       type,
       agentId,
       agentName,
@@ -145,9 +145,9 @@ export const getFeed = query({
   args: {
     since: convexVal.optional(convexVal.number()),
     limit: convexVal.optional(convexVal.number()),
-    businessId: convexVal.optional(convexVal.id("businesses")),  // Optional: filter by business
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),  // Optional: filter by business
   },
-  handler: async (ctx, { since, limit, businessId }) => {
+  handler: async (ctx, { since, limit, workspaceId }) => {
     let activitiesQuery = ctx.db.query("activities").withIndex("by_created_at").order("desc");
 
     if (since) {
@@ -157,9 +157,9 @@ export const getFeed = query({
 
     let activities = await activitiesQuery.take((limit || 100) * 2);  // Load extra to account for filtering
 
-    // Filter by business if provided
-    if (businessId) {
-      activities = activities.filter((a: any) => a.businessId === businessId);
+    // Filter by workspace if provided
+    if (workspaceId) {
+      activities = activities.filter((a: any) => a.workspaceId === workspaceId);
     }
 
     return activities.slice(0, limit || 100);

@@ -716,12 +716,12 @@ export const cleanupOldEvents = mutation({
 /**
  * PHASE 5: getRecentExecutions() - Query
  *
- * Get recent executions, optionally scoped to a business or agent.
+ * Get recent executions, optionally scoped to a workspace or agent.
  * Uses appropriate index based on filter parameters.
  */
 export const getRecentExecutions = query({
   args: {
-    businessId: v.optional(v.id("businesses")),
+    workspaceId: v.optional(v.id("workspaces")),
     agentId: v.optional(v.id("agents")),
     startTime: v.optional(v.number()),
     limit: v.optional(v.number()),
@@ -740,9 +740,9 @@ export const getRecentExecutions = query({
       query = query.withIndex("by_agent", (q: any) =>
         q.eq("agentId", args.agentId)
       ) as any;
-    } else if (args.businessId) {
-      query = query.withIndex("by_business_id", (q: any) =>
-        q.eq("businessId", args.businessId)
+    } else if (args.workspaceId) {
+      query = query.withIndex("by_workspace_id", (q: any) =>
+        q.eq("workspaceId", args.workspaceId)
       ) as any;
     } else {
       query = query.withIndex("by_start_time") as any;

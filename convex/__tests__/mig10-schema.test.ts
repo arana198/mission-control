@@ -2,10 +2,10 @@
  * MIG-10: Schema Optimizations Tests
  *
  * Tests for Phase 1 schema changes:
- * - tasks: add "by_ticket_number" index (["businessId", "ticketNumber"])
- * - calendarEvents: add optional businessId field + "by_business" index
- * - taskSubscriptions: add "by_business" index
- * - Backfill calendarEvents.businessId from related tasks
+ * - tasks: add "by_ticket_number" index (["workspaceId", "ticketNumber"])
+ * - calendarEvents: add optional workspaceId field + "by_workspace" index
+ * - taskSubscriptions: add "by_workspace" index
+ * - Backfill calendarEvents.workspaceId from related tasks
  *
  * Tests verify:
  * - Index functionality (queries return correct results)
@@ -87,14 +87,14 @@ class SchemaMockDatabase {
     const docs = this.data.get(table) || [];
 
     if (indexName === "by_ticket_number") {
-      // Simulate by_ticket_number index: ["businessId", "ticketNumber"]
-      // filterFn would be q => q.eq("businessId", bid).eq("ticketNumber", tktNum)
+      // Simulate by_ticket_number index: ["workspaceId", "ticketNumber"]
+      // filterFn would be q => q.eq("workspaceId", bid).eq("ticketNumber", tktNum)
       if (filterFn) {
         const mockQ = {
-          _businessId: null,
+          _workspaceId: null,
           _ticketNumber: null,
           eq: function (field: string, value: any) {
-            if (field === "businessId") this._businessId = value;
+            if (field === "workspaceId") this._workspaceId = value;
             if (field === "ticketNumber") this._ticketNumber = value;
             return this;
           },
@@ -102,25 +102,25 @@ class SchemaMockDatabase {
         filterFn(mockQ);
         return docs.filter(
           (d) =>
-            d.businessId === mockQ._businessId &&
+            d.workspaceId === mockQ._workspaceId &&
             d.ticketNumber === mockQ._ticketNumber
         );
       }
       return docs;
     }
 
-    if (indexName === "by_business") {
-      // Simulate by_business index: ["businessId"]
+    if (indexName === "by_workspace") {
+      // Simulate by_workspace index: ["workspaceId"]
       if (filterFn) {
         const mockQ = {
-          _businessId: null,
+          _workspaceId: null,
           eq: function (field: string, value: any) {
-            if (field === "businessId") this._businessId = value;
+            if (field === "workspaceId") this._workspaceId = value;
             return this;
           },
         };
         filterFn(mockQ);
-        return docs.filter((d: any) => d.businessId === mockQ._businessId);
+        return docs.filter((d: any) => d.workspaceId === mockQ._workspaceId);
       }
       return docs;
     }
@@ -133,15 +133,15 @@ class SchemaMockDatabase {
   }
 
   // Helper: Simulate the MIG-10 backfill operation
-  async backfillCalendarEventsBusinessId() {
+  async backfillCalendarEventsId() {
     const events = this.data.get("calendarEvents") || [];
     let backfilled = 0;
     for (const event of events) {
-      if (event.businessId) continue; // idempotent skip
+      if (event.workspaceId) continue; // idempotent skip
       if (event.taskId) {
         const task = this.get(event.taskId);
-        if (task && task.businessId) {
-          this.patch(event._id, { businessId: task.businessId });
+        if (task && task.workspaceId) {
+          this.patch(event._id, { workspaceId: task.workspaceId });
           backfilled++;
         }
       }
@@ -159,9 +159,9 @@ describe("MIG-10: Schema Optimizations", () => {
 
   describe("Phase 1A: tasks by_ticket_number index", () => {
     it("should create tasks with ticketNumber and query by by_ticket_number index", async () => {
-      // Arrange: create a business and task with ticketNumber
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+      // Arrange: create a workspace and task with ticketNumber
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -169,7 +169,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Test Task",
         description: "Test",
         ticketNumber: "TEST-001",
@@ -184,7 +184,7 @@ describe("MIG-10: Schema Optimizations", () => {
       const results = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", businessId).eq("ticketNumber", "TEST-001")
+          q.eq("workspaceId", workspaceId).eq("ticketNumber", "TEST-001")
         )
         .collect();
 
@@ -196,8 +196,8 @@ describe("MIG-10: Schema Optimizations", () => {
 
     it("should distinguish between different ticket numbers in same business", async () => {
       // Arrange: two tasks with different ticket numbers
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -205,7 +205,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Task 1",
         description: "Test",
         ticketNumber: "TEST-001",
@@ -217,7 +217,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Task 2",
         description: "Test",
         ticketNumber: "TEST-002",
@@ -232,7 +232,7 @@ describe("MIG-10: Schema Optimizations", () => {
       const results = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", businessId).eq("ticketNumber", "TEST-001")
+          q.eq("workspaceId", workspaceId).eq("ticketNumber", "TEST-001")
         )
         .collect();
 
@@ -244,7 +244,7 @@ describe("MIG-10: Schema Optimizations", () => {
     it("should isolate ticket numbers across businesses", async () => {
       // Arrange: two businesses with same ticket number
       const business1 = db.insert("businesses", {
-        name: "Business 1",
+        name: " 1",
         slug: "business-1",
         isDefault: true,
         createdAt: Date.now(),
@@ -252,7 +252,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const business2 = db.insert("businesses", {
-        name: "Business 2",
+        name: " 2",
         slug: "business-2",
         isDefault: false,
         createdAt: Date.now(),
@@ -260,7 +260,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("tasks", {
-        businessId: business1,
+        workspaceId: business1,
         title: "Task in B1",
         description: "Test",
         ticketNumber: "TASK-001",
@@ -272,7 +272,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("tasks", {
-        businessId: business2,
+        workspaceId: business2,
         title: "Task in B2",
         description: "Test",
         ticketNumber: "TASK-001",
@@ -287,7 +287,7 @@ describe("MIG-10: Schema Optimizations", () => {
       const results = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", business1).eq("ticketNumber", "TASK-001")
+          q.eq("workspaceId", business1).eq("ticketNumber", "TASK-001")
         )
         .collect();
 
@@ -297,11 +297,11 @@ describe("MIG-10: Schema Optimizations", () => {
     });
   });
 
-  describe("Phase 1B: calendarEvents businessId backfill", () => {
-    it("should backfill calendarEvents.businessId from related task", async () => {
-      // Arrange: business, task, and calendar event without businessId
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+  describe("Phase 1B: calendarEvents workspaceId backfill", () => {
+    it("should backfill calendarEvents.workspaceId from related task", async () => {
+      // Arrange: workspace, task, and calendar event without workspaceId
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -309,7 +309,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Important Meeting",
         description: "Q4 Planning",
         status: "ready",
@@ -328,22 +328,22 @@ describe("MIG-10: Schema Optimizations", () => {
         type: "task_scheduled",
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        // Note: no businessId yet (before backfill)
+        // Note: no workspaceId yet (before backfill)
       });
 
       // Act: simulate MIG-10 backfill
-      const backfilled = await db.backfillCalendarEventsBusinessId();
+      const backfilled = await db.backfillCalendarEventsId();
 
-      // Assert: event now has businessId from task
+      // Assert: event now has workspaceId from task
       const event = db.get(eventId);
-      expect(event.businessId).toBe(businessId);
+      expect(event.workspaceId).toBe(workspaceId);
       expect(backfilled).toBe(1);
     });
 
     it("should be idempotent — skip already-backfilled records", async () => {
       // Arrange: already-backfilled calendar event
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -351,7 +351,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Meeting",
         description: "Test",
         status: "ready",
@@ -368,18 +368,18 @@ describe("MIG-10: Schema Optimizations", () => {
         endTime: Date.now() + 3600000,
         timezone: "UTC",
         type: "task_scheduled",
-        businessId, // already backfilled
+        workspaceId, // already backfilled
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
 
       // Act: run backfill again
-      const backfilled = await db.backfillCalendarEventsBusinessId();
+      const backfilled = await db.backfillCalendarEventsId();
 
       // Assert: no additional records backfilled (idempotent)
       expect(backfilled).toBe(0);
       const event = db.get(eventId);
-      expect(event.businessId).toBe(businessId); // still correct
+      expect(event.workspaceId).toBe(workspaceId); // still correct
     });
 
     it("should skip calendar events without taskId", async () => {
@@ -396,18 +396,18 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       // Act: run backfill
-      const backfilled = await db.backfillCalendarEventsBusinessId();
+      const backfilled = await db.backfillCalendarEventsId();
 
-      // Assert: event has no businessId (skipped gracefully)
+      // Assert: event has no workspaceId (skipped gracefully)
       const event = db.get(eventId);
-      expect(event.businessId).toBeUndefined();
+      expect(event.workspaceId).toBeUndefined();
       expect(backfilled).toBe(0);
     });
 
     it("should backfill multiple events in one pass", async () => {
-      // Arrange: business with 3 tasks and 3 events
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+      // Arrange: workspace with 3 tasks and 3 events
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -418,7 +418,7 @@ describe("MIG-10: Schema Optimizations", () => {
       for (let i = 0; i < 3; i++) {
         taskIds.push(
           db.insert("tasks", {
-            businessId,
+            workspaceId,
             title: `Task ${i}`,
             description: "Test",
             status: "ready",
@@ -438,29 +438,29 @@ describe("MIG-10: Schema Optimizations", () => {
           endTime: Date.now() + 3600000,
           timezone: "UTC",
           type: "task_scheduled",
-          // no businessId
+          // no workspaceId
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });
       }
 
       // Act: backfill all
-      const backfilled = await db.backfillCalendarEventsBusinessId();
+      const backfilled = await db.backfillCalendarEventsId();
 
       // Assert: all 3 backfilled
       expect(backfilled).toBe(3);
       const events = db.getData("calendarEvents");
       events.forEach((event: any) => {
-        expect(event.businessId).toBe(businessId);
+        expect(event.workspaceId).toBe(workspaceId);
       });
     });
   });
 
-  describe("Phase 1C: taskSubscriptions by_business index", () => {
-    it("should create taskSubscriptions and query by by_business index", async () => {
-      // Arrange: business, task, subscription
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+  describe("Phase 1C: taskSubscriptions by_workspace index", () => {
+    it("should create taskSubscriptions and query by by_workspace index", async () => {
+      // Arrange: workspace, task, subscription
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -468,7 +468,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Test Task",
         description: "Test",
         status: "ready",
@@ -479,29 +479,29 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const subId = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: "agent1",
         notifyOn: "status_change",
         subscribedAt: Date.now(),
       });
 
-      // Act: query by_business index
+      // Act: query by_workspace index
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .collect();
 
       // Assert: found exactly one subscription
       expect(results.length).toBe(1);
       expect(results[0]._id).toBe(subId);
-      expect(results[0].businessId).toBe(businessId);
+      expect(results[0].workspaceId).toBe(workspaceId);
     });
 
     it("should isolate subscriptions across businesses", async () => {
       // Arrange: two businesses with subscriptions
       const business1 = db.insert("businesses", {
-        name: "Business 1",
+        name: " 1",
         slug: "business-1",
         isDefault: true,
         createdAt: Date.now(),
@@ -509,7 +509,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const business2 = db.insert("businesses", {
-        name: "Business 2",
+        name: " 2",
         slug: "business-2",
         isDefault: false,
         createdAt: Date.now(),
@@ -517,7 +517,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const task1 = db.insert("tasks", {
-        businessId: business1,
+        workspaceId: business1,
         title: "Task 1",
         description: "Test",
         status: "ready",
@@ -528,7 +528,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       const task2 = db.insert("tasks", {
-        businessId: business2,
+        workspaceId: business2,
         title: "Task 2",
         description: "Test",
         status: "ready",
@@ -539,7 +539,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("taskSubscriptions", {
-        businessId: business1,
+        workspaceId: business1,
         taskId: task1,
         agentId: "agent1",
         notifyOn: "status_change",
@@ -547,7 +547,7 @@ describe("MIG-10: Schema Optimizations", () => {
       });
 
       db.insert("taskSubscriptions", {
-        businessId: business2,
+        workspaceId: business2,
         taskId: task2,
         agentId: "agent2",
         notifyOn: "status_change",
@@ -557,29 +557,29 @@ describe("MIG-10: Schema Optimizations", () => {
       // Act: query for business1 subscriptions
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q: any) => q.eq("businessId", business1))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", business1))
         .collect();
 
       // Assert: only business1 subscription returned
       expect(results.length).toBe(1);
-      expect(results[0].businessId).toBe(business1);
+      expect(results[0].workspaceId).toBe(business1);
       expect(results[0].agentId).toBe("agent1");
     });
 
     it("should return empty if no subscriptions for business", async () => {
-      // Arrange: business with no subscriptions
-      const businessId = db.insert("businesses", {
-        name: "Test Business",
+      // Arrange: workspace with no subscriptions
+      const workspaceId = db.insert("businesses", {
+        name: "Test ",
         slug: "test-business",
         isDefault: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
 
-      // Act: query by_business index for empty business
+      // Act: query by_workspace index for empty business
       const results = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .collect();
 
       // Assert: empty array
@@ -591,8 +591,8 @@ describe("MIG-10: Schema Optimizations", () => {
   describe("Phase 1: Integration (all 3 index changes together)", () => {
     it("should have all 3 indexes functional in single pass", async () => {
       // Arrange: full scenario with all schema changes
-      const businessId = db.insert("businesses", {
-        name: "Full Test Business",
+      const workspaceId = db.insert("businesses", {
+        name: "Full Test ",
         slug: "full-test-business",
         isDefault: true,
         createdAt: Date.now(),
@@ -601,7 +601,7 @@ describe("MIG-10: Schema Optimizations", () => {
 
       // Task with ticket
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         title: "Feature: Add Dashboard",
         description: "Implement dashboard",
         ticketNumber: "FEAT-042",
@@ -626,7 +626,7 @@ describe("MIG-10: Schema Optimizations", () => {
 
       // Subscription
       const subId = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: "agent_alice",
         notifyOn: "status_change",
@@ -637,17 +637,17 @@ describe("MIG-10: Schema Optimizations", () => {
       const taskByTicket = await db
         .query("tasks")
         .withIndex("by_ticket_number", (q) =>
-          q.eq("businessId", businessId).eq("ticketNumber", "FEAT-042")
+          q.eq("workspaceId", workspaceId).eq("ticketNumber", "FEAT-042")
         )
         .first();
 
       // Act 2: Backfill calendar event
-      const backfilled = await db.backfillCalendarEventsBusinessId();
+      const backfilled = await db.backfillCalendarEventsId();
 
       // Act 3: Find subscriptions by business
       const subs = await db
         .query("taskSubscriptions")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .collect();
 
       // Assert: all three operations work
@@ -657,7 +657,7 @@ describe("MIG-10: Schema Optimizations", () => {
 
       expect(backfilled).toBe(1);
       const event = db.get(eventId);
-      expect(event.businessId).toBe(businessId);
+      expect(event.workspaceId).toBe(workspaceId);
 
       expect(subs.length).toBe(1);
       expect(subs[0]._id).toBe(subId);

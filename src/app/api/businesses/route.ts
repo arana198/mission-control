@@ -10,7 +10,7 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function GET() {
   try {
-    const businesses = await client.query(api.businesses.getAll);
+    const businesses = await client.query(api.workspaces.getAll);
     return Response.json({
       success: true,
       businesses,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     // Create business
-    const businessId = await client.mutation(api.businesses.create, {
+    const workspaceId = await client.mutation(api.workspaces.create, {
       name,
       slug,
       color: color || undefined,
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
     return Response.json(
       {
         success: true,
-        message: `Business "${name}" created successfully`,
-        businessId,
+        message: ` "${name}" created successfully`,
+        workspaceId,
       },
       { status: 201 }
     );

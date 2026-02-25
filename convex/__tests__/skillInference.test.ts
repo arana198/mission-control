@@ -69,12 +69,12 @@ class SkillInferenceMockDatabase {
 
 describe("Skill Inference System (convex/skillInference.ts)", () => {
   let db: SkillInferenceMockDatabase;
-  let businessId: string;
+  let workspaceId: string;
   let agentId: string;
 
   beforeEach(() => {
     db = new SkillInferenceMockDatabase();
-    businessId = db.insert("businesses", { name: "Test Biz" });
+    workspaceId = db.insert("businesses", { name: "Test Biz" });
     agentId = db.insert("agents", {
       name: "Alice",
       role: "Developer",
@@ -85,7 +85,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
   describe("Skill Inference from Completed Tasks", () => {
     it("infers skill from single completed task", () => {
       const taskId = db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         title: "API Integration",
@@ -116,19 +116,19 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
     it("increases confidence with multiple tasks of same skill", () => {
       // 3 backend tasks completed
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
       });
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
       });
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -143,19 +143,19 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
     it("infers multiple skills from diverse task types", () => {
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
       });
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "design_task",
         status: "completed",
       });
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "testing_task",
         status: "completed",
@@ -172,7 +172,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
     it("does not infer skill from incomplete tasks", () => {
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "in_progress",
@@ -187,7 +187,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
     it("only infers from tasks with success/completion rating", () => {
       const task1 = db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -195,7 +195,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       });
 
       const task2 = db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -215,7 +215,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
     it("detects junior skill level", () => {
       // Junior: 1-3 tasks completed
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -231,7 +231,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       // Mid: 4-10 tasks completed
       for (let i = 0; i < 7; i++) {
         db.insert("tasks", {
-          businessId,
+          workspaceId,
           agentId,
           type: "backend_task",
           status: "completed",
@@ -248,7 +248,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
       // Senior: 11+ tasks completed
       for (let i = 0; i < 15; i++) {
         db.insert("tasks", {
-          businessId,
+          workspaceId,
           agentId,
           type: "backend_task",
           status: "completed",
@@ -438,7 +438,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
     it("updates skill confidence when agent completes new task", () => {
       // Task 1: Create initial backend skill
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -460,7 +460,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
       // Task 2: Confidence should increase
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "backend_task",
         status: "completed",
@@ -473,7 +473,7 @@ describe("Skill Inference System (convex/skillInference.ts)", () => {
 
     it("creates new skill entry if agent completes unfamiliar task type", () => {
       db.insert("tasks", {
-        businessId,
+        workspaceId,
         agentId,
         type: "frontend_task",
         status: "completed",

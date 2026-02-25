@@ -12,7 +12,7 @@
  *
  * Request body:
  * {
- *   businessId: string (REQUIRED) - Business ID for task scoping
+ *   workspaceId: string (REQUIRED) -  ID for task scoping
  *   forceRegenerate?: boolean
  * }
  *
@@ -39,24 +39,24 @@ export async function POST(request: Request) {
   try {
     // Validate request
     const body = await request.json().catch(() => ({}));
-    const { businessId, forceRegenerate = false } = body;
+    const { workspaceId, forceRegenerate = false } = body;
 
     // Extract Idempotency-Key header for retry support
     const idempotencyKey = extractIdempotencyKey(request);
 
-    // REQUIRED: businessId for multi-business support
-    if (!businessId) {
+    // REQUIRED: workspaceId for multi-business support
+    if (!workspaceId) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "businessId is required for task generation"
+          error: "workspaceId is required for task generation"
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     // Fetch active goals for this business
-    const goals = await client.query(api.goals.getActiveGoals, { businessId });
+    const goals = await client.query(api.goals.getActiveGoals, { workspaceId });
     const allGoals = Array.isArray(goals) ? goals : Object.values(goals).flat() as any[];
 
     // Generate daily tasks
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch available epics to assign tasks to (for this business)
-    const epics = await client.query(api.epics.getAllEpics, { businessId });
+    const epics = await client.query(api.epics.getAllEpics, { workspaceId });
     if (!epics || epics.length === 0) {
       return new Response(
         JSON.stringify({
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const createdTasks = await Promise.all(
       tasksWithContext.map((task: any) =>
         client.mutation(api.tasks.createTask, {
-          businessId,
+          workspaceId,
           title: task.title,
           description: task.description,
           priority: task.priority || 'P2',

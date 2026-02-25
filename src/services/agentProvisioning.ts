@@ -12,7 +12,7 @@ import WebSocket from "ws";
  *
  * Template Variables (simple string interpolation):
  * - agentName, agentId, agentKey
- * - boardId, boardName, businessId
+ * - boardId, boardName, workspaceId
  * - sessionKey, workspacePath
  * - baseUrl, authToken
  * - otherAgents (JSON array)
@@ -44,7 +44,7 @@ export interface AgentProvisioningParams {
 
 /**
  * Get the session key for an agent
- * Pattern: board-{businessId} for leads, board-agent-{agentId} for members
+ * Pattern: board-{workspaceId} for leads, board-agent-{agentId} for members
  */
 export function getSessionKey(
   agent: {
@@ -52,14 +52,14 @@ export function getSessionKey(
     isGatewayMain?: boolean;
     _id?: string;
   },
-  businessId: string,
+  workspaceId: string,
   gatewayId?: string
 ): string {
   if (agent.isGatewayMain && gatewayId) {
     return `gateway-${gatewayId}-main`;
   }
   if (agent.isBoardLead) {
-    return `board-lead-${businessId}`;
+    return `board-lead-${workspaceId}`;
   }
   return `board-agent-${agent._id}`;
 }
@@ -91,21 +91,21 @@ export function getAgentKey(agent: { name: string; _id?: string; isGatewayMain?:
  * 7. chat.send greeting message
  */
 export async function provisionAgent(ws: WebSocket, params: AgentProvisioningParams): Promise<void> {
-  const { agent, business, otherAgents, baseUrl, authToken } = params;
+  const { agent, workspace, otherAgents, baseUrl, authToken } = params;
 
   const agentKey = getAgentKey(agent, params.gatewayId);
-  const sessionKey = getSessionKey(agent, business._id, params.gatewayId);
+  const sessionKey = getSessionKey(agent, workspace._id, params.gatewayId);
 
   // Template variables
   const vars = {
     agentName: agent.name,
     agentId: agent._id,
     agentKey,
-    boardId: business._id,
-    boardName: business.name,
-    businessId: business._id,
+    boardId: workspace._id,
+    boardName:  workspace.name,
+    workspaceId: workspace._id,
     sessionKey,
-    workspacePath: `/workspace/${business.slug}/${agent.name}`,
+    workspacePath: `/workspace/${workspace.slug}/${agent.name}`,
     baseUrl,
     authToken,
     otherAgents: JSON.stringify(otherAgents),
@@ -176,7 +176,7 @@ export async function provisionAgent(ws: WebSocket, params: AgentProvisioningPar
     // Step 7: Send greeting
     await call(ws, "chat.send", {
       sessionKey,
-      message: `Hello ${agent.name}. Your workspace has been provisioned at ${vars.workspacePath}. You are a ${agent.role} on the ${business.name} board.`,
+      message: `Hello ${agent.name}. Your workspace has been provisioned at ${vars.workspacePath}. You are a ${agent.role} on the ${ workspace.name} board.`,
     });
   } catch (error) {
     throw new Error(`Failed to provision agent ${agentKey}: ${(error as Error).message}`);

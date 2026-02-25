@@ -34,12 +34,12 @@ export function approvalRequired({
 }
 
 /**
- * Get approvals for business, optionally filtered by status
+ * Get approvals for workspace, optionally filtered by status
  * Returns pending approvals first, then resolved
  */
-export const getByBusiness = query({
+export const getBy = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     status: convexVal.optional(
       convexVal.union(
         convexVal.literal("pending"),
@@ -51,8 +51,8 @@ export const getByBusiness = query({
   async handler(ctx, args) {
     let query = ctx.db
       .query("approvals")
-      .withIndex("by_business_status", (q: any) =>
-        q.eq("businessId", args.businessId).eq("status", args.status || "pending")
+      .withIndex("by_workspace_status", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("status", args.status || "pending")
       );
 
     let approvals = await query.collect();
@@ -61,7 +61,7 @@ export const getByBusiness = query({
     if (!args.status) {
       const all = await ctx.db
         .query("approvals")
-        .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
         .collect();
 
       approvals = all.sort((a, b) => {
@@ -80,13 +80,13 @@ export const getByBusiness = query({
  */
 export const getPendingCount = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
   async handler(ctx, args) {
     const approvals = await ctx.db
       .query("approvals")
-      .withIndex("by_business_status", (q: any) =>
-        q.eq("businessId", args.businessId).eq("status", "pending")
+      .withIndex("by_workspace_status", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("status", "pending")
       )
       .collect();
 
@@ -142,7 +142,7 @@ export const getTaskLinks = query({
  */
 export const createApproval = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.optional(convexVal.id("agents")),
     taskIds: convexVal.optional(convexVal.array(convexVal.id("tasks"))),
     actionType: convexVal.string(),
@@ -178,7 +178,7 @@ export const createApproval = mutation({
 
     // Create approval
     const approvalId = await ctx.db.insert("approvals", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       agentId: args.agentId,
       actionType: args.actionType,
       payload: args.payload,
@@ -234,7 +234,7 @@ export const resolveApproval = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: approval.businessId,
+      workspaceId: approval.workspaceId,
       type: "approval_resolved",
       agentId: args.resolvedBy,
       agentName: args.resolvedBy,

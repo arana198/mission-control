@@ -1,6 +1,6 @@
 "use client";
 
-import { useBusiness } from "@/components/BusinessProvider";
+import { useWorkspace } from "@/components/WorkspaceProvider";
 import { MembersPanel } from "@/components/MembersPanel";
 
 /**
@@ -10,13 +10,13 @@ import { MembersPanel } from "@/components/MembersPanel";
  * Phase 2: RBAC UI Integration
  */
 export default function MembersSettingsPage() {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
 
-  if (!currentBusiness) {
+  if (!currentWorkspace) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="bg-card rounded p-4 border border-border text-center text-muted-foreground">
-          No business selected
+          No workspace selected
         </div>
       </div>
     );
@@ -24,7 +24,7 @@ export default function MembersSettingsPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <MembersPanel businessId={currentBusiness._id as any} />
+      <MembersPanel workspaceId={currentWorkspace._id as any} />
     </div>
   );
 }

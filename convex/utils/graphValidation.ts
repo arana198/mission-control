@@ -17,7 +17,7 @@ import { Id } from "../_generated/dataModel";
  *
  * OPTIMIZATION (Phase 4): Preload entire task graph before DFS to eliminate per-node DB calls.
  * Instead of N+1 queries (1 for each task in the path), this now does 1 query to preload
- * all tasks for the business, then performs DFS entirely in-memory.
+ * all tasks for the workspace, then performs DFS entirely in-memory.
  *
  * @param ctx - Convex query context
  * @param taskId - The task that would be blocked
@@ -29,14 +29,14 @@ export async function detectCycle(
   taskId: Id<"tasks">,
   blockedByTaskId: Id<"tasks">
 ): Promise<boolean> {
-  // Preload the source task to get business context
+  // Preload the source task to get workspace context
   const sourceTask = await ctx.db.get(blockedByTaskId);
   if (!sourceTask) return false;
 
-  // Phase 4: Preload entire graph for this business in ONE query
+  // Phase 4: Preload entire graph for this workspace in ONE query
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", (sourceTask as any).workspaceId))
     .take(500); // Reasonable cap for single business
 
   // Build in-memory map of task ID -> blockedBy array
@@ -91,14 +91,14 @@ export async function getTransitiveDependencies(
   ctx: QueryCtx,
   taskId: Id<"tasks">
 ): Promise<Id<"tasks">[]> {
-  // Preload source task to get business context
+  // Preload source task to get workspace context
   const sourceTask = await ctx.db.get(taskId);
   if (!sourceTask) return [];
 
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", (sourceTask as any).workspaceId))
     .take(500);
 
   // Build in-memory map of task ID -> blockedBy array
@@ -148,14 +148,14 @@ export async function getTransitiveDependents(
   ctx: QueryCtx,
   taskId: Id<"tasks">
 ): Promise<Id<"tasks">[]> {
-  // Preload source task to get business context
+  // Preload source task to get workspace context
   const sourceTask = await ctx.db.get(taskId);
   if (!sourceTask) return [];
 
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", (sourceTask as any).workspaceId))
     .take(500);
 
   // Build in-memory map of task ID -> blocks array
@@ -205,14 +205,14 @@ export async function getCriticalPath(
   ctx: QueryCtx,
   taskId: Id<"tasks">
 ): Promise<Id<"tasks">[]> {
-  // Preload source task to get business context
+  // Preload source task to get workspace context
   const sourceTask = await ctx.db.get(taskId);
   if (!sourceTask) return [taskId];
 
   // Phase 4: Preload entire graph for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q: any) => q.eq("businessId", (sourceTask as any).businessId))
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", (sourceTask as any).workspaceId))
     .take(500);
 
   // Build in-memory map of task ID -> blockedBy array

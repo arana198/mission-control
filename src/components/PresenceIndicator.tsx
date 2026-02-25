@@ -106,20 +106,20 @@ export function PresenceIndicator({
 }
 
 /**
- * PresenceList - Shows all agents for a business with online/away status
+ * PresenceList - Shows all agents for a workspace with online/away status
  * Used in agent roster, team overview
  */
 export function PresenceList({
-  businessId,
+  workspaceId,
   agents,
   filter = "all",
 }: {
-  businessId: string;
+  workspaceId: string;
   agents: Agent[];
   filter?: "online" | "away" | "offline" | "all";
 }) {
-  const allPresence = useQuery(api.presence.getBusinessPresence, {
-    businessId: businessId as any,
+  const allPresence = useQuery(api.presence.getPresence, {
+    workspaceId: workspaceId as any,
   });
 
   const presenceMap = new Map(
@@ -201,11 +201,11 @@ export function PresenceList({
  * Used in top navigation or user menu
  */
 export function CurrentUserPresence({
-  businessId,
+  workspaceId,
   agentId,
   agentName,
 }: {
-  businessId: string;
+  workspaceId: string;
   agentId: string;
   agentName: string;
 }) {
@@ -227,7 +227,7 @@ export function CurrentUserPresence({
 
   const handleStatusChange = async (status: string) => {
     await updatePresence({
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
       agentId: agentId as any,
       status: status as any,
       currentActivity: activity || undefined,
@@ -238,7 +238,7 @@ export function CurrentUserPresence({
   const handleActivityChange = async (e: React.FormEvent) => {
     e.preventDefault();
     await updatePresence({
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
       agentId: agentId as any,
       status: currentStatus as any,
       currentActivity: activity || undefined,
@@ -320,7 +320,7 @@ export function CurrentUserPresence({
             <button
               onClick={async () => {
                 await updatePresence({
-                  businessId: businessId as any,
+                  workspaceId: workspaceId as any,
                   agentId: agentId as any,
                   status: "offline",
                   currentActivity: undefined,

@@ -1,49 +1,49 @@
 /**
  * Settings Split Tests
  *
- * Tests for global vs business-scoped settings architecture
- * Validates: getSetting/setSetting for global and business contexts
+ * Tests for global vs workspace-scoped settings architecture
+ * Validates: getSetting/setSetting for global and workspace contexts
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
 
 /**
- * MockDatabase for Settings (Global and Business-Scoped)
+ * MockDatabase for Settings (Global and -Scoped)
  */
 class SettingsMockDatabase {
   private globalSettings: Map<string, string> = new Map();
   private businessSettings: Map<string, Map<string, string>> = new Map();
 
   setSetting(key: string, value: string): void;
-  setSetting(businessId: string, key: string, value: string): void;
+  setSetting(workspaceId: string, key: string, value: string): void;
   setSetting(
-    keyOrBusinessId: string,
+    keyOrId: string,
     keyOrValue: string,
     value?: string
   ): void {
     if (value === undefined) {
       // Global setting: setSetting(key, value)
-      this.globalSettings.set(keyOrBusinessId, keyOrValue);
+      this.globalSettings.set(keyOrId, keyOrValue);
     } else {
-      // Business setting: setSetting(businessId, key, value)
-      if (!this.businessSettings.has(keyOrBusinessId)) {
-        this.businessSettings.set(keyOrBusinessId, new Map());
+      //  setting: setSetting(workspaceId, key, value)
+      if (!this.businessSettings.has(keyOrId)) {
+        this.businessSettings.set(keyOrId, new Map());
       }
-      this.businessSettings.get(keyOrBusinessId)!.set(keyOrValue, value);
+      this.businessSettings.get(keyOrId)!.set(keyOrValue, value);
     }
   }
 
   getSetting(key: string): string | null;
-  getSetting(businessId: string, key: string): string | null;
-  getSetting(keyOrBusinessId: string, key?: string): string | null {
+  getSetting(workspaceId: string, key: string): string | null;
+  getSetting(keyOrId: string, key?: string): string | null {
     if (key === undefined) {
       // Global setting: getSetting(key)
-      return this.globalSettings.get(keyOrBusinessId) || null;
+      return this.globalSettings.get(keyOrId) || null;
     } else {
-      // Business setting: getSetting(businessId, key)
-      const businessMap = this.businessSettings.get(keyOrBusinessId);
+      //  setting: getSetting(workspaceId, key)
+      const businessMap = this.businessSettings.get(keyOrId);
       if (!businessMap) return null;
-      return businessMap.get(key) || null;
+      return workspaceMap.get(key) || null;
     }
   }
 
@@ -55,11 +55,11 @@ class SettingsMockDatabase {
     return result;
   }
 
-  getAllBusinessSettings(
-    businessId: string
+  getAllSettings(
+    workspaceId: string
   ): Record<string, string> {
     const result: Record<string, string> = {};
-    const businessMap = this.businessSettings.get(businessId);
+    const businessMap = this.businessSettings.get(workspaceId);
     if (businessMap) {
       businessMap.forEach((value, key) => {
         result[key] = value;
@@ -69,16 +69,16 @@ class SettingsMockDatabase {
   }
 }
 
-describe("Settings: Global vs Business-Scoped", () => {
+describe("Settings: Global vs -Scoped", () => {
   let db: SettingsMockDatabase;
 
   beforeEach(() => {
     db = new SettingsMockDatabase();
   });
 
-  describe("Global Settings (no businessId)", () => {
+  describe("Global Settings (no workspaceId)", () => {
     it("should store and retrieve global theme setting", async () => {
-      // Arrange: no businessId context
+      // Arrange: no workspaceId context
       // Act: setSetting("theme", "dark")
       db.setSetting("theme", "dark");
 
@@ -109,20 +109,20 @@ describe("Settings: Global vs Business-Scoped", () => {
     });
   });
 
-  describe("Business-Scoped Settings", () => {
-    it("should store and retrieve businessId-scoped setting", async () => {
-      // Arrange: businessId = "biz_123"
-      // Act: setSetting(businessId, "githubOrg", "my-org")
+  describe("-Scoped Settings", () => {
+    it("should store and retrieve workspaceId-scoped setting", async () => {
+      // Arrange: workspaceId = "biz_123"
+      // Act: setSetting(workspaceId, "githubOrg", "my-org")
       db.setSetting("biz_123", "githubOrg", "my-org");
 
-      // Expected: getSetting(businessId, "githubOrg") returns "my-org"
+      // Expected: getSetting(workspaceId, "githubOrg") returns "my-org"
       expect(db.getSetting("biz_123", "githubOrg")).toBe("my-org");
     });
 
     it("should store github org per business", async () => {
-      // Arrange: Business A and B both set githubOrg
-      // Act: setSetting(businessId_A, "githubOrg", "org-a")
-      //      setSetting(businessId_B, "githubOrg", "org-b")
+      // Arrange:  A and B both set githubOrg
+      // Act: setSetting(workspaceId_A, "githubOrg", "org-a")
+      //      setSetting(workspaceId_B, "githubOrg", "org-b")
       db.setSetting("bizA", "githubOrg", "org-a");
       db.setSetting("bizB", "githubOrg", "org-b");
 
@@ -132,18 +132,18 @@ describe("Settings: Global vs Business-Scoped", () => {
     });
 
     it("should store github repo per business", async () => {
-      // Arrange: businessId = "biz_123"
-      // Act: setSetting(businessId, "githubRepo", "core")
+      // Arrange: workspaceId = "biz_123"
+      // Act: setSetting(workspaceId, "githubRepo", "core")
       db.setSetting("biz_123", "githubRepo", "core");
 
-      // Expected: getSetting(businessId, "githubRepo") returns "core"
+      // Expected: getSetting(workspaceId, "githubRepo") returns "core"
       expect(db.getSetting("biz_123", "githubRepo")).toBe("core");
     });
 
     it("should store ticket prefix per business", async () => {
-      // Arrange: Business A prefix "ACME", Business B prefix "PA"
-      // Act: setSetting(businessId_A, "ticketPrefix", "ACME")
-      //      setSetting(businessId_B, "ticketPrefix", "PA")
+      // Arrange:  A prefix "ACME",  B prefix "PA"
+      // Act: setSetting(workspaceId_A, "ticketPrefix", "ACME")
+      //      setSetting(workspaceId_B, "ticketPrefix", "PA")
       db.setSetting("bizA", "ticketPrefix", "ACME");
       db.setSetting("bizB", "ticketPrefix", "PA");
 
@@ -153,11 +153,11 @@ describe("Settings: Global vs Business-Scoped", () => {
     });
 
     it("should store taskCounter per business", async () => {
-      // Arrange: Business A counter = 5, Business B counter = 3
+      // Arrange:  A counter = 5,  B counter = 3
       db.setSetting("bizA", "taskCounter", "5");
       db.setSetting("bizB", "taskCounter", "3");
 
-      // Act: getSetting(businessId_A, "taskCounter") and getSetting(businessId_B, "taskCounter")
+      // Act: getSetting(workspaceId_A, "taskCounter") and getSetting(workspaceId_B, "taskCounter")
       // Expected: A returns 5, B returns 3
       expect(db.getSetting("bizA", "taskCounter")).toBe("5");
       expect(db.getSetting("bizB", "taskCounter")).toBe("3");
@@ -165,28 +165,28 @@ describe("Settings: Global vs Business-Scoped", () => {
   });
 
   describe("Settings Isolation", () => {
-    it("should not leak global settings to business queries", async () => {
+    it("should not leak global settings to workspace queries", async () => {
       // Arrange: global theme set to "dark"
       db.setSetting("theme", "dark");
 
-      // Act: getSetting(businessId, "theme")
+      // Act: getSetting(workspaceId, "theme")
       // Expected: returns null or undefined (business setting not found)
       expect(db.getSetting("bizA", "theme")).toBeNull();
     });
 
-    it("should not leak business settings to global queries", async () => {
-      // Arrange: Business A githubOrg set to "org-a"
+    it("should not leak workspace settings to global queries", async () => {
+      // Arrange:  A githubOrg set to "org-a"
       db.setSetting("bizA", "githubOrg", "org-a");
 
-      // Act: getSetting("githubOrg") without businessId
+      // Act: getSetting("githubOrg") without workspaceId
       // Expected: returns null or undefined (global setting not found)
       expect(db.getSetting("githubOrg")).toBeNull();
     });
 
     it("should maintain separate namespace for each key type", async () => {
-      // Arrange: set same key in global and business contexts
+      // Arrange: set same key in global and workspace contexts
       db.setSetting("taskCounter", "100"); // global
-      db.setSetting("bizA", "taskCounter", "5"); // business-scoped
+      db.setSetting("bizA", "taskCounter", "5"); // workspace-scoped
 
       // Expected: separate storage
       expect(db.getSetting("taskCounter")).toBe("100"); // global
@@ -194,31 +194,31 @@ describe("Settings: Global vs Business-Scoped", () => {
     });
   });
 
-  describe("taskCounter Management per Business", () => {
-    it("should initialize taskCounter to 0 on business creation", async () => {
-      // Arrange: create new business (simulate by trying to get counter)
+  describe("taskCounter Management per ", () => {
+    it("should initialize taskCounter to 0 on workspace creation", async () => {
+      // Arrange: create new workspace (simulate by trying to get counter)
       db.setSetting("bizA", "taskCounter", "0");
 
-      // Act: getSetting(businessId, "taskCounter")
+      // Act: getSetting(workspaceId, "taskCounter")
       // Expected: returns 0 (or can be null if lazy-initialized)
       expect(db.getSetting("bizA", "taskCounter")).toBe("0");
     });
 
     it("should increment taskCounter independently per business", async () => {
-      // Arrange: Business A counter = 5, Business B counter = 3
+      // Arrange:  A counter = 5,  B counter = 3
       db.setSetting("bizA", "taskCounter", "5");
       db.setSetting("bizB", "taskCounter", "3");
 
-      // Act: increment Business A counter
+      // Act: increment  A counter
       db.setSetting("bizA", "taskCounter", "6");
 
-      // Expected: Business A = 6, Business B = 3 (unchanged)
+      // Expected:  A = 6,  B = 3 (unchanged)
       expect(db.getSetting("bizA", "taskCounter")).toBe("6");
       expect(db.getSetting("bizB", "taskCounter")).toBe("3");
     });
 
     it("should use next taskCounter to generate ticket ID", async () => {
-      // Arrange: Business A prefix = "ACME", counter = 1
+      // Arrange:  A prefix = "ACME", counter = 1
       db.setSetting("bizA", "ticketPrefix", "ACME");
       db.setSetting("bizA", "taskCounter", "1");
 
@@ -244,26 +244,26 @@ describe("Settings: Global vs Business-Scoped", () => {
       expect(db.getSetting("theme")).toBe("light");
     });
 
-    it("should update existing business setting", async () => {
+    it("should update existing workspace setting", async () => {
       // Arrange: githubOrg currently "old-org"
       db.setSetting("bizA", "githubOrg", "old-org");
 
-      // Act: setSetting(businessId, "githubOrg", "new-org")
+      // Act: setSetting(workspaceId, "githubOrg", "new-org")
       db.setSetting("bizA", "githubOrg", "new-org");
 
-      // Expected: getSetting(businessId, "githubOrg") returns "new-org"
+      // Expected: getSetting(workspaceId, "githubOrg") returns "new-org"
       expect(db.getSetting("bizA", "githubOrg")).toBe("new-org");
     });
 
     it("should not affect other businesses when updating one's setting", async () => {
-      // Arrange: Business A and B both have githubOrg set
+      // Arrange:  A and B both have githubOrg set
       db.setSetting("bizA", "githubOrg", "org-a");
       db.setSetting("bizB", "githubOrg", "org-b");
 
-      // Act: update Business A's githubOrg
+      // Act: update  A's githubOrg
       db.setSetting("bizA", "githubOrg", "org-a-updated");
 
-      // Expected: Business B's githubOrg unchanged
+      // Expected:  B's githubOrg unchanged
       expect(db.getSetting("bizA", "githubOrg")).toBe("org-a-updated");
       expect(db.getSetting("bizB", "githubOrg")).toBe("org-b");
     });
@@ -276,13 +276,13 @@ describe("Settings: Global vs Business-Scoped", () => {
       expect(db.getSetting("nonexistent_key")).toBeNull();
     });
 
-    it("should handle missing business setting gracefully", async () => {
-      // Act: getSetting(businessId, "nonexistent_key")
+    it("should handle missing workspace setting gracefully", async () => {
+      // Act: getSetting(workspaceId, "nonexistent_key")
       // Expected: returns null or undefined (not error)
       expect(db.getSetting("bizA", "nonexistent_key")).toBeNull();
     });
 
-    it("should handle nonexistent businessId gracefully", async () => {
+    it("should handle nonexistent workspaceId gracefully", async () => {
       // Act: getSetting("nonexistent_biz", "key")
       // Expected: returns null or undefined (not error)
       expect(db.getSetting("nonexistent_biz", "key")).toBeNull();

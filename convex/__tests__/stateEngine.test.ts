@@ -145,7 +145,7 @@ describe("State Engine for OpenClaw", () => {
     addTask(task: any) {
       this.tasks.push({
         _id: `task-${Date.now()}`,
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         status: "pending",
         priority: "medium",
         assignedTo: null,

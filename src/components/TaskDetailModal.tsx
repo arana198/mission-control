@@ -331,7 +331,7 @@ export function TaskDetailModal({
             {/* Comments Section */}
             <EnhancedTaskComments
               taskId={task._id}
-              businessId={currentTask?.businessId ?? ""}
+              workspaceId={currentTask?.workspaceId ?? ""}
               agentId="user"
               agentName="You"
               agents={agents}
@@ -567,7 +567,7 @@ export function TaskDetailModal({
 
             {/* Commits Section - GitHub Integration */}
             <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <TaskCommits taskId={task._id} businessId={currentTask?.businessId} />
+              <TaskCommits taskId={task._id} workspaceId={currentTask?.workspaceId} />
             </div>
           </div>
         </div>

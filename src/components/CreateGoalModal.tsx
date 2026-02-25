@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import { X, Target, Loader2, AlertCircle } from "lucide-react";
 import { useNotification } from "@/hooks/useNotification";
 
@@ -14,14 +14,14 @@ interface CreateGoalModalProps {
 }
 
 const GOAL_CATEGORIES = [
-  { value: "business", label: "Business" },
+  { value: "business", label: "Workspace" },
   { value: "personal", label: "Personal" },
   { value: "learning", label: "Learning" },
   { value: "health", label: "Health" },
 ];
 
 export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalModalProps) {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"business" | "personal" | "learning" | "health">("business");
@@ -43,15 +43,15 @@ export function CreateGoalModal({ onClose, tasks = [], onSuccess }: CreateGoalMo
       return;
     }
 
-    if (!currentBusiness) {
-      setError("Please select a business first");
+    if (!currentWorkspace) {
+      setError("Please select a workspace first");
       return;
     }
 
     setIsLoading(true);
     try {
       const goalId = await createGoalMutation({
-        businessId: currentBusiness._id as any,
+        workspaceId: currentWorkspace._id as any,
         title: title.trim(),
         description: description.trim(),
         category,

@@ -4,7 +4,7 @@
  * List all available epics for agents to choose from when creating tasks
  * Each epic must be assigned to a task at creation time
  *
- * Query params: businessId (required)
+ * Query params: workspaceId (required)
  * Response: { success, epics: [{ id, title, description, status, progress }] }
  *
  * Replaces: GET /api/epics/list
@@ -27,20 +27,20 @@ function jsonResponse(data: any, status: number = 200): Response {
 export async function GET(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url);
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
 
-    if (!businessId) {
+    if (!workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "businessId is required" },
+          error: { code: "VALIDATION_ERROR", message: "workspaceId is required" },
         },
         400
       );
     }
 
     // Query epics for this business
-    const epics = await convex.query(api.epics.getAllEpics, { businessId: businessId as any });
+    const epics = await convex.query(api.epics.getAllEpics, { workspaceId: workspaceId as any });
 
     // Format response
     const formatted = (epics || []).map((epic: any) => ({

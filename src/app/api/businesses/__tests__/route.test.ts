@@ -28,7 +28,7 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
 });
 
-describe("GET /api/businesses", () => {
+describe("GET /api/workspaces", () => {
   it("returns list of all businesses", async () => {
     const { GET } = await import("../route");
     mockQuery.mockResolvedValue([
@@ -51,7 +51,7 @@ describe("GET /api/businesses", () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.businesses).toHaveLength(2);
-    expect(data.businesses[0].name).toBe("Mission Control HQ");
+    expect(data.workspaces[0].name).toBe("Mission Control HQ");
   });
 
   it("returns empty list when no businesses exist", async () => {
@@ -76,15 +76,15 @@ describe("GET /api/businesses", () => {
   });
 });
 
-describe("POST /api/businesses", () => {
-  it("creates a new business with required fields", async () => {
+describe("POST /api/workspaces", () => {
+  it("creates a new workspace with required fields", async () => {
     const { POST } = await import("../route");
     mockMutation.mockResolvedValue("business-id-123");
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
-        name: "Test Business",
+        name: "Test ",
         slug: "test-business",
         missionStatement: "To solve real problems",
       }),
@@ -94,15 +94,15 @@ describe("POST /api/businesses", () => {
     expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.success).toBe(true);
-    expect(data.message).toContain("Test Business");
-    expect(data.businessId).toBe("business-id-123");
+    expect(data.message).toContain("Test ");
+    expect(data.workspaceId).toBe("business-id-123");
   });
 
-  it("creates business with optional fields", async () => {
+  it("creates workspace with optional fields", async () => {
     const { POST } = await import("../route");
     mockMutation.mockResolvedValue("business-id-456");
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
         name: "Acme Corp",
@@ -123,7 +123,7 @@ describe("POST /api/businesses", () => {
   it("returns 400 when name is missing", async () => {
     const { POST } = await import("../route");
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
         slug: "test-business",
@@ -140,10 +140,10 @@ describe("POST /api/businesses", () => {
   it("returns 400 when slug is missing", async () => {
     const { POST } = await import("../route");
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
-        name: "Test Business",
+        name: "Test ",
         missionStatement: "To solve problems",
       }),
     });
@@ -158,10 +158,10 @@ describe("POST /api/businesses", () => {
   it("returns 400 when missionStatement is missing", async () => {
     const { POST } = await import("../route");
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
-        name: "Test Business",
+        name: "Test ",
         slug: "test-business",
       }),
     });
@@ -177,10 +177,10 @@ describe("POST /api/businesses", () => {
     const { POST } = await import("../route");
     mockMutation.mockRejectedValue(new Error("Slug already exists"));
 
-    const req = new Request("http://localhost/api/businesses", {
+    const req = new Request("http://localhost/api/workspaces", {
       method: "POST",
       body: JSON.stringify({
-        name: "Test Business",
+        name: "Test ",
         slug: "test-business",
         missionStatement: "Test mission",
       }),

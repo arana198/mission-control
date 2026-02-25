@@ -14,18 +14,18 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * GET events in time range (human + AI merged)
- * Note: Optionally business-scoped via businessId (uses by_business index if provided)
+ * Note: Optionally workspace-scoped via workspaceId (uses by_workspace index if provided)
  */
 export const getTimelineRange = query(async (ctx, args: {
   startTime: number;
   endTime: number;
-  businessId?: Id<'businesses'>;
+  workspaceId?: Id<'workspaces'>;
 }) => {
-  // Use by_business index if businessId provided (from MIG-10 backfill), otherwise full query
-  const events = args.businessId
+  // Use by_workspace index if workspaceId provided (from MIG-10 backfill), otherwise full query
+  const events = args.workspaceId
     ? await ctx.db
         .query('calendarEvents')
-        .withIndex('by_business', (q: any) => q.eq('businessId', args.businessId!))
+        .withIndex('by_workspace', (q: any) => q.eq('workspaceId', args.workspaceId!))
         .take(500)
     : await ctx.db
         .query('calendarEvents')
@@ -50,17 +50,17 @@ export const getTimelineRange = query(async (ctx, args: {
 
 /**
  * GET all events for a goal
- * Note: Optionally business-scoped via businessId (uses by_business index if provided)
+ * Note: Optionally workspace-scoped via workspaceId (uses by_workspace index if provided)
  */
 export const getByGoal = query(async (ctx, args: {
   goalId: Id<'goals'>;
-  businessId?: Id<'businesses'>;
+  workspaceId?: Id<'workspaces'>;
 }) => {
-  // Use by_business index if businessId provided, otherwise full query
-  const events = args.businessId
+  // Use by_workspace index if workspaceId provided, otherwise full query
+  const events = args.workspaceId
     ? await ctx.db
         .query('calendarEvents')
-        .withIndex('by_business', (q: any) => q.eq('businessId', args.businessId!))
+        .withIndex('by_workspace', (q: any) => q.eq('workspaceId', args.workspaceId!))
         .take(500)
     : await ctx.db
         .query('calendarEvents')
@@ -313,7 +313,7 @@ function scoreSlot(
     score += 30;
   }
 
-  // Business hours bonus (9-17)
+  //  hours bonus (9-17)
   if (hour >= 9 && hour < 17) {
     score += 20;
   }

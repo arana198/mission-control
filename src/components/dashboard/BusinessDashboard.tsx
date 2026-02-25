@@ -9,18 +9,18 @@ import { Suspense, lazy } from "react";
 import { CardGridSkeleton, LoadingSkeleton, KanbanSkeleton } from "../LoadingSkeletons";
 import { DocumentPanel } from "../DocumentPanel";
 import { SettingsPanel } from "../SettingsPanel";
-import { BusinessSettingsPanel } from "../BusinessSettingsPanel";
+import { WorkspaceSettingsPanel } from "../SettingsPanel";
 import { AutomationsPanel } from "../AutomationsPanel";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
-const BusinessAnalyticsDashboard = lazy(() => import("../analytics/BusinessAnalyticsDashboard").then(m => ({ default: m.BusinessAnalyticsDashboard })));
+const AnalyticsDashboard = lazy(() => import("../analytics/AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
 
-type BusinessTabType = "overview" | "board" | "epics" | "wiki" | "analytics" | "settings";
+type TabType = "overview" | "board" | "epics" | "wiki" | "analytics" | "settings";
 
-interface BusinessDashboardProps {
-  tab: BusinessTabType;
-  businessId: string;
+interface WorkspaceDashboardProps {
+  tab: TabType;
+  workspaceId: string;
   isCreatingTask: boolean;
   setIsCreatingTask: (v: boolean) => void;
   autoAssigning: boolean;
@@ -28,22 +28,22 @@ interface BusinessDashboardProps {
 }
 
 /**
- * Business-scoped Dashboard Component
- * Handles tabs that require businessId: overview, board, epics, wiki, settings
+ * -scoped Dashboard Component
+ * Handles tabs that require workspaceId: overview, board, epics, wiki, settings
  */
-export function BusinessDashboard({
+export function Dashboard({
   tab,
-  businessId,
+  workspaceId,
   isCreatingTask,
   setIsCreatingTask,
   autoAssigning,
   setAutoAssigning,
-}: BusinessDashboardProps) {
-  // Business-specific data fetching
+}: DashboardProps) {
+  // -specific data fetching
   const agents = useQuery(api.agents.getAllAgents);
-  const tasks = useQuery(api.tasks.getAllTasks, { businessId: businessId as any });
-  const epics = useQuery(api.epics.getAllEpics, { businessId: businessId as any });
-  const business = useQuery(api.businesses.getById, { businessId: businessId as any });
+  const tasks = useQuery(api.tasks.getAllTasks, { workspaceId: workspaceId as any });
+  const epics = useQuery(api.epics.getAllEpics, { workspaceId: workspaceId as any });
+  const workspace = useQuery(api.workspaces.getWorkspaceById, { workspaceId: workspaceId as any });
   const autoAssignBacklog = useMutation(api.tasks.autoAssignBacklog);
 
   // Render content based on tab
@@ -69,7 +69,7 @@ export function BusinessDashboard({
               {business?.missionStatement && (
                 <div className="card p-6 border-l-4" style={{ borderLeftColor: (business as any).color || '#6366f1' }}>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mission Statement</p>
-                  <p className="text-lg font-medium text-foreground">{business.missionStatement}</p>
+                  <p className="text-lg font-medium text-foreground">{ workspace.missionStatement}</p>
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -105,7 +105,7 @@ export function BusinessDashboard({
                 tasks={tasks}
                 agents={agents}
                 epics={epics || []}
-                businessId={businessId}
+                workspaceId={workspaceId}
               />
             </Suspense>
           </ErrorBoundary>
@@ -131,7 +131,7 @@ export function BusinessDashboard({
         return (
           <ErrorBoundary>
             <Suspense fallback={<LoadingSkeleton />}>
-              <WikiDocs businessId={businessId} />
+              <WikiDocs workspaceId={workspaceId} />
             </Suspense>
           </ErrorBoundary>
         );
@@ -140,7 +140,7 @@ export function BusinessDashboard({
         return (
           <ErrorBoundary>
             <Suspense fallback={<LoadingSkeleton />}>
-              <BusinessAnalyticsDashboard businessId={businessId as any} />
+              <AnalyticsDashboard workspaceId={workspaceId as any} />
             </Suspense>
           </ErrorBoundary>
         );
@@ -149,9 +149,9 @@ export function BusinessDashboard({
         return (
           <ErrorBoundary>
             <div className="space-y-6 p-6">
-              <BusinessSettingsPanel businessId={businessId} />
+              <SettingsPanel workspaceId={workspaceId} />
               <div className="border-t pt-6">
-                <AutomationsPanel businessId={businessId as any} />
+                <AutomationsPanel workspaceId={workspaceId as any} />
               </div>
             </div>
           </ErrorBoundary>

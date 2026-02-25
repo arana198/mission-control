@@ -9,7 +9,7 @@ import { v } from "convex/values";
 /**
  * Helper function to calculate metrics snapshot
  */
-async function calculateSnapshot(ctx: any, businessId: any) {
+async function calculateSnapshot(ctx: any, workspaceId: any) {
   const now = Date.now();
   const oneHourAgo = now - 60 * 60 * 1000;
 
@@ -22,7 +22,7 @@ async function calculateSnapshot(ctx: any, businessId: any) {
   // Get all tasks for this business
   const allTasks = await ctx.db
     .query("tasks")
-    .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
     .collect();
 
   // Queue depth - backlog tasks (tasks waiting to be started)
@@ -62,7 +62,7 @@ async function calculateSnapshot(ctx: any, businessId: any) {
 
   return {
     timestamp: now,
-    businessId: businessId,
+    workspaceId: workspaceId,
 
     // Agent metrics
     agents: {
@@ -129,10 +129,10 @@ async function calculateSnapshot(ctx: any, businessId: any) {
  */
 export const getSnapshot = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
-    return await calculateSnapshot(ctx, args.businessId);
+    return await calculateSnapshot(ctx, args.workspaceId);
   },
 });
 
@@ -141,7 +141,7 @@ export const getSnapshot = query({
  */
 export const getTimeSeries = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     metricType: v.union(
       v.literal("queue_depth"),
       v.literal("throughput"),
@@ -157,8 +157,8 @@ export const getTimeSeries = query({
     // Get all activities in the time range
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_business_created_at", (q: any) =>
-        q.eq("businessId", args.businessId).gt("createdAt", sinceTime)
+      .withIndex("by_workspace_created_at", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).gt("createdAt", sinceTime)
       )
       .collect();
 
@@ -195,10 +195,10 @@ export const getTimeSeries = query({
  */
 export const getHealthStatus = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
-    const metrics = await calculateSnapshot(ctx, args.businessId);
+    const metrics = await calculateSnapshot(ctx, args.workspaceId);
 
     const issues: string[] = [];
     const warnings: string[] = [];

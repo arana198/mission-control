@@ -12,14 +12,14 @@ import { Check, X, RotateCcw, Trash2 } from "lucide-react";
  * Shows pending and resolved approvals with confidence scoring
  */
 interface ApprovalsPanelProps {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
 }
 
-export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
+export function ApprovalsPanel({ workspaceId }: ApprovalsPanelProps) {
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
 
   // Queries
-  const approvals = useQuery(api.approvals.getByBusiness, { businessId });
+  const approvals = useQuery(api.approvals.getBy, { workspaceId });
   const selectedApproval = selectedApprovalId
     ? approvals?.find((a) => a._id === selectedApprovalId)
     : null;

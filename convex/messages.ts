@@ -49,7 +49,7 @@ export const create = mutation({
 
     // Insert message (scoped to task's business)
     const messageId = await ctx.db.insert("messages", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       taskId,
       fromId: senderId, // Can be agent ID or "user"
       fromName: senderName,
@@ -71,7 +71,7 @@ export const create = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "comment_added",
       agentId: senderId,
       agentName: senderName,
@@ -92,7 +92,7 @@ export const create = mutation({
 
         if (!existingSub) {
           await ctx.db.insert("threadSubscriptions", {
-            businessId: task.businessId,
+            workspaceId: task.workspaceId,
             agentId: senderId as Id<"agents">,
             taskId,
             level: "all",
@@ -130,7 +130,7 @@ export const create = mutation({
         
         if (!agentSub) {
           await ctx.db.insert("threadSubscriptions", {
-            businessId: task.businessId,
+            workspaceId: task.workspaceId,
             agentId: agent._id,
             taskId,
             level: "all",
@@ -141,7 +141,7 @@ export const create = mutation({
       
       // Log @all mention
       await ctx.db.insert("activities", {
-        businessId: task.businessId,
+        workspaceId: task.workspaceId,
         type: "mention",
         agentId: senderId,
         agentName: senderName,
@@ -176,7 +176,7 @@ export const create = mutation({
         
         if (!agentSub) {
           await ctx.db.insert("threadSubscriptions", {
-            businessId: task.businessId,
+            workspaceId: task.workspaceId,
             agentId: mentionedAgentId,
             taskId,
             level: "all",
@@ -186,7 +186,7 @@ export const create = mutation({
 
         // Also log as mention activity
         await ctx.db.insert("activities", {
-          businessId: task.businessId,
+          workspaceId: task.workspaceId,
           type: "mention",
           agentId: senderId,
           agentName: senderName,
@@ -319,7 +319,7 @@ export const remove = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: message.businessId,
+      workspaceId: message.workspaceId,
       type: "comment_added",
       agentId: senderId,
       agentName: message.fromName,
@@ -363,7 +363,7 @@ export const createHelpRequest = mutation({
     // Create system message for help request
     const mentions = leadAgentId ? [leadAgentId] : [];
     const messageId = await ctx.db.insert("messages", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       taskId,
       fromId,
       fromName,
@@ -393,7 +393,7 @@ export const createHelpRequest = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "comment_added", // Use comment_added for help request activity
       agentId: fromId,
       agentName: fromName,

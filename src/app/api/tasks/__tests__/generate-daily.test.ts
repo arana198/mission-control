@@ -42,7 +42,7 @@ describe("POST /api/tasks/generate-daily", () => {
       taskIds: ["t1", "t2", "t3"],
     });
 
-    const req = makeRequest({ businessId: "business-123" });
+    const req = makeRequest({ workspaceId: "business-123" });
     const res = await POST(req);
 
     expect([200, 201, 400, 500]).toContain(res.status);
@@ -56,7 +56,7 @@ describe("POST /api/tasks/generate-daily", () => {
       taskIds: ["t1", "t2"],
     });
 
-    const req = makeRequest({ businessId: "business-123" });
+    const req = makeRequest({ workspaceId: "business-123" });
     const res = await POST(req);
 
     if (res.status === 200 || res.status === 201) {
@@ -69,13 +69,13 @@ describe("POST /api/tasks/generate-daily", () => {
     const { POST } = await import("../generate-daily/route");
     mockQuery.mockResolvedValueOnce([]);
 
-    const req = makeRequest({ businessId: "business-123" });
+    const req = makeRequest({ workspaceId: "business-123" });
     const res = await POST(req);
 
     expect([200, 500]).toContain(res.status);
   });
 
-  it("requires businessId parameter", async () => {
+  it("requires workspaceId parameter", async () => {
     const { POST } = await import("../generate-daily/route");
 
     const req = makeRequest({});
@@ -83,7 +83,7 @@ describe("POST /api/tasks/generate-daily", () => {
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("businessId");
+    expect(data.error).toContain("workspaceId");
   });
 
   it("is a valid POST endpoint", async () => {

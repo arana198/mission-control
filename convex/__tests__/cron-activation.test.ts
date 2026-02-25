@@ -123,7 +123,7 @@ class CronMockDatabase {
       }
 
       this.insertActivity({
-        businessId: task.businessId,
+        workspaceId: task.workspaceId,
         type: "task_blocked",
         agentId: "system",
         agentName: "system",
@@ -245,7 +245,7 @@ describe("Cron Activation (Phase 4A)", () => {
 
       db.addTask({
         _id: "task-1",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         title: "Stale Blocked Task",
         status: "blocked",
         updatedAt: oldTime,
@@ -276,7 +276,7 @@ describe("Cron Activation (Phase 4A)", () => {
 
       db.addTask({
         _id: "task-1",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         title: "Recent Blocked Task",
         status: "blocked",
         updatedAt: recentTime,
@@ -300,7 +300,7 @@ describe("Cron Activation (Phase 4A)", () => {
 
       db.addTask({
         _id: "task-1",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         title: "Escalated Task",
         status: "blocked",
         updatedAt: oldTime,
@@ -324,13 +324,13 @@ describe("Cron Activation (Phase 4A)", () => {
       expect(notifications.map((n: any) => n.recipientId)).toEqual(["lead-1", "lead-2"]);
     });
 
-    it("logs escalation activity with businessId from task", () => {
+    it("logs escalation activity with workspaceId from task", () => {
       const now = Date.now();
       const oldTime = now - 25 * 60 * 60 * 1000;
 
       db.addTask({
         _id: "task-1",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         title: "Escalated Task",
         status: "blocked",
         updatedAt: oldTime,
@@ -347,7 +347,7 @@ describe("Cron Activation (Phase 4A)", () => {
       const activities = db.getActivities();
       expect(activities[0]).toMatchObject({
         type: "task_blocked",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         taskId: "task-1",
         agentId: "system",
       });
@@ -361,7 +361,7 @@ describe("Cron Activation (Phase 4A)", () => {
       for (let i = 0; i < 15; i++) {
         db.addTask({
           _id: `task-${i}`,
-          businessId: "biz-1",
+          workspaceId: "biz-1",
           title: `Old Blocked Task ${i}`,
           status: "blocked",
           updatedAt: oldTime,
@@ -386,7 +386,7 @@ describe("Cron Activation (Phase 4A)", () => {
 
       db.addTask({
         _id: "task-1",
-        businessId: "biz-1",
+        workspaceId: "biz-1",
         title: "Escalated Task",
         status: "blocked",
         updatedAt: oldTime,

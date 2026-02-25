@@ -55,26 +55,26 @@ class PatternLearningMockDatabase {
     return this.data.get("taskPatterns") || [];
   }
 
-  getPatternsByBusiness(businessId: string) {
+  getPatternsBy(workspaceId: string) {
     return (this.data.get("taskPatterns") || []).filter(
-      (p: any) => p.businessId === businessId
+      (p: any) => p.workspaceId === workspaceId
     );
   }
 }
 
 describe("Pattern Learning System (convex/patternLearning.ts)", () => {
   let db: PatternLearningMockDatabase;
-  let businessId: string;
+  let workspaceId: string;
 
   beforeEach(() => {
     db = new PatternLearningMockDatabase();
-    businessId = "biz-1";
+    workspaceId = "biz-1";
   });
 
   describe("Pattern Detection", () => {
     it("detects simple 2-task pattern", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend",
         taskTypeSequence: ["design_task", "backend_task"],
         occurrences: 1,
@@ -85,14 +85,14 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       expect(patterns).toHaveLength(1);
       expect(patterns[0].pattern).toBe("design→backend");
     });
 
     it("detects complex 3+ task pattern", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend→frontend→testing",
         taskTypeSequence: ["design_task", "backend_task", "frontend_task", "testing_task"],
         occurrences: 3,
@@ -103,13 +103,13 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       expect(patterns[0].taskTypeSequence).toHaveLength(4);
     });
 
     it("increments occurrence count on pattern repeat", () => {
       const patternId = db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "backend→testing",
         taskTypeSequence: ["backend_task", "testing_task"],
         occurrences: 2,
@@ -138,7 +138,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("tracks success and failure separately", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→frontend",
         taskTypeSequence: ["design_task", "frontend_task"],
         occurrences: 10,
@@ -149,7 +149,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const pattern = patterns[0];
       expect(pattern.successCount).toBe(8);
       expect(pattern.occurrences - pattern.successCount).toBe(2); // failures
@@ -157,7 +157,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("identifies anti-patterns with low success rate", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "testing→design→backend",
         taskTypeSequence: ["testing_task", "design_task", "backend_task"],
         occurrences: 5,
@@ -168,7 +168,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const antiPattern = patterns[0];
       expect(antiPattern.successRate).toBeLessThan(50);
     });
@@ -177,7 +177,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
   describe("Pattern Ranking", () => {
     it("ranks patterns by frequency", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend",
         occurrences: 15,
         successCount: 14,
@@ -188,7 +188,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
       });
 
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "backend→testing",
         occurrences: 3,
         successCount: 3,
@@ -198,7 +198,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const ranked = patterns.sort((a, b) => b.occurrences - a.occurrences);
 
       expect(ranked[0].occurrences).toBe(15);
@@ -207,7 +207,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("ranks by success rate when frequency equal", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "A→B",
         occurrences: 5,
         successCount: 5,
@@ -218,7 +218,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
       });
 
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "C→D",
         occurrences: 5,
         successCount: 3,
@@ -228,7 +228,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const ranked = patterns.sort((a, b) => b.successRate - a.successRate);
 
       expect(ranked[0].successRate).toBe(100);
@@ -239,7 +239,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
   describe("Pattern Suggestions", () => {
     it("suggests matching patterns when starting epic", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend→frontend",
         taskTypeSequence: ["design_task", "backend_task", "frontend_task"],
         occurrences: 8,
@@ -251,7 +251,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
       });
 
       const epicType = "fullstack_feature"; // Match to design→backend→frontend
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const suggested = patterns.find((p) =>
         p.taskTypeSequence.includes("design_task") &&
         p.taskTypeSequence.includes("backend_task") &&
@@ -263,7 +263,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("returns empty suggestions if no matching patterns", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "backend→testing",
         taskTypeSequence: ["backend_task", "testing_task"],
         occurrences: 2,
@@ -275,7 +275,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
       });
 
       const epicType = "mobile_app"; // Different type
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const suggested = patterns.filter((p) =>
         p.taskTypeSequence.includes("mobile_task")
       );
@@ -287,7 +287,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
   describe("Duration Estimation", () => {
     it("estimates duration based on historical patterns", () => {
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend→frontend",
         taskTypeSequence: ["design_task", "backend_task", "frontend_task"],
         occurrences: 5,
@@ -298,7 +298,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const duration = patterns[0].avgDurationDays;
 
       expect(duration).toBe(10);
@@ -306,7 +306,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("updates average duration with new completions", () => {
       const patternId = db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "backend→testing",
         taskTypeSequence: ["backend_task", "testing_task"],
         occurrences: 3,
@@ -328,7 +328,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
     it("tracks when pattern was last seen", () => {
       const now = Date.now();
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend",
         taskTypeSequence: ["design_task", "backend_task"],
         occurrences: 5,
@@ -339,14 +339,14 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       expect(patterns[0].lastSeen).toBe(now);
     });
 
     it("marks pattern as dormant if not seen recently", () => {
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
       db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "legacy_pattern→old_task",
         taskTypeSequence: ["legacy_task", "old_task"],
         occurrences: 2,
@@ -357,7 +357,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
         createdAt: Date.now(),
       });
 
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const isDormant = Date.now() - patterns[0].lastSeen > 14 * 24 * 60 * 60 * 1000; // >14 days
       expect(isDormant).toBe(true);
     });
@@ -375,7 +375,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
     });
 
     it("ignores patterns with missing task types", () => {
-      const patterns = db.getPatternsByBusiness(businessId);
+      const patterns = db.getPatternsBy(workspaceId);
       const validPatterns = patterns.filter(
         (p: any) => p.taskTypeSequence && p.taskTypeSequence.length >= 2
       );
@@ -387,7 +387,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
   describe("Pattern Recording", () => {
     it("records pattern success on epic completion", () => {
       const patternId = db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "design→backend",
         taskTypeSequence: ["design_task", "backend_task"],
         occurrences: 5,
@@ -411,7 +411,7 @@ describe("Pattern Learning System (convex/patternLearning.ts)", () => {
 
     it("records pattern failure on epic abandonment", () => {
       const patternId = db.insert("taskPatterns", {
-        businessId,
+        workspaceId,
         pattern: "complex_workflow",
         taskTypeSequence: ["design_task", "backend_task", "frontend_task", "testing_task"],
         occurrences: 2,

@@ -9,7 +9,7 @@ import { Id } from "./_generated/dataModel";
 
 export const create = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     week: convexVal.number(),
     year: convexVal.number(),
     report: convexVal.string(), // JSON stringified
@@ -19,7 +19,7 @@ export const create = mutation({
     const reportData = typeof args.report === "string" ? JSON.parse(args.report) : args.report;
 
     return await ctx.db.insert("strategicReports", {
-      businessId: args.businessId,  // ADD: business scoping
+      workspaceId: args.workspaceId,  // ADD: workspace scoping
       week: args.week,
       year: args.year,
       goalsReview: reportData.goalsReview || {
@@ -44,12 +44,12 @@ export const create = mutation({
 
 export const getLatest = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
   },
   async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace_week", (q: any) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
       .take(1);
     return reports[0] || null;
@@ -58,14 +58,14 @@ export const getLatest = query({
 
 export const getByWeek = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     week: convexVal.number(),
     year: convexVal.number(),
   },
   async handler(ctx, args) {
     const reports = await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace_week", (q: any) => q.eq("workspaceId", args.workspaceId))
       .filter((q: any) => q.and(q.eq(q.field("week"), args.week), q.eq(q.field("year"), args.year)))
       .take(1);
     return reports[0] || null;
@@ -74,13 +74,13 @@ export const getByWeek = query({
 
 export const getAll = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     limit: convexVal.optional(convexVal.number()),
   },
   async handler(ctx, args) {
     return await ctx.db
       .query("strategicReports")
-      .withIndex("by_business_week", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace_week", (q: any) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
       .take(args.limit || 10);
   },

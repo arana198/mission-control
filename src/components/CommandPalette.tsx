@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import { Goal } from "@/types/goal";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
@@ -41,7 +41,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps = {}) {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,11 +54,11 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
   const memoryService = getMemoryService();
   // Always call hooks - don't conditionally call them (Rules of Hooks)
-  const goals = useQuery(api.goals.getActiveGoals, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
-  const tasks = useQuery(api.tasks.getAllTasks, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
+  const goals = useQuery(api.goals.getActiveGoals, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
+  const tasks = useQuery(api.tasks.getAllTasks, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
   const agents = useQuery(api.agents.getAllAgents);
-  const epics = useQuery(api.epics.getAllEpics, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
-  const wikiTree = useQuery(api.wiki.getTree, currentBusiness ? { businessId: currentBusiness._id } as any : "skip");
+  const epics = useQuery(api.epics.getAllEpics, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
+  const wikiTree = useQuery(api.wiki.getTree, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
 
   // Keyboard shortcut: Cmd+K or Ctrl+K
   useEffect(() => {
@@ -135,7 +135,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               progress: g.progress || 0,
             },
             action: () => {
-              router.push(`/${currentBusiness?.slug}/overview`);
+              router.push(`/${currentWorkspace?.slug}/overview`);
             },
           }));
         results.push(...matchedGoals);
@@ -160,7 +160,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               priority: t.priority,
             },
             action: () => {
-              router.push(`/${currentBusiness?.slug}/board?task=${t.ticketNumber || t._id}`);
+              router.push(`/${currentWorkspace?.slug}/board?task=${t.ticketNumber || t._id}`);
             },
           }));
         results.push(...matchedTasks);
@@ -221,7 +221,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
             description: e.description,
             metadata: { status: e.status },
             action: () => {
-              router.push(`/${currentBusiness?.slug}/epics`);
+              router.push(`/${currentWorkspace?.slug}/epics`);
             },
           }));
         results.push(...matchedEpics);
@@ -242,7 +242,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
             description: p.emoji ? `${p.emoji} Wiki page` : "Wiki page",
             metadata: { status: p.status },
             action: () => {
-              router.push(`/${currentBusiness?.slug}/wiki?pageId=${p._id}`);
+              router.push(`/${currentWorkspace?.slug}/wiki?pageId=${p._id}`);
             },
           }));
         results.push(...matchedPages);
@@ -279,7 +279,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
     const timer = setTimeout(search, 300); // Debounce
     return () => clearTimeout(timer);
-  }, [query, goals, tasks, agents, epics, wikiTree, memoryService, currentBusiness, router, onCreateTask]);
+  }, [query, goals, tasks, agents, epics, wikiTree, memoryService, currentWorkspace, router, onCreateTask]);
 
   if (!open) {
     return (

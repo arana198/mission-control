@@ -71,7 +71,7 @@ export async function PUT(
     });
 
     // Note: Activity logging skipped for calendar events
-    // (calendar events are globally shared, not tied to a specific businessId)
+    // (calendar events are globally shared, not tied to a specific workspaceId)
 
     log.info("Event marked as executed", {
       agentId,

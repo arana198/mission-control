@@ -7,7 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useNotification } from "@/hooks/useNotification";
 import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import {
   Plus, ChevronRight, Target, Clock, CheckCircle2, AlertCircle,
   ArrowLeft, Users, BarChart3, Layers, Calendar, X, AlertTriangle,
@@ -58,7 +58,7 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
   const notif = useNotification();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<Epic | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -199,7 +199,7 @@ export function EpicBoard({ epics, tasks, agents = [] }: {
       {/* Create Modal */}
       {isCreating && (
         <CreateEpicModal
-          businessId={currentBusiness?._id as Id<"businesses"> | undefined}
+          workspaceId={currentWorkspace?._id as Id<"workspaces"> | undefined}
           agents={agents}
           onClose={() => setIsCreating(false)}
         />
@@ -602,11 +602,11 @@ function TaskPreviewModal({ task, agents, epic, onClose }: {
 
 // Create Epic Modal
 function CreateEpicModal({
-  businessId,
+  workspaceId,
   agents,
   onClose
 }: {
-  businessId?: Id<"businesses">;
+  workspaceId?: Id<"workspaces">;
   agents: Agent[];
   onClose: () => void;
 }) {
@@ -623,11 +623,11 @@ function CreateEpicModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createEpic || !title.trim() || !businessId) return;
+    if (!createEpic || !title.trim() || !workspaceId) return;
     setIsSubmitting(true);
     try {
       await createEpic({
-        businessId,
+        workspaceId,
         title: title.trim(),
         description: description.trim(),
         ownerId: ownerId || undefined
@@ -655,9 +655,9 @@ function CreateEpicModal({
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {!businessId && (
+          {!workspaceId && (
             <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-              Please select a business context to create an epic.
+              Please select a workspace context to create an epic.
             </div>
           )}
           <div>
@@ -681,7 +681,7 @@ function CreateEpicModal({
             <button type="button" onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
             <button
               type="submit"
-              disabled={isSubmitting || !title.trim() || !businessId}
+              disabled={isSubmitting || !title.trim() || !workspaceId}
               className="btn btn-primary flex-1"
             >
               Create Epic

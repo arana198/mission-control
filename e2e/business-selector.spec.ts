@@ -1,36 +1,36 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E Tests: Business Selector
- * Tests business selection and navigation
+ * E2E Tests: (Workspace) Selector
+ * Tests workspace selection and navigation
  */
 
-test.describe('Business Selector', () => {
+test.describe('(Workspace) Selector', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to a business page
+    // Navigate to a workspace page
     await page.goto('/mission-control-hq/overview');
   });
 
-  test('should display business selector with current business', async ({ page }) => {
+  test('should display workspace selector with current business', async ({ page }) => {
     // Find the selector button
     const selector = page.locator('button').filter({
       has: page.locator('text=/🚀|Mission Control/i')
     }).first();
 
     await expect(selector).toBeVisible();
-    // Should show business emoji or name
-    await expect(selector).toContainText(/🚀|Mission Control|Select Business/i);
+    // Should show workspace emoji or name
+    await expect(selector).toContainText(/🚀|Mission Control|Select (Workspace)/i);
   });
 
   test('should open dropdown when clicked', async ({ page }) => {
     // Find and click selector
     const selector = page.locator('button').filter({
-      has: page.locator(/Select Business|Mission Control|🚀/)
+      has: page.locator(/Select (Workspace)|Mission Control|🚀/)
     }).first();
 
     await selector.click();
 
-    // Dropdown should be visible with business options
+    // Dropdown should be visible with workspace options
     const dropdown = page.locator('div[class*="popover"]').first();
     await expect(dropdown).toBeVisible();
   });
@@ -41,17 +41,17 @@ test.describe('Business Selector', () => {
 
     // Click selector
     const selector = page.locator('button').filter({
-      has: page.locator(/Select Business|Mission Control/)
+      has: page.locator(/Select (Workspace)|Mission Control/)
     }).first();
     
     await selector.click();
     
     // If multiple businesses exist, try to select another
-    const otherBusiness = page.locator('div[class*="popover"] button').nth(1);
-    const isVisible = await otherBusiness.isVisible();
+    const other(Workspace) = page.locator('div[class*="popover"] button').nth(1);
+    const isVisible = await other(Workspace).isVisible();
     
     if (isVisible) {
-      await otherBusiness.click();
+      await other(Workspace).click();
       
       // Should still be on same tab type (overview)
       await page.waitForURL('**/overview');
@@ -59,13 +59,13 @@ test.describe('Business Selector', () => {
     }
   });
 
-  test('should render placeholder text if business not loaded', async ({ page }) => {
+  test('should render placeholder text if workspace not loaded', async ({ page }) => {
     // Initially page may show loading or placeholder
-    // After page loads, should have business data
+    // After page loads, should have workspace data
     await page.waitForSelector('button', { has: page.locator('text') });
     
     const selector = page.locator('button').filter({
-      has: page.locator(/Select Business|Mission Control|🚀/)
+      has: page.locator(/Select (Workspace)|Mission Control|🚀/)
     }).first();
 
     await expect(selector).toBeVisible();

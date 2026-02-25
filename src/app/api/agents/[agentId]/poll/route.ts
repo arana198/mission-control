@@ -7,7 +7,7 @@
  * Request body:
  * {
  *   agentKey: string (REQUIRED) - Agent authentication key
- *   businessId: string (REQUIRED) - Business ID for task scoping
+ *   workspaceId: string (REQUIRED) -  ID for task scoping
  * }
  *
  * Response: { assignedTasks[], notifications[], serverTime, agentProfile }
@@ -52,16 +52,16 @@ export async function POST(
     const input = validateAgentInput(PollAgentSchema, {
       agentId,
       agentKey: body.agentKey,
-      businessId: body.businessId,
+      workspaceId: body.workspaceId,
     });
 
-    // Extract businessId (REQUIRED for multi-business support)
-    const { businessId } = body;
-    if (!businessId) {
+    // Extract workspaceId (REQUIRED for multi-business support)
+    const { workspaceId } = body;
+    if (!workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "businessId is required" },
+          error: { code: "VALIDATION_ERROR", message: "workspaceId is required" },
         },
         400
       );
@@ -76,9 +76,9 @@ export async function POST(
     const resolvedAgentId = input.agentId as Id<"agents">;
 
     // Parallel: fetch tasks + notifications + update heartbeat
-    // Tasks scoped to the business this agent is polling for
+    // Tasks scoped to the workspace this agent is polling for
     const [assignedTasks, notifications] = await Promise.all([
-      convex.query(api.tasks.getForAgent, { businessId, agentId: resolvedAgentId }),
+      convex.query(api.tasks.getForAgent, { workspaceId, agentId: resolvedAgentId }),
       convex.query(api.notifications.getForAgent, {
         agentId: resolvedAgentId,
         includeRead: false,
@@ -95,7 +95,7 @@ export async function POST(
 
     log.info("Agent polled", {
       agentId: input.agentId,
-      businessId,
+      workspaceId,
       tasksCount: assignedTasks.length,
       notificationsCount: notifications.length,
     });

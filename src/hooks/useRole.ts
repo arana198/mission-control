@@ -18,7 +18,7 @@ import { useCurrentUser } from "./useCurrentUser";
  * - canRead: boolean (always true if member exists)
  * - isLoading: boolean
  */
-export function useRole(businessId?: Id<"businesses">): {
+export function useRole(workspaceId?: Id<"workspaces">): {
   role?: string;
   isOwner: boolean;
   isAdmin: boolean;
@@ -28,11 +28,11 @@ export function useRole(businessId?: Id<"businesses">): {
 } {
   const { userId, isLoading: userLoading } = useCurrentUser();
 
-  // Query member info (skip if no businessId or still loading userId)
+  // Query member info (skip if no workspaceId or still loading userId)
   const member = useQuery(
     api.organizationMembers.getMemberByUser,
-    businessId && !userLoading
-      ? { businessId, userId }
+    workspaceId && !userLoading
+      ? { workspaceId, userId }
       : "skip"
   );
 

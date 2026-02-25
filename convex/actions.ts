@@ -34,7 +34,7 @@ export const escalateTask = mutation({
 
     // Record decision
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       action: "escalated",
       taskId,
       reason,
@@ -46,7 +46,7 @@ export const escalateTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_updated",
       agentId: decidedBy,
       agentName: decidedBy,
@@ -94,7 +94,7 @@ export const reassignTask = mutation({
 
     // Record decision
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       action: "reassigned",
       taskId,
       fromAgent: fromAgent,
@@ -108,7 +108,7 @@ export const reassignTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_assigned",
       agentId: decidedBy,
       agentName: decidedBy,
@@ -154,7 +154,7 @@ export const unblockTask = mutation({
 
     // Record decision
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       action: "unblocked",
       taskId,
       reason,
@@ -166,7 +166,7 @@ export const unblockTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_updated",
       agentId: decidedBy,
       agentName: decidedBy,
@@ -211,7 +211,7 @@ export const markExecuted = mutation({
 
     // Record decision
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       action: "marked_executed",
       taskId,
       reason: outcome,
@@ -223,7 +223,7 @@ export const markExecuted = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_completed",
       agentId: decidedBy,
       agentName: decidedBy,
@@ -267,7 +267,7 @@ export const deprioritizeTask = mutation({
 
     // Record decision
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       action: "deprioritized",
       taskId,
       reason,
@@ -279,7 +279,7 @@ export const deprioritizeTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_updated",
       agentId: decidedBy,
       agentName: decidedBy,

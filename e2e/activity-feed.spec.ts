@@ -210,12 +210,12 @@ test.describe('Activity Feed', () => {
     }
   });
 
-  test('should display related business context', async ({ page }) => {
-    // Activity should show which business it's related to
+  test('should display related workspace context', async ({ page }) => {
+    // Activity should show which workspace it's related to
     const activityItem = page.locator('[class*="activity"]').first();
 
     if (await activityItem.isVisible()) {
-      // May show business emoji, name, or icon
+      // May show workspace emoji, name, or icon
       const businessRef = page.locator('[class*="business"], [class*="workspace"]').first();
 
       if (await businessRef.isVisible()) {

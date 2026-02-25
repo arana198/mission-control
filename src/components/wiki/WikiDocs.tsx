@@ -12,7 +12,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useNotification } from "@/hooks/useNotification";
 
 interface WikiDocsProps {
-  businessId: string;
+  workspaceId: string;
 }
 
 type ViewMode = "tree" | "view" | "edit";
@@ -21,7 +21,7 @@ type ViewMode = "tree" | "view" | "edit";
  * WikiDocs - Main wiki container
  * 2-panel layout: Tree | Page View/Edit
  */
-export function WikiDocs({ businessId }: WikiDocsProps) {
+export function WikiDocs({ workspaceId }: WikiDocsProps) {
   // Router and URL
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,7 +34,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
   const urlSyncRef = useRef(false); // Prevent duplicate syncs
 
   // Convex queries - hooks must be called unconditionally (Rules of Hooks)
-  const tree = useQuery(api.wiki.getTree, { businessId: businessId as Id<"businesses"> });
+  const tree = useQuery(api.wiki.getTree, { workspaceId: workspaceId as Id<"workspaces"> });
   const selectedPage = useQuery(
     api.wiki.getPage,
     selectedPageId ? { pageId: selectedPageId as Id<"wikiPages"> } : "skip"
@@ -85,7 +85,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
         const pageId = parentId
           ? // Create as sub-page
             await createPageMutation({
-              businessId: businessId as Id<"businesses">,
+              workspaceId: workspaceId as Id<"workspaces">,
               parentId: parentId as Id<"wikiPages">,
               title: "New Page",
               content: "",
@@ -94,7 +94,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
             })
           : // Create as root page (department)
             await createDepartmentMutation({
-              businessId: businessId as Id<"businesses">,
+              workspaceId: workspaceId as Id<"workspaces">,
               title: "New Page",
               createdBy: "user",
               createdByName: "User",
@@ -109,7 +109,7 @@ export function WikiDocs({ businessId }: WikiDocsProps) {
         notif.error(error?.message || "Failed to create page");
       }
     },
-    [businessId, createPageMutation, createDepartmentMutation, notif]
+    [workspaceId, createPageMutation, createDepartmentMutation, notif]
   );
 
   const handleUpdatePage = useCallback(

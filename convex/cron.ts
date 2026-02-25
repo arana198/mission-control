@@ -306,7 +306,7 @@ export const escalationCheckCronHandler = internalMutation({
 
                   // Log escalation activity with notification
                   await ctx.db.insert("activities", {
-                    businessId: task.businessId,
+                    workspaceId: task.workspaceId,
                     type: "task_blocked",
                     agentId: "system",
                     agentName: "system",
@@ -363,19 +363,19 @@ export const alertEvaluatorCronHandler = internalMutation({
     console.log("[Cron] Running alert rule evaluator...");
 
     // Get all businesses
-    const businesses = await ctx.db.query("businesses").collect();
+    const businesses = await ctx.db.query("workspaces").collect();
 
     let totalEvaluated = 0;
 
     // Evaluate rules for each business
-    for (const business of businesses) {
+    for (const workspace of businesses) {
       try {
         const now = Date.now();
 
         // Fetch all enabled rules for this business
         const rules = await ctx.db
           .query("alertRules")
-          .withIndex("by_business", (q: any) => q.eq("businessId", business._id))
+          .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspace._id))
           .collect();
 
         const enabledRules = rules.filter((r: any) => r.enabled);
@@ -396,8 +396,8 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             const blockedTasks = await ctx.db
               .query("tasks")
-              .withIndex("by_business_status", (q: any) =>
-                q.eq("businessId", business._id).eq("status", "blocked")
+              .withIndex("by_workspace_status", (q: any) =>
+                q.eq("workspaceId", workspace._id).eq("status", "blocked")
               )
               .collect();
 
@@ -415,8 +415,8 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             const backlogTasks = await ctx.db
               .query("tasks")
-              .withIndex("by_business_status", (q: any) =>
-                q.eq("businessId", business._id).eq("status", "backlog")
+              .withIndex("by_workspace_status", (q: any) =>
+                q.eq("workspaceId", workspace._id).eq("status", "backlog")
               )
               .collect();
 
@@ -435,7 +435,7 @@ export const alertEvaluatorCronHandler = internalMutation({
             // Create notification for each lead agent
             for (const agent of leadAgents) {
               await ctx.db.insert("notifications", {
-                businessId: business._id,
+                workspaceId: workspace._id,
                 recipientId: agent._id,
                 type: "alert_rule_triggered",
                 title: `Alert: ${rule.name}`,
@@ -455,7 +455,7 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             // Create decision log entry
             await ctx.db.insert("decisions", {
-              businessId: business._id,
+              workspaceId: workspace._id,
               action: "alert_rule_triggered",
               taskId: undefined,
               fromAgent: undefined,
@@ -476,7 +476,7 @@ export const alertEvaluatorCronHandler = internalMutation({
 
             // Create an alert event record
             await ctx.db.insert("alertEvents", {
-              businessId: business._id,
+              workspaceId: workspace._id,
               ruleId: rule._id,
               ruleName: rule.name,
               triggered: true,
@@ -490,7 +490,7 @@ export const alertEvaluatorCronHandler = internalMutation({
         totalEvaluated += enabledRules.length;
       } catch (error) {
         console.error(
-          `[Cron] Error evaluating rules for business ${business._id}:`,
+          `[Cron] Error evaluating rules for workspace ${workspace._id}:`,
           error
         );
       }
@@ -513,17 +513,17 @@ export const presenceCleanupCronHandler = internalMutation({
     try {
       console.log("[Cron] Running presence cleanup...");
 
-      const businesses = await ctx.db.query("businesses").collect();
+      const businesses = await ctx.db.query("workspaces").collect();
       let totalCleaned = 0;
 
-      for (const business of businesses) {
+      for (const workspace of businesses) {
         const result: any = await withRetry(
           () =>
             ctx.runMutation(api.presence.cleanupStalePresence, {
-              businessId: business._id,
+              workspaceId: workspace._id,
               staleThresholdMs: 30 * 60 * 1000, // 30 minutes
             }),
-          `cleanup-${business._id}`,
+          `cleanup-${workspace._id}`,
           RETRY_CONFIGS.STANDARD
         );
         totalCleaned += result?.cleaned ?? 0;

@@ -12,7 +12,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 // Create document
 export const create = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     title: convexVal.string(),
     content: convexVal.string(),
     type: convexVal.union(
@@ -27,9 +27,9 @@ export const create = mutation({
     createdByName: convexVal.string(),
     taskId: convexVal.optional(convexVal.id("tasks")),
   },
-  handler: async (ctx, { businessId, title, content, type, createdBy, createdByName, taskId }) => {
+  handler: async (ctx, { workspaceId, title, content, type, createdBy, createdByName, taskId }) => {
     const docId = await ctx.db.insert("documents", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       title,
       content,
       type,
@@ -48,7 +48,7 @@ export const create = mutation({
 // Get all documents
 export const getAll = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     type: convexVal.optional(convexVal.union(
       convexVal.literal("deliverable"),
       convexVal.literal("research"),
@@ -59,19 +59,19 @@ export const getAll = query({
     )),
     limit: convexVal.optional(convexVal.number())
   },
-  handler: async (ctx, { businessId, type, limit }) => {
+  handler: async (ctx, { workspaceId, type, limit }) => {
     let docs;
     if (type) {
       docs = await ctx.db
         .query("documents")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .filter((q: any) => q.eq(q.field("type"), type))
         .order("desc")
         .take(limit || 50);
     } else {
       docs = await ctx.db
         .query("documents")
-        .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
         .order("desc")
         .take(limit || 50);
     }
@@ -81,7 +81,7 @@ export const getAll = query({
 });
 
 // Get document by ID
-export const getById = query({
+export const getWorkspaceById = query({
   args: { documentId: convexVal.id("documents") },
   handler: async (ctx, { documentId }) => {
     return await ctx.db.get(documentId);

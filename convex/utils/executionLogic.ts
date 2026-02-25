@@ -1,7 +1,7 @@
 /**
  * Execution Logic - Pure functions for testing
  *
- * These functions contain the business logic for executions
+ * These functions contain the workspace logic for executions
  * and can be tested independently from Convex mutations.
  */
 

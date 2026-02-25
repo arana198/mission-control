@@ -7,7 +7,7 @@
  *
  * Query params:
  *   agentKey (REQUIRED) - Agent authentication key
- *   businessId (REQUIRED) - Business ID for scoping
+ *   workspaceId (REQUIRED) -  ID for scoping
  *
  * PATCH body:
  *   title? - New page title
@@ -38,13 +38,13 @@ export async function GET(
   try {
     const url = new URL(request.url);
     const agentKey = url.searchParams.get("agentKey");
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
 
-    if (!agentKey || !businessId) {
+    if (!agentKey || !workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "agentKey and businessId are required" },
+          error: { code: "VALIDATION_ERROR", message: "agentKey and workspaceId are required" },
         },
         400
       );
@@ -93,13 +93,13 @@ export async function PATCH(
   try {
     const url = new URL(request.url);
     const agentKey = url.searchParams.get("agentKey");
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
 
-    if (!agentKey || !businessId) {
+    if (!agentKey || !workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "agentKey and businessId are required" },
+          error: { code: "VALIDATION_ERROR", message: "agentKey and workspaceId are required" },
         },
         400
       );

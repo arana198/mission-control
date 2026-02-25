@@ -3,7 +3,7 @@
  * Get current operational alerts for OpenClaw
  *
  * Query params:
- * - businessId: required
+ * - workspaceId: required
  * - unreadOnly: optional (default: true)
  */
 import { ConvexHttpClient } from "convex/browser";
@@ -14,24 +14,24 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const businessId = searchParams.get("businessId");
+    const workspaceId = searchParams.get("workspaceId");
     const unreadOnly = searchParams.get("unreadOnly") !== "false";
 
-    if (!businessId) {
+    if (!workspaceId) {
       return Response.json(
-        { error: "businessId parameter required" },
+        { error: "workspaceId parameter required" },
         { status: 400 }
       );
     }
 
     // Get all alerts for business
-    const allAlerts = await convex.query(api.alertRules.getByBusiness, {
-      businessId: businessId as any,
+    const allAlerts = await convex.query(api.alertRules.getBy, {
+      workspaceId: workspaceId as any,
       enabledOnly: true,
     });
 
     return Response.json({
-      businessId,
+      workspaceId,
       rules: allAlerts,
       count: allAlerts.length,
     });

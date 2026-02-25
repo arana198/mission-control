@@ -25,13 +25,13 @@ import {
  */
 export function EnhancedTaskComments({
   taskId,
-  businessId,
+  workspaceId,
   agentId,
   agentName,
   agents,
 }: {
   taskId: string;
-  businessId: string;
+  workspaceId: string;
   agentId: string;
   agentName: string;
   agents: Agent[];
@@ -90,7 +90,7 @@ export function EnhancedTaskComments({
         taskId: taskId as any,
         agentId: agentId as any,
         agentName,
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
         content: commentText.trim(),
         parentCommentId: replyTo ? (replyTo.id as any) : undefined,
         mentions: mentions.length > 0 ? (mentions as any) : undefined,

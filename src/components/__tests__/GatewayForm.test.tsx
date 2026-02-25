@@ -39,7 +39,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useMutation } from 'convex/react';
 
 describe('GatewayForm Component', () => {
-  const mockBusinessId = 'business_123' as Id<'businesses'>;
+  const mockId = 'business_123' as Id<'workspaces'>;
   const mockOnClose = jest.fn();
   const mockOnSuccess = jest.fn();
 
@@ -62,7 +62,7 @@ describe('GatewayForm Component', () => {
     it('renders create form with empty fields', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -80,7 +80,7 @@ describe('GatewayForm Component', () => {
     it('submit button shows "Create Gateway"', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -94,7 +94,7 @@ describe('GatewayForm Component', () => {
     it('renders form with pre-populated fields from gateway prop', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           gateway={mockGateway}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
@@ -113,7 +113,7 @@ describe('GatewayForm Component', () => {
     it('submit button shows "Save Changes" in edit mode', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           gateway={mockGateway}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
@@ -128,7 +128,7 @@ describe('GatewayForm Component', () => {
     it('token input has type="password" by default', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -141,7 +141,7 @@ describe('GatewayForm Component', () => {
     it('shows Eye/EyeOff toggle button next to token field', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -155,7 +155,7 @@ describe('GatewayForm Component', () => {
     it('clicking Eye button toggles token field to type="text"', async () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -179,7 +179,7 @@ describe('GatewayForm Component', () => {
     it('in edit mode, shows masked placeholder when token exists but unchanged', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           gateway={mockGateway}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
@@ -200,7 +200,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -229,7 +229,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -257,7 +257,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -275,7 +275,7 @@ describe('GatewayForm Component', () => {
       await waitFor(() => {
         expect(mockCreate).toHaveBeenCalledWith(
           expect.objectContaining({
-            businessId: mockBusinessId,
+            workspaceId: mockId,
             name: 'My Gateway',
             url: 'wss://example.com',
           })
@@ -289,7 +289,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           gateway={mockGateway}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
@@ -320,7 +320,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -349,7 +349,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -375,7 +375,7 @@ describe('GatewayForm Component', () => {
     it('renders Test Connection button in the form', () => {
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -394,7 +394,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -417,7 +417,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -442,7 +442,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />
@@ -467,7 +467,7 @@ describe('GatewayForm Component', () => {
 
       render(
         <GatewayForm
-          businessId={mockBusinessId}
+          workspaceId={mockId}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
         />

@@ -16,16 +16,16 @@ import { Id } from "./_generated/dataModel";
  */
 
 /**
- * Get all gateways for a business
+ * Get all gateways for a workspace
  */
-export const getByBusiness = query({
+export const getBy = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
   async handler(ctx, args) {
     return await ctx.db
       .query("gateways")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
   },
 });
@@ -33,7 +33,7 @@ export const getByBusiness = query({
 /**
  * Get single gateway by ID
  */
-export const getById = query({
+export const getWorkspaceById = query({
   args: {
     gatewayId: convexVal.id("gateways"),
   },
@@ -47,7 +47,7 @@ export const getById = query({
  */
 export const createGateway = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     name: convexVal.string(),
     url: convexVal.string(), // ws:// or wss://
     token: convexVal.optional(convexVal.string()),
@@ -64,7 +64,7 @@ export const createGateway = mutation({
     // Check if name already exists for this business
     const existing = await ctx.db
       .query("gateways")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     if (existing.some((g) => g.name === args.name)) {
@@ -72,7 +72,7 @@ export const createGateway = mutation({
     }
 
     const gatewayId = await ctx.db.insert("gateways", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       name: args.name,
       url: args.url,
       token: args.token,
@@ -117,7 +117,7 @@ export const updateGateway = mutation({
     if (args.name && args.name !== gateway.name) {
       const existing = await ctx.db
         .query("gateways")
-        .withIndex("by_business", (q: any) => q.eq("businessId", gateway.businessId))
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", gateway.workspaceId))
         .collect();
 
       if (existing.some((g) => g._id !== args.gatewayId && g.name === args.name)) {

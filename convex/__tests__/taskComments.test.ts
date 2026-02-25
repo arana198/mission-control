@@ -118,7 +118,7 @@ class TaskCommentsMockDatabase {
 
 describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", () => {
   let db: TaskCommentsMockDatabase;
-  let businessId: string;
+  let workspaceId: string;
   let taskId: string;
   let agentId1: string;
   let agentId2: string;
@@ -126,15 +126,15 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
   beforeEach(() => {
     db = new TaskCommentsMockDatabase();
-    businessId = db.insert("businesses", { name: "Test Biz" });
+    workspaceId = db.insert("businesses", { name: "Test Biz" });
     taskId = db.insert("tasks", {
-      businessId,
+      workspaceId,
       title: "Test Task",
       status: "in_progress",
     });
-    agentId1 = db.insert("agents", { businessId, name: "Alice", role: "Developer" });
-    agentId2 = db.insert("agents", { businessId, name: "Bob", role: "Designer" });
-    agentId3 = db.insert("agents", { businessId, name: "Charlie", role: "PM" });
+    agentId1 = db.insert("agents", { workspaceId, name: "Alice", role: "Developer" });
+    agentId2 = db.insert("agents", { workspaceId, name: "Bob", role: "Designer" });
+    agentId3 = db.insert("agents", { workspaceId, name: "Charlie", role: "PM" });
   });
 
   // =====================================
@@ -144,7 +144,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Mutation: createComment", () => {
     it("creates root comment on task", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -165,7 +165,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("creates comment with @mentions", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -182,7 +182,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("creates mention notifications for @mentioned agents", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -195,7 +195,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Simulate mention creation in handler
       const mentionId = db.insert("mentions", {
-        businessId,
+        workspaceId,
         mentionedAgentId: agentId2,
         mentionedBy: agentId1,
         context: "task_comment",
@@ -213,7 +213,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("creates notification for @mentioned agent", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -226,7 +226,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Simulate notification creation
       const notifId = db.insert("notifications", {
-        businessId,
+        workspaceId,
         recipientId: agentId2,
         type: "mention",
         content: "Alice mentioned you in a task comment",
@@ -246,7 +246,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
     it("notifies task subscribers when comment is created", () => {
       // Subscribe agents to task
       const sub1 = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId2,
         notifyOn: "all",
@@ -254,7 +254,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const sub2 = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId3,
         notifyOn: "comments",
@@ -263,7 +263,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Create comment by agentId1
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -275,7 +275,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Simulate subscriber notifications (only if not commenter and subscription allows)
       const notif1 = db.insert("notifications", {
-        businessId,
+        workspaceId,
         recipientId: agentId2,
         type: "mention",
         content: "Alice commented on a task you're subscribed to",
@@ -287,7 +287,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const notif2 = db.insert("notifications", {
-        businessId,
+        workspaceId,
         recipientId: agentId3,
         type: "mention",
         content: "Alice commented on a task you're subscribed to",
@@ -303,7 +303,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("does not notify commenter of their own comment", () => {
       const sub = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         notifyOn: "all",
@@ -312,7 +312,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // agentId1 comments on subscribed task
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -337,7 +337,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Threaded Comments: Replies", () => {
     it("creates reply to parent comment", () => {
       const parentCommentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -348,7 +348,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const replyId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId2,
         agentName: "Bob",
@@ -366,7 +366,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("retrieves thread replies in order", () => {
       const parentCommentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -378,7 +378,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
       // Create replies
       const reply1Id = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId2,
         agentName: "Bob",
@@ -390,7 +390,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const reply2Id = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId3,
         agentName: "Charlie",
@@ -409,7 +409,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("supports nested replies (thread chains)", () => {
       const parent = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -420,7 +420,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const child1 = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId2,
         agentName: "Bob",
@@ -432,7 +432,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const child2 = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId3,
         agentName: "Charlie",
@@ -458,7 +458,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Mutation: addReaction (toggle emoji reactions)", () => {
     it("adds emoji reaction from agent", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -479,7 +479,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
     it("toggles reaction off if agent already reacted with emoji", () => {
       const reactions = { "👍": [agentId1, agentId2] };
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -503,7 +503,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
     it("removes emoji key when last reactor removes reaction", () => {
       const reactions = { "❤️": [agentId1] };
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId2,
         agentName: "Bob",
@@ -528,7 +528,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
         "🔥": [agentId1, agentId3],
       };
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -551,7 +551,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Mutation: subscribeToTask", () => {
     it("subscribes agent to task with 'all' notification type", () => {
       const subId = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         notifyOn: "all",
@@ -565,7 +565,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("prevents duplicate subscriptions (update if exists)", () => {
       const subId1 = db.insert("taskSubscriptions", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         notifyOn: "all",
@@ -584,7 +584,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       const types = ["all", "comments", "status", "mentions"];
       const subIds = types.map((type, idx) =>
         db.insert("taskSubscriptions", {
-          businessId,
+          workspaceId,
           taskId,
           agentId: [agentId1, agentId2, agentId3, "agent-4"][idx],
           notifyOn: type,
@@ -610,7 +610,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Query: getUnreadMentions", () => {
     it("retrieves unread mentions for agent", () => {
       const mention1 = db.insert("mentions", {
-        businessId,
+        workspaceId,
         mentionedAgentId: agentId1,
         mentionedBy: agentId2,
         context: "task_comment",
@@ -621,7 +621,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
       });
 
       const mention2 = db.insert("mentions", {
-        businessId,
+        workspaceId,
         mentionedAgentId: agentId1,
         mentionedBy: agentId3,
         context: "task_comment",
@@ -640,7 +640,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("marks mention as read", () => {
       const mentionId = db.insert("mentions", {
-        businessId,
+        workspaceId,
         mentionedAgentId: agentId1,
         mentionedBy: agentId2,
         context: "task_comment",
@@ -659,7 +659,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("tracks mention context (task_comment)", () => {
       const mention = db.insert("mentions", {
-        businessId,
+        workspaceId,
         mentionedAgentId: agentId1,
         mentionedBy: agentId2,
         context: "task_comment",
@@ -683,7 +683,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Mutation: editComment", () => {
     it("edits comment content and updates timestamp", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -706,7 +706,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("updates mentions when editing", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -735,7 +735,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
   describe("Mutation: deleteComment (soft delete)", () => {
     it("soft deletes comment by replacing content with [deleted]", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",
@@ -759,7 +759,7 @@ describe("Task Comments System (convex/taskComments.ts + convex/presence.ts)", (
 
     it("preserves comment history after soft delete", () => {
       const commentId = db.insert("taskComments", {
-        businessId,
+        workspaceId,
         taskId,
         agentId: agentId1,
         agentName: "Alice",

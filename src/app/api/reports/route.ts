@@ -7,7 +7,7 @@
  *   Fetch stored report
  *
  * POST /api/reports
- *   Body: { type: "strategic-weekly", businessId, startDate?, endDate? }
+ *   Body: { type: "strategic-weekly", workspaceId, startDate?, endDate? }
  *   Generate report
  *
  * Replaces: GET|POST /api/reports/strategic-weekly
@@ -69,12 +69,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { type = "strategic-weekly", businessId, startDate, endDate } = body;
+    const { type = "strategic-weekly", workspaceId, startDate, endDate } = body;
 
-    if (!businessId) {
+    if (!workspaceId) {
       return new Response(
         JSON.stringify({
-          error: "businessId is required",
+          error: "workspaceId is required",
         }),
         {
           status: 400,
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     // Persist to database
     try {
       await client.mutation(api.strategicReports.create, {
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
         week: report.week,
         year: report.year,
         report: JSON.stringify(report),

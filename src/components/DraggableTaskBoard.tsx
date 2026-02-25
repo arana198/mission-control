@@ -34,10 +34,10 @@ interface DraggableTaskBoardProps {
   tasks: Task[];
   agents: Agent[];
   epics?: Epic[];
-  businessId?: string;
+  workspaceId?: string;
 }
 
-export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: DraggableTaskBoardProps) {
+export function DraggableTaskBoard({ tasks, agents, epics = [], workspaceId }: DraggableTaskBoardProps) {
   const notif = useNotification();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,17 +103,17 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
   const updateTask = useMutation(api.tasks.update).withOptimisticUpdate(
     (localStore, args) => {
       const { id, status } = args;
-      if (!status || !businessId) return;
+      if (!status || !workspaceId) return;
 
       // Update getAllTasks cache with new status
       const currentTasks = localStore.getQuery(api.tasks.getAllTasks, {
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
       });
       if (!currentTasks) return;
 
       localStore.setQuery(
         api.tasks.getAllTasks,
-        { businessId: businessId as any },
+        { workspaceId: workspaceId as any },
         currentTasks.map((t) => (t._id === id ? { ...t, status } : t))
       );
     }
@@ -125,20 +125,20 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
   // Stale task detection (Phase 3B)
   const staleData = useQuery(
     api.tasks.getStaleTaskIds,
-    businessId ? { businessId: businessId as any } : "skip"
+    workspaceId ? { workspaceId: workspaceId as any } : "skip"
   );
   const [escalating, setEscalating] = useState(false);
 
-  // Presence data for all agents in this business (Phase 3: single subscription)
+  // Presence data for all agents in this workspace (Phase 3: single subscription)
   const businessPresence = useQuery(
-    api.presence.getBusinessPresence,
-    businessId ? { businessId: businessId as any } : "skip"
+    api.presence.getPresence,
+    workspaceId ? { workspaceId: workspaceId as any } : "skip"
   );
 
   // Build efficient lookup map: agentId -> status
   const presenceMap = useMemo(
     () => new Map((businessPresence ?? []).map((p) => [p.agentId as string, p.status as string])),
-    [businessPresence]
+    [workspacePresence]
   );
 
   const handleEscalateStale = async () => {

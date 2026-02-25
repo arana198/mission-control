@@ -10,24 +10,24 @@ describe("organizationMembers", () => {
 
   describe("addMember", () => {
     test("should create a new member with owner role", () => {
-      // Given: A business exists
+      // Given: A workspace exists
       // When: addMember is called with role="owner"
       // Then: Member is created with correct permissions
       // Assertions:
       // - Member exists in organizationMembers table
-      // - userId and businessId match args
+      // - userId and workspaceId match args
       // - role = "owner"
       // - createdAt is set
     });
 
     test("should prevent duplicate members", () => {
-      // Given: A member already exists for (businessId, userId)
-      // When: addMember is called again with same businessId + userId
+      // Given: A member already exists for (workspaceId, userId)
+      // When: addMember is called again with same workspaceId + userId
       // Then: ConvexError is thrown with "already member" message
     });
 
     test("should allow different roles (owner, admin, member)", () => {
-      // Given: A business and different roles
+      // Given: A workspace and different roles
       // When: addMember called with each role
       // Then: All members created successfully with their roles
     });
@@ -88,30 +88,30 @@ describe("organizationMembers", () => {
   });
 
   describe("getMembers", () => {
-    test("should return all members for a business", () => {
-      // Given: Business with 3 members
+    test("should return all members for a workspace", () => {
+      // Given:  with 3 members
       // When: getMembers called
       // Then: Returns array of 3 members
       //       Each member has correct properties
     });
 
-    test("should return empty array for business with no members", () => {
-      // Given: Business with no members
+    test("should return empty array for workspace with no members", () => {
+      // Given:  with no members
       // When: getMembers called
       // Then: Returns empty array
     });
 
     test("should not return members from other businesses", () => {
-      // Given: Business A has 2 members, Business B has 1 member
-      // When: getMembers called for Business A
+      // Given:  A has 2 members,  B has 1 member
+      // When: getMembers called for  A
       // Then: Only returns 2 members (not the one from B)
     });
   });
 
   describe("getMemberByUser", () => {
-    test("should return member by businessId + userId", () => {
+    test("should return member by workspaceId + userId", () => {
       // Given: Member exists in business
-      // When: getMemberByUser called with correct businessId + userId
+      // When: getMemberByUser called with correct workspaceId + userId
       // Then: Returns the member object
     });
 
@@ -250,9 +250,9 @@ describe("organizationMembers", () => {
     });
 
     test("should handle board access across multiple businesses", () => {
-      // Given: User is member of Business A and Business B
+      // Given: User is member of  A and  B
       // When: setBoardAccess for different permissions in each business
-      // Then: Each business has independent access control
+      // Then: Each workspace has independent access control
     });
   });
 });

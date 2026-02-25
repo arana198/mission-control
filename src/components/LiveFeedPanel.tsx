@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface LiveFeedPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  businessId?: string;
+  workspaceId?: string;
 }
 
 /**
@@ -16,10 +16,10 @@ interface LiveFeedPanelProps {
  * Sliding right panel showing real-time activity stream
  * Powered by api.activities.getRecent
  */
-export function LiveFeedPanel({ isOpen, onClose, businessId }: LiveFeedPanelProps) {
+export function LiveFeedPanel({ isOpen, onClose, workspaceId }: LiveFeedPanelProps) {
   const activities = useQuery(
     api.activities.getRecent,
-    businessId ? { limit: 50, businessId: businessId as any } : { limit: 50 }
+    workspaceId ? { limit: 50, workspaceId: workspaceId as any } : { limit: 50 }
   );
 
   const formatTime = (timestamp: number) => {

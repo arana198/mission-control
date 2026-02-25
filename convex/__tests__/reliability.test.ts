@@ -5,7 +5,7 @@
  * Verifies:
  * - messages.create with parentId safely appends replyIds (documents Convex serialization)
  * - autoClaim logs errors to activities table instead of swallowing them
- * - autoClaim creates per-business activity logs
+ * - autoClaim creates per-workspace activity logs
  * - Error in one task doesn't stop processing remaining tasks
  */
 
@@ -76,7 +76,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
       const task = {
         _id: "task_1",
         title: "Complex Task",
-        businessId: "business_1",
+        workspaceId: "business_1",
       };
 
       const assignmentError = new Error("Agent does not have required skill");
@@ -88,7 +88,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
         // Log error to activities instead of silently dropping
         const errMsg = err instanceof Error ? err.message : String(err);
         await ctx.db.insert("activities", {
-          businessId: task.businessId,
+          workspaceId: task.workspaceId,
           type: "task_assigned",
           agentId: "system",
           agentName: "Mission Control",
@@ -126,9 +126,9 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Simulate autoClaim with 3 tasks: 1st succeeds, 2nd fails, 3rd succeeds
       const tasks = [
-        { _id: "task_1", title: "Task 1", businessId: "business_1", assigneeIds: [] },
-        { _id: "task_2", title: "Task 2", businessId: "business_1", assigneeIds: [] },
-        { _id: "task_3", title: "Task 3", businessId: "business_1", assigneeIds: [] },
+        { _id: "task_1", title: "Task 1", workspaceId: "business_1", assigneeIds: [] },
+        { _id: "task_2", title: "Task 2", workspaceId: "business_1", assigneeIds: [] },
+        { _id: "task_3", title: "Task 3", workspaceId: "business_1", assigneeIds: [] },
       ];
 
       const results: any[] = [];
@@ -145,7 +145,7 @@ describe("Phase 6: Reliability & Error Handling", () => {
           // Log error but continue
           const errMsg = err instanceof Error ? err.message : String(err);
           await ctx.db.insert("activities", {
-            businessId: task.businessId,
+            workspaceId: task.workspaceId,
             type: "task_assigned",
             agentId: "system",
             agentName: "Mission Control",
@@ -171,8 +171,8 @@ describe("Phase 6: Reliability & Error Handling", () => {
     });
   });
 
-  describe("Task Assignment: Per-business activity logging", () => {
-    it("should create per-business activity logs for each business when claiming tasks", async () => {
+  describe("Task Assignment: per-workspace activity logging", () => {
+    it("should create per-workspace activity logs for each workspace when claiming tasks", async () => {
       // Mock context
       const activities: any[] = [];
       const ctx = {
@@ -188,26 +188,26 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Simulate autoClaim with tasks across 2 businesses
       const tasks = [
-        { _id: "task_1", businessId: "business_1", title: "Task 1" },
-        { _id: "task_2", businessId: "business_1", title: "Task 2" },
-        { _id: "task_3", businessId: "business_2", title: "Task 3" },
-        { _id: "task_4", businessId: "business_2", title: "Task 4" },
+        { _id: "task_1", workspaceId: "business_1", title: "Task 1" },
+        { _id: "task_2", workspaceId: "business_1", title: "Task 2" },
+        { _id: "task_3", workspaceId: "business_2", title: "Task 3" },
+        { _id: "task_4", workspaceId: "business_2", title: "Task 4" },
       ];
 
       // Track how many tasks were claimed per business
       const notifiedCount: Record<string, number> = {};
       for (const task of tasks) {
-        const bId = task.businessId as string;
+        const bId = task.workspaceId as string;
         notifiedCount[bId] = (notifiedCount[bId] ?? 0) + 1;
       }
 
       // Create one activity log per business
-      const businessIds = [...new Set(tasks.map((t: any) => t.businessId))];
-      for (const bId of businessIds) {
+      const workspaceIds = [...new Set(tasks.map((t: any) => t.workspaceId))];
+      for (const bId of workspaceIds) {
         const count = notifiedCount[bId];
         if (count > 0) {
           await ctx.db.insert("activities", {
-            businessId: bId,
+            workspaceId: bId,
             type: "task_assigned",
             agentId: "system",
             agentName: "Mission Control",
@@ -219,12 +219,12 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Verify: 2 activity logs (one per business)
       expect(activities).toHaveLength(2);
-      expect(activities.map((a: any) => a.businessId)).toEqual(["business_1", "business_2"]);
+      expect(activities.map((a: any) => a.workspaceId)).toEqual(["business_1", "business_2"]);
       expect(activities[0].message).toContain("Auto-claimed 2 task(s)");
       expect(activities[1].message).toContain("Auto-claimed 2 task(s)");
     });
 
-    it("should NOT create activity log for business with zero claimed tasks", async () => {
+    it("should NOT create activity log for workspace with zero claimed tasks", async () => {
       // Mock context
       const activities: any[] = [];
       const ctx = {
@@ -246,12 +246,12 @@ describe("Phase 6: Reliability & Error Handling", () => {
       };
 
       // Create activity logs only for businesses with > 0 claims
-      const businessIds = Object.keys(notifiedCount);
-      for (const bId of businessIds) {
+      const workspaceIds = Object.keys(notifiedCount);
+      for (const bId of workspaceIds) {
         const count = notifiedCount[bId];
         if (count > 0) {
           await ctx.db.insert("activities", {
-            businessId: bId,
+            workspaceId: bId,
             type: "task_assigned",
             agentId: "system",
             agentName: "Mission Control",
@@ -263,36 +263,36 @@ describe("Phase 6: Reliability & Error Handling", () => {
 
       // Verify: 2 activity logs (business_1 and business_3, not business_2)
       expect(activities).toHaveLength(2);
-      expect(activities.map((a: any) => a.businessId)).toEqual(["business_1", "business_3"]);
+      expect(activities.map((a: any) => a.workspaceId)).toEqual(["business_1", "business_3"]);
       expect(activities[0].message).toContain("5");
       expect(activities[1].message).toContain("3");
     });
 
-    it("should use correct businessId for cross-business task assignment", async () => {
-      // Bug fix verification: autoClaim should use task.businessId for activity, not readyTasks[0].businessId
+    it("should use correct workspaceId for cross-business task assignment", async () => {
+      // Bug fix verification: autoClaim should use task.workspaceId for activity, not readyTasks[0].workspaceId
       const tasks = [
-        { _id: "task_1", businessId: "business_A", title: "Task A" },
-        { _id: "task_2", businessId: "business_B", title: "Task B" },
-        { _id: "task_3", businessId: "business_C", title: "Task C" },
+        { _id: "task_1", workspaceId: "business_A", title: "Task A" },
+        { _id: "task_2", workspaceId: "business_B", title: "Task B" },
+        { _id: "task_3", workspaceId: "business_C", title: "Task C" },
       ];
 
       const activityLogs: any[] = [];
       for (const task of tasks) {
-        // Each task should log activity to its OWN businessId, not the first task's
+        // Each task should log activity to its OWN workspaceId, not the first task's
         activityLogs.push({
-          businessId: task.businessId, // Correct: use task's business
-          message: `Assignment for task in ${task.businessId}`,
+          workspaceId: task.workspaceId, // Correct: use task's business
+          message: `Assignment for task in ${task.workspaceId}`,
         });
       }
 
-      // Verify each activity has the correct businessId
-      expect(activityLogs[0].businessId).toBe("business_A");
-      expect(activityLogs[1].businessId).toBe("business_B");
-      expect(activityLogs[2].businessId).toBe("business_C");
+      // Verify each activity has the correct workspaceId
+      expect(activityLogs[0].workspaceId).toBe("business_A");
+      expect(activityLogs[1].workspaceId).toBe("business_B");
+      expect(activityLogs[2].workspaceId).toBe("business_C");
 
-      // Verify they're NOT all set to the first task's businessId
+      // Verify they're NOT all set to the first task's workspaceId
       expect(
-        activityLogs.every((log) => log.businessId === activityLogs[0].businessId)
+        activityLogs.every((log) => log.workspaceId === activityLogs[0].workspaceId)
       ).toBe(false);
     });
   });

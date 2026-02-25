@@ -146,7 +146,7 @@ async function handleGetSessions(
 ): Promise<Response> {
   let ws: WebSocket | undefined;
   try {
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 
@@ -204,7 +204,7 @@ async function handleGetHistory(
 ): Promise<Response> {
   let ws: WebSocket | undefined;
   try {
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 
@@ -272,7 +272,7 @@ async function handleSendMessage(
 
   let ws: WebSocket | undefined;
   try {
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 
@@ -320,7 +320,7 @@ async function handleSendMessage(
 async function handleGatewayStatus(gatewayId: string): Promise<Response> {
   try {
     // 1. Load gateway from Convex
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 
@@ -382,7 +382,7 @@ async function handleProvision(
   gatewayId: string,
   body: any
 ): Promise<Response> {
-  const { agent, business, otherAgents, baseUrl, authToken } = body;
+  const { agent, workspace, otherAgents, baseUrl, authToken } = body;
 
   // Validate required fields
   if (!agent || !agent._id || !agent.name || !agent.role) {
@@ -391,7 +391,7 @@ async function handleProvision(
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
-  if (!business || !business._id || !business.name || !business.slug) {
+  if (!business || !workspace._id || ! workspace.name || !workspace.slug) {
     return new Response(
       JSON.stringify({ error: 'business with _id, name, and slug is required' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -406,7 +406,7 @@ async function handleProvision(
 
   let ws: WebSocket | undefined;
   try {
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 
@@ -427,14 +427,14 @@ async function handleProvision(
     await provisionAgent(ws, {
       gatewayId,
       agent,
-      business,
+      workspace,
       otherAgents: otherAgents ?? [],
       baseUrl,
       authToken: authToken ?? '',
     });
 
     // Derive the session key so the caller can address this agent's session
-    const sessionKey = getSessionKey(agent, business._id, gatewayId);
+    const sessionKey = getSessionKey(agent, workspace._id, gatewayId);
 
     return new Response(
       JSON.stringify({
@@ -464,7 +464,7 @@ async function handleSync(
   body: any
 ): Promise<Response> {
   try {
-    const gateway = await client.query(api.gateways.getById, {
+    const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
     });
 

@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Business Settings Panel", () => {
+test.describe("(Workspace) Settings Panel", () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to a business settings page
+    // Navigate to a workspace settings page
     // Assuming test data has at least one business
     await page.goto("/business-default/settings");
     await page.waitForLoadState("networkidle");
@@ -15,7 +15,7 @@ test.describe("Business Settings Panel", () => {
       expect(textarea).toBeDefined();
 
       // Check for the label
-      const label = page.locator("text=Business Purpose & Problem Being Solved");
+      const label = page.locator("text=(Workspace) Purpose & Problem Being Solved");
       await expect(label).toBeVisible();
     });
 
@@ -102,20 +102,20 @@ test.describe("Business Settings Panel", () => {
     });
   });
 
-  test.describe("Delete Business - Danger Zone", () => {
+  test.describe("Delete (Workspace) - Danger Zone", () => {
     test("should display danger zone section with delete button", async ({ page }) => {
       // Check for danger zone section
       const dangerZone = page.locator("text=Danger Zone");
       await expect(dangerZone).toBeVisible();
 
       // Check for delete button
-      const deleteBtn = page.locator("button:has-text('Delete Business')").first();
+      const deleteBtn = page.locator("button:has-text('Delete (Workspace)')").first();
       await expect(deleteBtn).toBeVisible();
     });
 
     test("should show confirmation dialog when delete button is clicked", async ({ page }) => {
       // Click delete button
-      const deleteBtn = page.locator("button:has-text('Delete Business')").first();
+      const deleteBtn = page.locator("button:has-text('Delete (Workspace)')").first();
       await deleteBtn.click();
 
       // Confirmation dialog should appear
@@ -123,7 +123,7 @@ test.describe("Business Settings Panel", () => {
       await expect(confirmMsg).toBeVisible();
 
       // Confirmation input should appear
-      const confirmInput = page.locator("input[placeholder*='Business']").first();
+      const confirmInput = page.locator("input[placeholder*='(Workspace)']").first();
       await expect(confirmInput).toBeVisible();
 
       // Cancel button should appear
@@ -132,11 +132,11 @@ test.describe("Business Settings Panel", () => {
     });
 
     test("should cancel deletion when cancel button is clicked", async ({ page }) => {
-      // Get business name from the page title
-      const businessName = await page.locator("text=Business Settings").first().textContent();
+      // Get workspace name from the page title
+      const businessName = await page.locator("text=(Workspace) Settings").first().textContent();
 
       // Click delete button
-      const deleteBtn = page.locator("button:has-text('Delete Business')").first();
+      const deleteBtn = page.locator("button:has-text('Delete (Workspace)')").first();
       await deleteBtn.click();
 
       // Click cancel
@@ -151,23 +151,23 @@ test.describe("Business Settings Panel", () => {
       await expect(deleteBtn).toBeVisible();
     });
 
-    test("should require exact business name to confirm deletion", async ({ page }) => {
+    test("should require exact workspace name to confirm deletion", async ({ page }) => {
       // Click delete button to show confirmation
-      const deleteBtn = page.locator("button:has-text('Delete Business')").first();
+      const deleteBtn = page.locator("button:has-text('Delete (Workspace)')").first();
       await deleteBtn.click();
 
       // Get the confirmation input
-      const confirmInput = page.locator("input[placeholder*='Business']").first();
+      const confirmInput = page.locator("input[placeholder*='(Workspace)']").first();
 
       // Try to submit with wrong name
       await confirmInput.fill("Wrong Name");
 
       // Get the delete confirmation button (inside the danger zone)
-      const deleteConfirmBtn = page.locator("button:has-text('Delete Business')").nth(1);
+      const deleteConfirmBtn = page.locator("button:has-text('Delete (Workspace)')").nth(1);
       await deleteConfirmBtn.click();
 
       // Should show error message
-      const errorMsg = page.locator("text=Business name does not match");
+      const errorMsg = page.locator("text=(Workspace) name does not match");
       await expect(errorMsg).toBeVisible();
 
       // Page should not navigate away
@@ -185,22 +185,22 @@ test.describe("Business Settings Panel", () => {
     });
 
     test("should show loading state during deletion", async ({ page }) => {
-      // This test requires proper business name
-      // First, we need to get the business name from the page
+      // This test requires proper workspace name
+      // First, we need to get the workspace name from the page
       const businessNameElement = page.locator("p:has-text('Configure')");
       const businessNameText = await businessNameElement.textContent();
-      const businessName = businessNameText?.replace("Configure ", "").trim() || "Test Business";
+      const businessName = businessNameText?.replace("Configure ", "").trim() || "Test (Workspace)";
 
       // Click delete button
-      const deleteBtn = page.locator("button:has-text('Delete Business')").first();
+      const deleteBtn = page.locator("button:has-text('Delete (Workspace)')").first();
       await deleteBtn.click();
 
-      // Enter the business name
-      const confirmInput = page.locator("input[placeholder*='Business']").first();
+      // Enter the workspace name
+      const confirmInput = page.locator("input[placeholder*='(Workspace)']").first();
       await confirmInput.fill(businessName);
 
       // Get the delete confirmation button
-      const deleteConfirmBtn = page.locator("button:has-text('Delete Business')").nth(1);
+      const deleteConfirmBtn = page.locator("button:has-text('Delete (Workspace)')").nth(1);
 
       // Click delete (this may or may not complete depending on backend)
       // We're just checking the UI state during the process
@@ -208,10 +208,10 @@ test.describe("Business Settings Panel", () => {
     });
   });
 
-  test.describe("Set as Default Business", () => {
-    test("should display default business section", async ({ page }) => {
-      // Check for default business section
-      const defaultSection = page.locator("text=Default Business");
+  test.describe("Set as Default (Workspace)", () => {
+    test("should display default workspace section", async ({ page }) => {
+      // Check for default workspace section
+      const defaultSection = page.locator("text=Default (Workspace)");
       await expect(defaultSection).toBeVisible();
 
       // Check for description
@@ -219,14 +219,14 @@ test.describe("Business Settings Panel", () => {
       await expect(description).toBeVisible();
     });
 
-    test("should show appropriate button state when business is default", async ({ page }) => {
+    test("should show appropriate button state when workspace is default", async ({ page }) => {
       // This test depends on test data setup
       // Check if current default button exists
       const setDefaultBtn = page.locator("button:has-text('Current Default'), button:has-text('Set as Default')").first();
       await expect(setDefaultBtn).toBeVisible();
     });
 
-    test("should disable button when business is already default", async ({ page }) => {
+    test("should disable button when workspace is already default", async ({ page }) => {
       // Get the set default button
       const setDefaultBtn = page.locator("button:has-text('Current Default')");
 
@@ -237,7 +237,7 @@ test.describe("Business Settings Panel", () => {
       }
     });
 
-    test("should show success message when setting business as default", async ({ page }) => {
+    test("should show success message when setting workspace as default", async ({ page }) => {
       // Get the set default button
       let setDefaultBtn = page.locator("button:has-text('Set as Default')").first();
 
@@ -383,12 +383,12 @@ test.describe("Business Settings Panel", () => {
   });
 
   test.describe("Settings Panel Layout", () => {
-    test("should display settings header with business name", async ({ page }) => {
+    test("should display settings header with workspace name", async ({ page }) => {
       // Check for header
-      const header = page.locator("text=Business Settings");
+      const header = page.locator("text=(Workspace) Settings");
       await expect(header).toBeVisible();
 
-      // Check for business name in subtitle
+      // Check for workspace name in subtitle
       const subtitle = page.locator("p:has-text('Configure')");
       await expect(subtitle).toBeVisible();
     });
@@ -397,8 +397,8 @@ test.describe("Business Settings Panel", () => {
       // Get mission statement section
       const missionSection = page.locator("text=Mission Statement");
 
-      // Get default business section
-      const defaultSection = page.locator("text=Default Business");
+      // Get default workspace section
+      const defaultSection = page.locator("text=Default (Workspace)");
 
       // Both should be visible
       await expect(missionSection).toBeVisible();

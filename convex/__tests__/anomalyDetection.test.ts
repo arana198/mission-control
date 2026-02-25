@@ -59,12 +59,12 @@ class AnomalyDetectionMockDatabase {
 
 describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   let db: AnomalyDetectionMockDatabase;
-  let businessId: string;
+  let workspaceId: string;
   let agentId: string;
 
   beforeEach(() => {
     db = new AnomalyDetectionMockDatabase();
-    businessId = "biz-1";
+    workspaceId = "biz-1";
     agentId = db.insert("agents", { name: "Alice" });
   });
 
@@ -73,7 +73,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       // Baseline: 2 day tasks (avg), 0.5 day std dev
       // Anomaly: 5 day task = 6σ from mean
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "duration_deviation",
         severity: "high",
@@ -104,7 +104,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   describe("Error Rate Detection", () => {
     it("flags agent with high error rate", () => {
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "error_rate",
         severity: "high",
@@ -134,7 +134,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   describe("Skill-Task Mismatch Detection", () => {
     it("flags junior agent assigned complex task", () => {
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "skill_mismatch",
         severity: "medium",
@@ -164,7 +164,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
     it("flags rapid status changes", () => {
       const oneMinuteAgo = Date.now() - 60 * 1000;
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "status_spike",
         severity: "low",
@@ -208,7 +208,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   describe("Anomaly Filtering", () => {
     it("filters anomalies by severity", () => {
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "duration_deviation",
         severity: "high",
@@ -220,7 +220,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       });
 
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "error_rate",
         severity: "low",
@@ -239,7 +239,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
 
     it("filters anomalies by type", () => {
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "duration_deviation",
         severity: "high",
@@ -251,7 +251,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       });
 
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "error_rate",
         severity: "high",
@@ -274,7 +274,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   describe("Anomaly Resolution", () => {
     it("marks anomaly as resolved", () => {
       const anomalyId = db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "duration_deviation",
         severity: "high",
@@ -322,7 +322,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
   describe("Anomaly Frequency Tracking", () => {
     it("counts anomalies per agent", () => {
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "duration_deviation",
         severity: "high",
@@ -334,7 +334,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       });
 
       db.insert("anomalies", {
-        businessId,
+        workspaceId,
         agentId,
         type: "error_rate",
         severity: "medium",
@@ -353,7 +353,7 @@ describe("Anomaly Detection System (convex/anomalyDetection.ts)", () => {
       // Same agent, same anomaly type multiple times
       for (let i = 0; i < 3; i++) {
         db.insert("anomalies", {
-          businessId,
+          workspaceId,
           agentId,
           type: "duration_deviation",
           severity: "high",

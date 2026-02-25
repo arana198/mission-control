@@ -1,13 +1,13 @@
 /**
- * BusinessSelector Component Tests
+ * WorkspaceSelector Component Tests
  *
- * Tests for sidebar business switching component
- * Validates: business list display, switching, URL navigation
+ * Tests for sidebar workspace switching component
+ * Validates: workspace list display, switching, URL navigation
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
 
-interface Business {
+interface Workspace {
   _id: string;
   name: string;
   slug: string;
@@ -16,15 +16,15 @@ interface Business {
   isDefault: boolean;
 }
 
-// Mock BusinessSelector component behavior
-class BusinessSelectorMock {
+// Mock WorkspaceSelector component behavior
+class WorkspaceSelectorMock {
   private isOpen = false;
   private navigationHistory: string[] = [];
   private callCount = 0;
 
   constructor(
-    private currentBusiness: Business | null,
-    private businesses: Business[],
+    private currentWorkspace:  | null,
+    private businesses: [],
     private isLoading: boolean = false,
     private error: string | null = null,
     private onNavigate: (url: string) => void = () => {},
@@ -40,20 +40,20 @@ class BusinessSelectorMock {
   }
 
   getDisplayText(): string {
-    if (!this.currentBusiness) return "No Business";
-    return `${this.currentBusiness.emoji} ${this.currentBusiness.name}`;
+    if (!this.currentWorkspace) return "No ";
+    return `${this.currentWorkspace.emoji} ${this.currentWorkspace.name}`;
   }
 
-  getDropdownText(business: Business): string {
-    return `${business.emoji} ${business.name}`;
+  getDropdownText(business: ): string {
+    return `${ workspace.emoji} ${ workspace.name}`;
   }
 
-  selectBusiness(business: Business): void {
-    if (business._id === this.currentBusiness?._id) {
+  select(business: ): void {
+    if (workspace._id === this.currentWorkspace?._id) {
       // No-op if same business
       return;
     }
-    const url = `/${business.slug}/${this.currentTab}`;
+    const url = `/${workspace.slug}/${this.currentTab}`;
     this.navigationHistory.push(url);
     this.onNavigate(url);
     this.isOpen = false;
@@ -80,12 +80,12 @@ class BusinessSelectorMock {
     return this.currentTab;
   }
 
-  getBusinessColor(business: Business): string {
-    return business.color;
+  getColor(business: ): string {
+    return  workspace.color;
   }
 
-  isBusinessSelected(business: Business): boolean {
-    return business._id === this.currentBusiness?._id;
+  isSelected(business: ): boolean {
+    return workspace._id === this.currentWorkspace?._id;
   }
 
   getLoadingState(): boolean {
@@ -97,13 +97,13 @@ class BusinessSelectorMock {
   }
 }
 
-describe("BusinessSelector Component", () => {
-  let mockBusinesses: Business[];
-  let currentBusiness: Business;
-  let selector: BusinessSelectorMock;
+describe("WorkspaceSelector Component", () => {
+  let mockes: [];
+  let currentWorkspace: ;
+  let selector: WorkspaceSelectorMock;
 
   beforeEach(() => {
-    mockBusinesses = [
+    mockes = [
       {
         _id: "biz_1",
         name: "Mission Control HQ",
@@ -129,8 +129,8 @@ describe("BusinessSelector Component", () => {
         isDefault: false,
       },
     ];
-    currentBusiness = mockBusinesses[0];
-    selector = new BusinessSelectorMock(currentBusiness, mockBusinesses);
+    currentWorkspace = mockes[0];
+    selector = new WorkspaceSelectorMock(currentWorkspace, mockes);
   });
 
   describe("Rendering", () => {
@@ -139,13 +139,13 @@ describe("BusinessSelector Component", () => {
       expect(selector).toBeDefined();
     });
 
-    it("should display current business at top", async () => {
-      // Arrange: current business = "Mission Control HQ"
+    it("should display current workspace at top", async () => {
+      // Arrange: current workspace = "Mission Control HQ"
       // Expected: shown as selected in dropdown
       expect(selector.getDisplayText()).toContain("Mission Control HQ");
     });
 
-    it("should display current business with emoji and name", async () => {
+    it("should display current workspace with emoji and name", async () => {
       // Expected: shows "🚀 Mission Control HQ" in header
       const displayText = selector.getDisplayText();
       expect(displayText).toBe("🚀 Mission Control HQ");
@@ -154,51 +154,51 @@ describe("BusinessSelector Component", () => {
     it("should list all available businesses", async () => {
       // Arrange: 3 businesses
       // Expected: dropdown shows all 3
-      expect(mockBusinesses).toHaveLength(3);
-      mockBusinesses.forEach((b) => {
+      expect(mockes).toHaveLength(3);
+      mockes.forEach((b) => {
         expect(selector.getDropdownText(b)).toBeDefined();
       });
     });
 
-    it("should show business emoji in list items", async () => {
-      // Expected: each business in dropdown shows emoji
-      mockBusinesses.forEach((b) => {
+    it("should show workspace emoji in list items", async () => {
+      // Expected: each workspace in dropdown shows emoji
+      mockes.forEach((b) => {
         const text = selector.getDropdownText(b);
         expect(text).toContain(b.emoji);
       });
     });
 
-    it("should use business color for visual distinction", async () => {
-      // Expected: each business colored with its assigned color
-      mockBusinesses.forEach((b) => {
-        const color = selector.getBusinessColor(b);
+    it("should use workspace color for visual distinction", async () => {
+      // Expected: each workspace colored with its assigned color
+      mockes.forEach((b) => {
+        const color = selector.getColor(b);
         expect(color).toBe(b.color);
       });
     });
 
-    it("should mark current business as selected", async () => {
+    it("should mark current workspace as selected", async () => {
       // Expected: checkmark or highlight on current business
-      expect(selector.isBusinessSelected(currentBusiness)).toBe(true);
-      expect(selector.isBusinessSelected(mockBusinesses[1])).toBe(false);
+      expect(selector.isSelected(currentWorkspace)).toBe(true);
+      expect(selector.isSelected(mockes[1])).toBe(false);
     });
 
-    it("should handle single business gracefully", async () => {
-      // Arrange: only 1 business exists
-      const singleBusinessSelector = new BusinessSelectorMock(
-        mockBusinesses[0],
-        [mockBusinesses[0]]
+    it("should handle single workspace gracefully", async () => {
+      // Arrange: only 1 workspace exists
+      const singleWorkspaceSelector = new WorkspaceSelectorMock(
+        mockes[0],
+        [mockes[0]]
       );
       // Expected: still shows selector
-      expect(singleBusinessSelector.getDisplayText()).toBeDefined();
+      expect(singleWorkspaceSelector.getDisplayText()).toBeDefined();
     });
 
     it("should handle many businesses (5+)", async () => {
       // Arrange: 5 businesses
-      const manyBusinesses = [
-        ...mockBusinesses,
+      const manyes = [
+        ...mockes,
         {
           _id: "biz_4",
-          name: "Business 4",
+          name: " 4",
           slug: "business-4",
           emoji: "⭐",
           color: "#f59e0b",
@@ -206,37 +206,37 @@ describe("BusinessSelector Component", () => {
         },
         {
           _id: "biz_5",
-          name: "Business 5",
+          name: " 5",
           slug: "business-5",
           emoji: "🎯",
           color: "#8b5cf6",
           isDefault: false,
         },
       ];
-      const manySelector = new BusinessSelectorMock(
-        mockBusinesses[0],
-        manyBusinesses
+      const manySelector = new WorkspaceSelectorMock(
+        mockes[0],
+        manyes
       );
       // Expected: renders without issue
       expect(manySelector.getDisplayText()).toBeDefined();
-      expect(manyBusinesses).toHaveLength(5);
+      expect(manyes).toHaveLength(5);
     });
   });
 
-  describe("Business Switching", () => {
+  describe(" Switching", () => {
     it("should switch to selected business", async () => {
       // Act: click "Project Alpha"
       // Expected: navigates to /project-alpha/overview
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       expect(selector.getNavigationHistory()).toContain("/project-alpha/overview");
     });
 
-    it("should update current business display after switch", async () => {
+    it("should update current workspace display after switch", async () => {
       // Act: switch to Project Alpha
       // Create new selector with Project Alpha as current
-      const newSelector = new BusinessSelectorMock(
-        mockBusinesses[1],
-        mockBusinesses
+      const newSelector = new WorkspaceSelectorMock(
+        mockes[1],
+        mockes
       );
       // Expected: header now shows "⚡ Project Alpha"
       expect(newSelector.getDisplayText()).toBe("⚡ Project Alpha");
@@ -247,7 +247,7 @@ describe("BusinessSelector Component", () => {
       selector.toggleDropdown();
       expect(selector.isDropdownOpen()).toBe(true);
       // Act: select business
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       // Expected: dropdown closes
       expect(selector.isDropdownOpen()).toBe(false);
     });
@@ -256,24 +256,24 @@ describe("BusinessSelector Component", () => {
       // Arrange: on /mission-control-hq/board
       selector.setCurrentTab("board");
       // Act: switch to Project Alpha
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       // Expected: navigate to /project-alpha/board (not overview)
       expect(selector.getNavigationHistory()).toContain(
         "/project-alpha/board"
       );
     });
 
-    it("should call setCurrentBusiness on selection", async () => {
-      // Expected: selectBusiness function called (integration with context)
-      selector.selectBusiness(mockBusinesses[1]);
+    it("should call setCurrentWorkspace on selection", async () => {
+      // Expected: select function called (integration with context)
+      selector.select(mockes[1]);
       expect(selector.getCallCount()).toBe(1);
     });
 
-    it("should handle switching to same business (no-op)", async () => {
-      // Arrange: current business is Mission Control HQ
+    it("should handle switching to same workspace (no-op)", async () => {
+      // Arrange: current workspace is Mission Control HQ
       // Act: click current business
       const initialCallCount = selector.getCallCount();
-      selector.selectBusiness(currentBusiness);
+      selector.select(currentWorkspace);
       // Expected: no navigation (call count unchanged)
       expect(selector.getCallCount()).toBe(initialCallCount);
     });
@@ -284,14 +284,14 @@ describe("BusinessSelector Component", () => {
       // Act: switch to different business
       // Expected: router.push called with correct URL
       const navigationUrls: string[] = [];
-      const navigationSelector = new BusinessSelectorMock(
-        currentBusiness,
-        mockBusinesses,
+      const navigationSelector = new WorkspaceSelectorMock(
+        currentWorkspace,
+        mockes,
         false,
         null,
         (url) => navigationUrls.push(url)
       );
-      navigationSelector.selectBusiness(mockBusinesses[1]);
+      navigationSelector.select(mockes[1]);
       expect(navigationUrls).toContain("/project-alpha/overview");
     });
 
@@ -299,7 +299,7 @@ describe("BusinessSelector Component", () => {
       // Arrange: current URL = /mission-control-hq/board
       selector.setCurrentTab("board");
       // Act: switch business
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       // Expected: new URL = /project-alpha/board
       expect(selector.getNavigationHistory()).toContain("/project-alpha/board");
     });
@@ -308,7 +308,7 @@ describe("BusinessSelector Component", () => {
       // Arrange: on /mission-control-hq/overview
       selector.setCurrentTab("overview");
       // Expected: switches to /project-alpha/overview
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       expect(selector.getNavigationHistory()).toContain(
         "/project-alpha/overview"
       );
@@ -318,46 +318,46 @@ describe("BusinessSelector Component", () => {
       // Arrange: on /mission-control-hq (default tab is overview)
       selector.setCurrentTab("overview");
       // Act: switch business
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       // Expected: defaults to overview tab
       expect(selector.getNavigationHistory()[0]).toBe("/project-alpha/overview");
     });
 
-    it("should not navigate if same business selected", async () => {
+    it("should not navigate if same workspace selected", async () => {
       // Arrange: get initial navigation history
       const initialHistory = selector.getNavigationHistory().length;
-      // Act: click current business (should be no-op)
-      selector.selectBusiness(currentBusiness);
+      // Act: click current workspace (should be no-op)
+      selector.select(currentWorkspace);
       // Expected: router.push not called
       expect(selector.getNavigationHistory().length).toBe(initialHistory);
     });
   });
 
   describe("Context Integration", () => {
-    it("should read current business from BusinessProvider", async () => {
-      // Expected: currentBusiness from context
-      expect(selector.getDisplayText()).toContain(currentBusiness.name);
+    it("should read current workspace from WorkspaceProvider", async () => {
+      // Expected: currentWorkspace from context
+      expect(selector.getDisplayText()).toContain(currentWorkspace.name);
     });
 
     it("should read businesses list from context", async () => {
       // Expected: businesses array from context
-      expect(mockBusinesses).toHaveLength(3);
-      mockBusinesses.forEach((b) => {
+      expect(mockes).toHaveLength(3);
+      mockes.forEach((b) => {
         expect(selector.getDropdownText(b)).toBeDefined();
       });
     });
 
-    it("should call setCurrentBusiness from context", async () => {
+    it("should call setCurrentWorkspace from context", async () => {
       // Expected: uses context function to switch
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       expect(selector.getCallCount()).toBeGreaterThan(0);
     });
 
     it("should handle context loading state", async () => {
       // Arrange: businesses still loading
-      const loadingSelector = new BusinessSelectorMock(
-        currentBusiness,
-        mockBusinesses,
+      const loadingSelector = new WorkspaceSelectorMock(
+        currentWorkspace,
+        mockes,
         true
       );
       // Expected: shows loading indicator or default state
@@ -366,9 +366,9 @@ describe("BusinessSelector Component", () => {
 
     it("should handle context error state", async () => {
       // Arrange: context has error
-      const errorSelector = new BusinessSelectorMock(
-        currentBusiness,
-        mockBusinesses,
+      const errorSelector = new WorkspaceSelectorMock(
+        currentWorkspace,
+        mockes,
         false,
         "Failed to load businesses"
       );
@@ -394,10 +394,10 @@ describe("BusinessSelector Component", () => {
       expect(displayText.length).toBeLessThan(50);
     });
 
-    it("should highlight current business visually", async () => {
+    it("should highlight current workspace visually", async () => {
       // Expected: distinct appearance from other businesses
-      expect(selector.isBusinessSelected(currentBusiness)).toBe(true);
-      expect(selector.isBusinessSelected(mockBusinesses[1])).toBe(false);
+      expect(selector.isSelected(currentWorkspace)).toBe(true);
+      expect(selector.isSelected(mockes[1])).toBe(false);
     });
 
     it("should integrate with responsive sidebar", async () => {
@@ -425,8 +425,8 @@ describe("BusinessSelector Component", () => {
     it("should support Enter key to select", async () => {
       // Act: open dropdown and select
       selector.toggleDropdown();
-      selector.selectBusiness(mockBusinesses[1]);
-      // Expected: business selected
+      selector.select(mockes[1]);
+      // Expected: workspace selected
       expect(selector.getNavigationHistory().length).toBeGreaterThan(0);
     });
 
@@ -472,20 +472,20 @@ describe("BusinessSelector Component", () => {
   });
 
   describe("Visual Design", () => {
-    it("should show business emoji prominently", async () => {
+    it("should show workspace emoji prominently", async () => {
       // Expected: emoji easily visible
-      expect(selector.getDisplayText()).toContain(currentBusiness.emoji);
+      expect(selector.getDisplayText()).toContain(currentWorkspace.emoji);
     });
 
-    it("should use business color for styling", async () => {
+    it("should use workspace color for styling", async () => {
       // Expected: background or border color matches business
-      const color = selector.getBusinessColor(currentBusiness);
-      expect(color).toBe(currentBusiness.color);
+      const color = selector.getColor(currentWorkspace);
+      expect(color).toBe(currentWorkspace.color);
     });
 
     it("should have clear visual hierarchy", async () => {
-      // Expected: current business stands out from list
-      expect(selector.isBusinessSelected(currentBusiness)).toBe(true);
+      // Expected: current workspace stands out from list
+      expect(selector.isSelected(currentWorkspace)).toBe(true);
     });
 
     it("should use consistent padding/spacing", async () => {
@@ -518,47 +518,47 @@ describe("BusinessSelector Component", () => {
       expect(selector.isDropdownOpen()).toBeDefined();
     });
 
-    it("should announce selected business to screen reader", async () => {
+    it("should announce selected workspace to screen reader", async () => {
       // Expected: "Mission Control HQ selected"
       expect(selector.getDisplayText()).toBe("🚀 Mission Control HQ");
     });
 
     it("should support screen reader navigation", async () => {
       // Expected: all options readable by screen reader
-      mockBusinesses.forEach((b) => {
+      mockes.forEach((b) => {
         expect(selector.getDropdownText(b)).toBeDefined();
       });
     });
 
     it("should have sufficient color contrast", async () => {
       // Expected: text/background contrast meets WCAG
-      expect(selector.getBusinessColor(currentBusiness)).toBeDefined();
+      expect(selector.getColor(currentWorkspace)).toBeDefined();
     });
 
     it("should not rely solely on color for distinction", async () => {
       // Expected: checkmark or other indicator besides color
-      expect(selector.isBusinessSelected(currentBusiness)).toBe(true);
+      expect(selector.isSelected(currentWorkspace)).toBe(true);
     });
   });
 
   describe("Error Handling", () => {
     it("should handle null current business", async () => {
       // Expected: shows default or error state
-      const nullBusinessSelector = new BusinessSelectorMock(null, mockBusinesses);
-      expect(nullBusinessSelector.getDisplayText()).toBe("No Business");
+      const nullWorkspaceSelector = new WorkspaceSelectorMock(null, mockes);
+      expect(nullWorkspaceSelector.getDisplayText()).toBe("No ");
     });
 
     it("should handle empty businesses array", async () => {
       // Expected: shows empty state or message
-      const emptySelector = new BusinessSelectorMock(currentBusiness, []);
+      const emptySelector = new WorkspaceSelectorMock(currentWorkspace, []);
       expect(emptySelector).toBeDefined();
     });
 
     it("should handle navigation errors", async () => {
       // Expected: error handled gracefully
-      const errorSelector = new BusinessSelectorMock(
-        currentBusiness,
-        mockBusinesses,
+      const errorSelector = new WorkspaceSelectorMock(
+        currentWorkspace,
+        mockes,
         false,
         "Navigation failed"
       );
@@ -567,8 +567,8 @@ describe("BusinessSelector Component", () => {
 
     it("should recover from failed URL navigation", async () => {
       // Expected: user can retry or fallback
-      selector.selectBusiness(mockBusinesses[1]);
-      selector.selectBusiness(mockBusinesses[2]);
+      selector.select(mockes[1]);
+      selector.select(mockes[2]);
       expect(selector.getNavigationHistory().length).toBe(2);
     });
   });
@@ -576,17 +576,17 @@ describe("BusinessSelector Component", () => {
   describe("Performance", () => {
     it("should render quickly with many businesses", async () => {
       // Arrange: 10+ businesses
-      const manyBusinesses = Array.from({ length: 15 }, (_, i) => ({
+      const manyes = Array.from({ length: 15 }, (_, i) => ({
         _id: `biz_${i}`,
-        name: `Business ${i}`,
+        name: ` ${i}`,
         slug: `business-${i}`,
         emoji: "🏢",
         color: "#6366f1",
         isDefault: i === 0,
       }));
-      const manySelector = new BusinessSelectorMock(
-        manyBusinesses[0],
-        manyBusinesses
+      const manySelector = new WorkspaceSelectorMock(
+        manyes[0],
+        manyes
       );
       // Expected: no lag
       expect(manySelector.getDisplayText()).toBeDefined();
@@ -595,7 +595,7 @@ describe("BusinessSelector Component", () => {
     it("should not re-render unnecessarily", async () => {
       // Expected: memoized or efficient
       const callCount1 = selector.getCallCount();
-      selector.selectBusiness(mockBusinesses[1]);
+      selector.select(mockes[1]);
       const callCount2 = selector.getCallCount();
       expect(callCount2).toBe(callCount1 + 1);
     });
@@ -609,42 +609,42 @@ describe("BusinessSelector Component", () => {
 
     it("should handle rapid switching gracefully", async () => {
       // Act: rapidly click multiple businesses
-      selector.selectBusiness(mockBusinesses[1]);
-      selector.selectBusiness(mockBusinesses[2]);
+      selector.select(mockes[1]);
+      selector.select(mockes[2]);
       // Try to switch back, but first need to update current business
-      const selector2 = new BusinessSelectorMock(
-        mockBusinesses[1],
-        mockBusinesses
+      const selector2 = new WorkspaceSelectorMock(
+        mockes[1],
+        mockes
       );
-      selector2.selectBusiness(mockBusinesses[2]);
+      selector2.select(mockes[2]);
       // Expected: final state correct, no race conditions
       expect(selector2.getNavigationHistory().length).toBeGreaterThan(0);
     });
   });
 
-  describe("Default Business Handling", () => {
-    it("should highlight isDefault business visually", async () => {
-      // Expected: default business marked specially in list
-      const defaultBusiness = mockBusinesses.find((b) => b.isDefault);
-      expect(defaultBusiness).toBeDefined();
-      expect(defaultBusiness?.isDefault).toBe(true);
+  describe("Default  Handling", () => {
+    it("should highlight isDefault workspace visually", async () => {
+      // Expected: default workspace marked specially in list
+      const default = mockes.find((b) => b.isDefault);
+      expect(default).toBeDefined();
+      expect(default?.isDefault).toBe(true);
     });
 
     it("should show default indicator (badge/star)", async () => {
       // Expected: visual indicator that this is default
-      const defaultBusiness = mockBusinesses.find((b) => b.isDefault);
-      expect(defaultBusiness?.name).toBe("Mission Control HQ");
+      const default = mockes.find((b) => b.isDefault);
+      expect(default?.name).toBe("Mission Control HQ");
     });
 
-    it("should use default business on first load", async () => {
+    it("should use default workspace on first load", async () => {
       // Expected: defaults to isDefault: true business
-      const defaultBusiness = mockBusinesses.find((b) => b.isDefault);
-      const defaultSelector = new BusinessSelectorMock(
-        defaultBusiness || null,
-        mockBusinesses
+      const default = mockes.find((b) => b.isDefault);
+      const defaultSelector = new WorkspaceSelectorMock(
+        default || null,
+        mockes
       );
       expect(defaultSelector.getDisplayText()).toContain(
-        defaultBusiness?.emoji || ""
+        default?.emoji || ""
       );
     });
   });

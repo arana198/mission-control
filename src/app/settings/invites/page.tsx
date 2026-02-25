@@ -1,6 +1,6 @@
 "use client";
 
-import { useBusiness } from "@/components/BusinessProvider";
+import { useWorkspace } from "@/components/WorkspaceProvider";
 import { InvitesPanel } from "@/components/InvitesPanel";
 
 /**
@@ -10,13 +10,13 @@ import { InvitesPanel } from "@/components/InvitesPanel";
  * Phase 2: RBAC UI Integration
  */
 export default function InvitesSettingsPage() {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
 
-  if (!currentBusiness) {
+  if (!currentWorkspace) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="bg-card rounded p-4 border border-border text-center text-muted-foreground">
-          No business selected
+          No workspace selected
         </div>
       </div>
     );
@@ -24,7 +24,7 @@ export default function InvitesSettingsPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <InvitesPanel businessId={currentBusiness._id as any} />
+      <InvitesPanel workspaceId={currentWorkspace._id as any} />
     </div>
   );
 }

@@ -11,20 +11,20 @@ test.describe('Dashboard Layout', () => {
     await page.goto('/mission-control-hq/overview');
   });
 
-  test('should render sidebar with business selector', async ({ page }) => {
+  test('should render sidebar with workspace selector', async ({ page }) => {
     // Check sidebar exists
     const sidebar = page.locator('aside');
     await expect(sidebar).toBeVisible();
 
-    // Check business selector is present
+    // Check workspace selector is present
     const selector = page.locator('button').filter({ 
-      has: page.locator('text=/Select Business|🚀/') 
+      has: page.locator('text=/Select (Workspace)|🚀/') 
     }).first();
     await expect(selector).toBeVisible();
   });
 
-  test('should display business and workspace tabs', async ({ page }) => {
-    // Check BUSINESS section exists
+  test('should display workspace and workspace tabs', async ({ page }) => {
+    // Check workspace section exists
     await expect(page.locator('text=BUSINESS')).toBeVisible();
 
     // Check WORKSPACE section exists
@@ -61,7 +61,7 @@ test.describe('Dashboard Layout', () => {
     // Click on Task Board tab
     await page.locator('text=Task Board').click();
     
-    // Should navigate to business-scoped board
+    // Should navigate to workspace-scoped board
     await page.waitForURL('**/board');
     expect(page.url()).toContain('/board');
   });

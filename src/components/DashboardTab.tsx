@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { NotificationPanel } from "./NotificationPanel";
 import { DocumentPanel } from "./DocumentPanel";
@@ -14,7 +14,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import { log } from "../lib/logger";
 import { metrics } from "../lib/monitoring";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
-import { BusinessDashboard } from "./dashboard/BusinessDashboard";
+import { WorkspaceDashboard } from "./dashboard/Dashboard";
 import { GlobalDashboard } from "./dashboard/GlobalDashboard";
 import { LoadingSkeleton } from "./LoadingSkeletons";
 
@@ -24,7 +24,7 @@ type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activit
  * Dashboard Tab Content Component (Client)
  *
  * Router component that delegates to appropriate sub-components based on tab type.
- * - BusinessDashboard: Handles business-specific tabs (overview, board, epics, wiki, settings)
+ * - Dashboard: Handles business-specific tabs (overview, board, epics, wiki, settings)
  * - GlobalDashboard: Handles global tabs (agents, workload, activity, calendar, etc.)
  *
  * This architecture eliminates conditional hook violations by keeping each component's
@@ -37,7 +37,7 @@ export function DashboardTabClientContent({
   tab: TabType;
   businessSlug?: string;
 }) {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
@@ -49,21 +49,21 @@ export function DashboardTabClientContent({
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   // Determine tab type
-  const isBusinessSpecificTab = ["overview", "board", "epics", "wiki", "analytics", "settings"].includes(tab);
-  const targetBusinessId = currentBusiness?._id;
+  const isSpecificTab = ["overview", "board", "epics", "wiki", "analytics", "settings"].includes(tab);
+  const targetId = currentWorkspace?._id;
 
   // Log page load
   useEffect(() => {
-    console.log(`[Dashboard] Tab: ${tab}, Business: ${currentBusiness?.name || "global"}`);
+    console.log(`[Dashboard] Tab: ${tab}, : ${currentWorkspace?.name || "global"}`);
     log.info(`Dashboard tab loaded: ${tab}`, {
-      business: currentBusiness?.name || "global",
-      businessId: currentBusiness?._id,
+      business: currentWorkspace?.name || "global",
+      workspaceId: currentWorkspace?._id,
     });
     metrics.recordPageLoad(performance.now());
-  }, [tab, currentBusiness]);
+  }, [tab, currentWorkspace]);
 
-  // Show loading state if business tab but no businessId
-  if (isBusinessSpecificTab && !targetBusinessId) {
+  // Show loading state if workspace tab but no workspaceId
+  if (isSpecificTab && !targetId) {
     return (
       <main className="flex-1 overflow-y-auto">
         <DashboardHeader
@@ -95,7 +95,7 @@ export function DashboardTabClientContent({
         onCreateTask={() => setIsCreatingTask(true)}
         onToggleNotifications={() => setShowNotifications(!showNotifications)}
         onAutoAssign={() => {}}
-        canAutoAssign={isBusinessSpecificTab}
+        canAutoAssign={isSpecificTab}
       />
 
       {/* Breadcrumb navigation */}
@@ -104,10 +104,10 @@ export function DashboardTabClientContent({
       </div>
 
       {/* Render appropriate dashboard based on tab type */}
-      {isBusinessSpecificTab && targetBusinessId ? (
-        <BusinessDashboard
+      {isSpecificTab && targetId ? (
+        <Dashboard
           tab={tab as "overview" | "board" | "epics" | "wiki" | "analytics" | "settings"}
-          businessId={targetBusinessId}
+          workspaceId={targetId}
           isCreatingTask={isCreatingTask}
           setIsCreatingTask={setIsCreatingTask}
           autoAssigning={autoAssigning}

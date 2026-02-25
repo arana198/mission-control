@@ -61,7 +61,7 @@ export const exampleUpdateAgent = mutation({
 
 // ─── EXAMPLE 2: Validation Error ─────────────────────────────────────────
 
-export const exampleCreateBusiness = mutation({
+export const exampleCreate = mutation({
   args: {
     name: convexVal.string(),
     slug: convexVal.string(),
@@ -85,46 +85,46 @@ export const exampleCreateBusiness = mutation({
 
     // Check slug uniqueness
     const existing = await ctx.db
-      .query("businesses")
+      .query("workspaces")
       .withIndex("by_slug", (q: any) => q.eq("slug", slug))
       .first();
 
     if (existing) {
-      // ❌ OLD: throw new Error(`Business with slug "${slug}" already exists.`);
+      // ❌ OLD: throw new Error(` with slug "${slug}" already exists.`);
       // ✅ NEW: Use CONFLICT error
       throw ApiError.conflict(
-        `Business with slug "${slug}" already exists`,
+        ` with slug "${slug}" already exists`,
         {
           slug,
-          existingBusinessId: existing._id,
+          existingId: existing._id,
         }
       );
     }
 
     // Check max 5 businesses limit
-    const allBusinesses = await ctx.db.query("businesses").collect();
-    if (allBusinesses.length >= 5) {
-      // ❌ OLD: throw new Error("Maximum 5 businesses allowed per workspace.");
+    const alles = await ctx.db.query("workspaces").collect();
+    if (alles.length >= 5) {
+      // ❌ OLD: throw new Error("Maximum 5 workspacees allowed per workspace.");
       // ✅ NEW: Use LIMIT_EXCEEDED
-      throw ApiError.limitExceeded("Maximum 5 businesses allowed per workspace", {
+      throw ApiError.limitExceeded("Maximum 5 workspacees allowed per workspace", {
         limit: 5,
-        current: allBusinesses.length,
+        current: alles.length,
       });
     }
 
-    const businessId = await ctx.db.insert("businesses", {
+    const workspaceId = await ctx.db.insert("workspaces", {
       name,
       slug,
       missionStatement,
-      isDefault: allBusinesses.length === 0,
+      isDefault: alles.length === 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
-    const business = await ctx.db.get(businessId);
+    const workspace = await ctx.db.get(workspaceId);
 
     return {
-      data: business,
+      data: workspace,
       meta: {
         timestamp: Date.now(),
         requestId: generateRequestId(),
@@ -137,25 +137,25 @@ export const exampleCreateBusiness = mutation({
 
 export const exampleUpdateEpic = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     epicId: convexVal.id("epics"),
     title: convexVal.optional(convexVal.string()),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, epicId, title }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, epicId, title }) => {
     const epic = await ctx.db.get(epicId);
 
     if (!epic) {
       throw ApiError.notFound("Epic", { epicId });
     }
 
-    // Verify epic belongs to business (multi-tenant safety)
-    if (epic.businessId !== businessId) {
+    // Verify epic belongs to workspace (multi-tenant safety)
+    if (epic.workspaceId !== workspaceId) {
       // ❌ OLD: throw new Error("Epic does not belong to this business");
       // ✅ NEW: Use FORBIDDEN for permission issues
       throw ApiError.forbidden("Epic does not belong to this business", {
         epicId,
-        businessId,
-        actualBusinessId: epic.businessId,
+        workspaceId,
+        actualId: epic.workspaceId,
       });
     }
 
@@ -183,20 +183,20 @@ export const exampleUpdateEpic = mutation({
 export const exampleGetTaskById = query({
   args: {
     taskId: convexVal.id("tasks"),
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
-  handler: async (ctx, { taskId, businessId }) => {
+  handler: async (ctx, { taskId, workspaceId }) => {
     const task = await ctx.db.get(taskId);
 
     if (!task) {
       throw ApiError.notFound("Task", { taskId });
     }
 
-    // Verify business ownership
-    if (task.businessId !== businessId) {
+    // Verify workspace ownership
+    if (task.workspaceId !== workspaceId) {
       throw ApiError.forbidden("Task does not belong to this business", {
         taskId,
-        businessId,
+        workspaceId,
       });
     }
 
@@ -214,11 +214,11 @@ export const exampleGetTaskById = query({
 
 export const exampleBulkUpdateTasks = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     taskIds: convexVal.array(convexVal.id("tasks")),
     status: convexVal.string(),
   },
-  handler: wrapConvexHandler(async (ctx, { businessId, taskIds, status }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, taskIds, status }) => {
     const results = [];
     let successCount = 0;
     let errorCount = 0;
@@ -240,7 +240,7 @@ export const exampleBulkUpdateTasks = mutation({
           continue;
         }
 
-        if (task.businessId !== businessId) {
+        if (task.workspaceId !== workspaceId) {
           results.push({
             taskId,
             success: false,
@@ -314,7 +314,7 @@ export const exampleBulkUpdateTasks = mutation({
  *   Use: new ApiError(ErrorCode.CONFLICT, message, details)
  *
  * FORBIDDEN (403):
- *   - Business ownership violation
+ *   -  ownership violation
  *   - Permission denied
  *   - Multi-tenant isolation breach
  *   Use: ApiError.forbidden(message, details)

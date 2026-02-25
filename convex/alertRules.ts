@@ -14,7 +14,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
  */
 export const create = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     name: v.string(),
     condition: v.union(
       v.literal("queueDepth > threshold"),
@@ -37,7 +37,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const ruleId = await ctx.db.insert("alertRules", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       name: args.name,
       description: args.description,
       enabled: true,
@@ -58,17 +58,17 @@ export const create = mutation({
 });
 
 /**
- * Get all alert rules for a business
+ * Get all alert rules for a workspace
  */
-export const getByBusiness = query({
+export const getBy = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     enabledOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const rules = await ctx.db
       .query("alertRules")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     let filtered = rules;
@@ -83,7 +83,7 @@ export const getByBusiness = query({
 /**
  * Get a single alert rule
  */
-export const getById = query({
+export const getWorkspaceById = query({
   args: {
     ruleId: v.id("alertRules"),
   },

@@ -31,7 +31,7 @@ beforeEach(() => {
     name: "agent1",
     role: "specialist",
   });
-  mockQuery.mockResolvedValue({ businessId: "business-1" });
+  mockQuery.mockResolvedValue({ workspaceId: "business-1" });
 });
 
 function makeRequest(body: unknown, taskId: string = "task-1"): Request {

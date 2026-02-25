@@ -7,7 +7,7 @@
  *
  * Query params:
  *   agentKey (REQUIRED) - Agent authentication key
- *   businessId (REQUIRED) - Business ID for task scoping
+ *   workspaceId (REQUIRED) -  ID for task scoping
  *   status? - Task status filter
  *   priority? - Task priority filter
  *   assignedToMe? - Filter to tasks assigned to this agent
@@ -41,7 +41,7 @@ export async function GET(
     // Parse query params
     const url = new URL(request.url);
     const agentKey = url.searchParams.get("agentKey");
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
     const status = url.searchParams.get("status") || undefined;
     const priority = url.searchParams.get("priority") || undefined;
     const assignedTo = url.searchParams.get("assignedTo") === "me" ? "me" : undefined;
@@ -59,11 +59,11 @@ export async function GET(
       );
     }
 
-    if (!businessId) {
+    if (!workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "businessId query param is required" },
+          error: { code: "VALIDATION_ERROR", message: "workspaceId query param is required" },
         },
         400
       );
@@ -87,7 +87,7 @@ export async function GET(
 
     // Query tasks with filters (scoped to this business)
     const tasks = await convex.query(api.tasks.getFiltered, {
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
       agentId: input.agentId as any,
       status: input.status,
       priority: input.priority,
@@ -99,7 +99,7 @@ export async function GET(
     // Fire-and-forget activity logging (don't break response if logging fails)
     try {
       await convex.mutation(api.activities.create, {
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
         type: "tasks_queried",
         agentId: input.agentId,
         agentName: (agent as any).name,
@@ -109,12 +109,12 @@ export async function GET(
         }`,
       });
     } catch (logErr) {
-      log.warn("Activity logging failed (non-fatal)", { agentId: input.agentId, businessId });
+      log.warn("Activity logging failed (non-fatal)", { agentId: input.agentId, workspaceId });
     }
 
     log.info("Tasks queried", {
       agentId: input.agentId,
-      businessId,
+      workspaceId,
       count: tasks.length,
       filters: { status, priority, assignedTo },
     });

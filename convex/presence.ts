@@ -11,7 +11,7 @@ import { v } from "convex/values";
  */
 export const updatePresence = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
     status: v.union(
       v.literal("online"),
@@ -40,7 +40,7 @@ export const updatePresence = mutation({
       return existing._id;
     } else {
       return await ctx.db.insert("presenceIndicators", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         agentId: args.agentId,
         status: args.status,
         currentActivity: args.currentActivity,
@@ -52,16 +52,16 @@ export const updatePresence = mutation({
 });
 
 /**
- * Get all presence indicators for a business
+ * Get all presence indicators for a workspace
  */
-export const getBusinessPresence = query({
+export const getPresence = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     return await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
   },
 });
@@ -82,16 +82,16 @@ export const getAgentPresence = query({
 });
 
 /**
- * Get online agents for a business
+ * Get online agents for a workspace
  */
 export const getOnlineAgents = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     const all = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     return all.filter((p: any) => p.status === "online");
@@ -104,10 +104,10 @@ export const getOnlineAgents = query({
 export const checkAndMarkAway = mutation({
   args: {
     agentId: v.id("agents"),
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     awayThresholdMs: v.optional(v.number()),
   },
-  handler: async (ctx, { agentId, businessId, awayThresholdMs = 5 * 60 * 1000 }) => {
+  handler: async (ctx, { agentId, workspaceId, awayThresholdMs = 5 * 60 * 1000 }) => {
     const presence = await ctx.db
       .query("presenceIndicators")
       .withIndex("by_agent", (q: any) => q.eq("agentId", agentId))
@@ -142,13 +142,13 @@ export const checkAndMarkAway = mutation({
  */
 export const cleanupStalePresence = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     staleThresholdMs: v.optional(v.number()),
   },
-  handler: async (ctx, { businessId, staleThresholdMs = 30 * 60 * 1000 }) => {
+  handler: async (ctx, { workspaceId, staleThresholdMs = 30 * 60 * 1000 }) => {
     const all = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     const now = Date.now();
@@ -176,10 +176,10 @@ export const cleanupStalePresence = mutation({
 export const recordActivity = mutation({
   args: {
     agentId: v.id("agents"),
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     activity: v.string(),
   },
-  handler: async (ctx, { agentId, businessId, activity }) => {
+  handler: async (ctx, { agentId, workspaceId, activity }) => {
     const now = Date.now();
 
     const existing = await ctx.db
@@ -197,7 +197,7 @@ export const recordActivity = mutation({
     } else {
       // Create new presence record if doesn't exist
       return await ctx.db.insert("presenceIndicators", {
-        businessId,
+        workspaceId,
         agentId,
         status: "online",
         currentActivity: activity,
@@ -213,12 +213,12 @@ export const recordActivity = mutation({
  */
 export const getAgentPresenceWithDetails = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     const presence = await ctx.db
       .query("presenceIndicators")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     const agentIds = presence.map((p: any) => p.agentId);

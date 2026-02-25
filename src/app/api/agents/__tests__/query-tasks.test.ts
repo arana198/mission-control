@@ -88,7 +88,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
@@ -109,7 +109,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("status", "in_progress");
 
     const request = new Request(url.toString());
@@ -126,7 +126,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("priority", "P0");
 
     const request = new Request(url.toString());
@@ -143,7 +143,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("assignedToMe", "true");
 
     const request = new Request(url.toString());
@@ -158,7 +158,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("limit", "1");
     url.searchParams.set("offset", "0");
 
@@ -181,7 +181,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "wrong");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
@@ -189,7 +189,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
     expect(response.status).toBe(401);
   });
 
-  it("returns error for missing businessId", async () => {
+  it("returns error for missing workspaceId", async () => {
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
 
@@ -199,7 +199,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
     expect(response.status).toBe(400);
   });
 
-  it("returns error for missing businessId", async () => {
+  it("returns error for missing workspaceId", async () => {
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
 
@@ -214,7 +214,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
@@ -231,7 +231,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("status", "in_progress");
     url.searchParams.set("priority", "P0");
     url.searchParams.set("limit", "10");
@@ -260,7 +260,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
@@ -284,7 +284,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
 
     const request = new Request(url.toString());
     const response = await GET(request, { params: { agentId: "agent-123" } });
@@ -301,7 +301,7 @@ describe("GET /api/agents/{agentId}/tasks", () => {
 
     const url = new URL("http://localhost/api/agents/agent-123/tasks");
     url.searchParams.set("agentKey", "ak_key");
-    url.searchParams.set("businessId", "business-123");
+    url.searchParams.set("workspaceId", "business-123");
     url.searchParams.set("status", "done");
 
     const request = new Request(url.toString());

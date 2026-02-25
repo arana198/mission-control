@@ -19,25 +19,25 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-interface BusinessAnalyticsDashboardProps {
-  businessId: Id<"businesses">;
+interface WorkspaceAnalyticsDashboardProps {
+  workspaceId: Id<"workspaces">;
 }
 
-export function BusinessAnalyticsDashboard({
-  businessId,
-}: BusinessAnalyticsDashboardProps) {
+export function AnalyticsDashboard({
+  workspaceId,
+}: AnalyticsDashboardProps) {
   // Fetch analytics data
   const cycleTimeMetrics = useQuery(api.tasks.getCycleTimeMetrics, {
-    businessId,
+    workspaceId,
   });
 
   const velocityByWeek = useQuery(api.tasks.getVelocityByWeek, {
-    businessId,
+    workspaceId,
     weeks: 8,
   });
 
   const statusOverview = useQuery(api.tasks.getStatusOverview, {
-    businessId,
+    workspaceId,
   });
 
   const agentLeaderboard = useQuery(api.agentMetrics.getLeaderboard, {

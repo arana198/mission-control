@@ -216,12 +216,12 @@ describe("Goals (convex/goals.ts)", () => {
   describe("Query: getGoalsByCategory", () => {
     it("returns goals filtered by category", async () => {
       db.insert("goals", {
-        title: "Business Goal 1",
+        title: " Goal 1",
         status: "active",
         category: "business",
       });
       db.insert("goals", {
-        title: "Business Goal 2",
+        title: " Goal 2",
         status: "active",
         category: "business",
       });

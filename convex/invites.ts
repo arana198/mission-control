@@ -15,16 +15,16 @@ import type { QueryBuilder } from "convex/server";
  */
 
 /**
- * Get all invites for a business (pending + accepted)
+ * Get all invites for a workspace (pending + accepted)
  */
 export const getInvites = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
   async handler(ctx, args) {
     const invites = await ctx.db
       .query("invites")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Enrich with board access info
@@ -85,7 +85,7 @@ export const getByEmail = query({
  */
 export const createInvite = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     email: convexVal.string(),
     role: convexVal.union(convexVal.literal("owner"), convexVal.literal("admin"), convexVal.literal("member")),
     allBoardsRead: convexVal.boolean(),
@@ -93,7 +93,7 @@ export const createInvite = mutation({
     boardAccess: convexVal.optional(
       convexVal.array(
         convexVal.object({
-          businessId: convexVal.id("businesses"),
+          workspaceId: convexVal.id("workspaces"),
           canRead: convexVal.boolean(),
           canWrite: convexVal.boolean(),
         })
@@ -107,7 +107,7 @@ export const createInvite = mutation({
 
     // Create invite
     const inviteId = await ctx.db.insert("invites", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       token,
       email: args.email.toLowerCase(), // normalize to lowercase
       role: args.role,
@@ -124,7 +124,7 @@ export const createInvite = mutation({
       for (const access of args.boardAccess) {
         await ctx.db.insert("inviteBoardAccess", {
           inviteId,
-          businessId: access.businessId,
+          workspaceId: access.workspaceId,
           canRead: access.canRead,
           canWrite: access.canWrite,
         });
@@ -170,8 +170,8 @@ export const acceptInvite = mutation({
     // Check if user already member
     const existing = await ctx.db
       .query("organizationMembers")
-      .withIndex("by_business_user", (q) =>
-        q.eq("businessId", invite.businessId).eq("userId", args.userId)
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", invite.workspaceId).eq("userId", args.userId)
       )
       .first();
 
@@ -181,7 +181,7 @@ export const acceptInvite = mutation({
 
     // Create organizationMember
     const memberId = await ctx.db.insert("organizationMembers", {
-      businessId: invite.businessId,
+      workspaceId: invite.workspaceId,
       userId: args.userId,
       userEmail: args.userEmail,
       userName: args.userName,
@@ -200,7 +200,7 @@ export const acceptInvite = mutation({
 
     for (const access of inviteBoardAccess) {
       await ctx.db.insert("boardAccess", {
-        businessId: access.businessId,
+        workspaceId: access.workspaceId,
         memberId,
         canRead: access.canRead,
         canWrite: access.canWrite,
@@ -214,7 +214,7 @@ export const acceptInvite = mutation({
       acceptedAt: Date.now(),
     });
 
-    return { memberId, businessId: invite.businessId };
+    return { memberId, workspaceId: invite.workspaceId };
   },
 });
 

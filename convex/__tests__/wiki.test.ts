@@ -12,8 +12,8 @@ import { describe, it, expect, beforeEach } from "@jest/globals";
 
 describe("Wiki Schema Tests", () => {
   describe("wikiPages table structure", () => {
-    it("should have businessId as required field", () => {
-      // Schema verification: businessId is v.id("businesses") - required
+    it("should have workspaceId as required field", () => {
+      // Schema verification: workspaceId is v.id("workspaces") - required
       expect(true).toBe(true); // Placeholder - full test in Phase 2
     });
 
@@ -77,8 +77,8 @@ describe("Wiki Schema Tests", () => {
       expect(true).toBe(true);
     });
 
-    it("should have by_business index", () => {
-      // Schema verification: .index("by_business", ["businessId"])
+    it("should have by_workspace index", () => {
+      // Schema verification: .index("by_workspace", ["workspaceId"])
       expect(true).toBe(true);
     });
 
@@ -87,26 +87,26 @@ describe("Wiki Schema Tests", () => {
       expect(true).toBe(true);
     });
 
-    it("should have by_business_parent index for efficient filtering", () => {
-      // Schema verification: .index("by_business_parent", ["businessId", "parentId"])
+    it("should have by_workspace_parent index for efficient filtering", () => {
+      // Schema verification: .index("by_workspace_parent", ["workspaceId", "parentId"])
       expect(true).toBe(true);
     });
 
-    it("should have by_business_type index for department listing", () => {
-      // Schema verification: .index("by_business_type", ["businessId", "type"])
+    it("should have by_workspace_type index for department listing", () => {
+      // Schema verification: .index("by_workspace_type", ["workspaceId", "type"])
       expect(true).toBe(true);
     });
 
     it("should have search_content search index", () => {
-      // Schema verification: .searchIndex("search_content", { searchField: "contentText", filterFields: ["businessId"] })
+      // Schema verification: .searchIndex("search_content", { searchField: "contentText", filterFields: ["workspaceId"] })
       expect(true).toBe(true);
     });
   });
 
   describe("wikiPageHistory table structure", () => {
-    it("should have businessId and pageId (foreign key)", () => {
+    it("should have workspaceId and pageId (foreign key)", () => {
       // Schema verification:
-      // - businessId: v.id("businesses")
+      // - workspaceId: v.id("workspaces")
       // - pageId: v.id("wikiPages")
       expect(true).toBe(true);
     });
@@ -140,16 +140,16 @@ describe("Wiki Schema Tests", () => {
       expect(true).toBe(true);
     });
 
-    it("should have by_business index", () => {
-      // Schema verification: .index("by_business", ["businessId"])
+    it("should have by_workspace index", () => {
+      // Schema verification: .index("by_workspace", ["workspaceId"])
       expect(true).toBe(true);
     });
   });
 
   describe("wikiComments table structure", () => {
-    it("should have businessId and pageId (foreign key)", () => {
+    it("should have workspaceId and pageId (foreign key)", () => {
       // Schema verification:
-      // - businessId: v.id("businesses")
+      // - workspaceId: v.id("workspaces")
       // - pageId: v.id("wikiPages")
       expect(true).toBe(true);
     });
@@ -185,8 +185,8 @@ describe("Wiki Schema Tests", () => {
       expect(true).toBe(true);
     });
 
-    it("should have by_business index", () => {
-      // Schema verification: .index("by_business", ["businessId"])
+    it("should have by_workspace index", () => {
+      // Schema verification: .index("by_workspace", ["workspaceId"])
       expect(true).toBe(true);
     });
 
@@ -248,18 +248,18 @@ describe("Wiki Schema Tests", () => {
     });
   });
 
-  describe("Business scoping", () => {
-    it("all tables should have businessId field", () => {
-      // wikiPages, wikiPageHistory, wikiComments all have businessId
+  describe(" scoping", () => {
+    it("all tables should have workspaceId field", () => {
+      // wikiPages, wikiPageHistory, wikiComments all have workspaceId
       expect(true).toBe(true);
     });
 
-    it("all tables should have by_business index", () => {
+    it("all tables should have by_workspace index", () => {
       // Ensures efficient filtering by business
       expect(true).toBe(true);
     });
 
-    it("queries should filter by businessId to ensure data isolation", () => {
+    it("queries should filter by workspaceId to ensure data isolation", () => {
       // No query should return pages from other businesses
       expect(true).toBe(true);
     });
@@ -364,10 +364,10 @@ describe("Wiki Schema Tests", () => {
 
 describe("Wiki Backend Functions (Phase 2 - Implementation)", () => {
   describe("Query: getTree", () => {
-    it("should return departments for a business (structure verified in schema)", () => {
+    it("should return departments for a workspace (structure verified in schema)", () => {
       // getTree builds a tree by:
-      // 1. Query wikiPages by_business_type where type="department"
-      // 2. For each dept, recursively query by_business_parent for children
+      // 1. Query wikiPages by_workspace_type where type="department"
+      // 2. For each dept, recursively query by_workspace_parent for children
       // 3. Return hierarchical structure sorted by position
       expect(true).toBe(true);
     });
@@ -467,8 +467,8 @@ describe("Wiki Backend Functions (Phase 2 - Implementation)", () => {
       expect(true).toBe(true);
     });
 
-    it("should filter by businessId to ensure isolation", () => {
-      // .eq("businessId", businessId) in search index
+    it("should filter by workspaceId to ensure isolation", () => {
+      // .eq("workspaceId", workspaceId) in search index
       expect(true).toBe(true);
     });
 

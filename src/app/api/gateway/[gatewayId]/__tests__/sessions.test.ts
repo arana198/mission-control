@@ -15,7 +15,7 @@ jest.mock('@/services/gatewayRpc', () => ({
 jest.mock('@/convex/_generated/api', () => ({
   api: {
     gateways: {
-      getById: 'gateways:getById',
+      getWorkspaceById: 'gateways:getWorkspaceById',
     },
   },
 }));

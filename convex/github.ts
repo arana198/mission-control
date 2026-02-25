@@ -42,32 +42,32 @@ async function fetchLocalCommitsInternal(repoPath: string, limit: number): Promi
 
 /**
  * Save settings value
- * Supports both global (no businessId) and business-scoped (with businessId)
+ * Supports both global (no workspaceId) and workspace-scoped (with workspaceId)
  */
 export const setSetting = mutation({
   args: {
     key: convexVal.string(),
     value: convexVal.string(),
-    businessId: convexVal.optional(convexVal.id("businesses")),
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),
   },
-  handler: async (ctx, { key, value, businessId }) => {
+  handler: async (ctx, { key, value, workspaceId }) => {
     let existing;
 
-    if (businessId) {
-      // Business-scoped setting
+    if (workspaceId) {
+      // -scoped setting
       existing = await ctx.db
         .query("settings")
-        .withIndex("by_business_key", (indexQuery: any) =>
-          indexQuery.eq("businessId", businessId).eq("key", key)
+        .withIndex("by_workspace_key", (indexQuery: any) =>
+          indexQuery.eq("workspaceId", workspaceId).eq("key", key)
         )
         .first();
     } else {
-      // Global setting (no businessId)
+      // Global setting (no workspaceId)
       const allMatching = await ctx.db
         .query("settings")
         .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
         .collect();
-      existing = allMatching.find((s: any) => !s.businessId);
+      existing = allMatching.find((s: any) => !s.workspaceId);
     }
 
     if (existing) {
@@ -77,7 +77,7 @@ export const setSetting = mutation({
       return await ctx.db.insert("settings", {
         key,
         value,
-        businessId: businessId || undefined,
+        workspaceId: workspaceId || undefined,
         updatedAt: Date.now(),
       });
     }
@@ -86,31 +86,31 @@ export const setSetting = mutation({
 
 /**
  * Get setting value
- * Supports both global (no businessId) and business-scoped (with businessId)
+ * Supports both global (no workspaceId) and workspace-scoped (with workspaceId)
  */
 export const getSetting = query({
   args: {
     key: convexVal.string(),
-    businessId: convexVal.optional(convexVal.id("businesses")),
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),
   },
-  handler: async (ctx, { key, businessId }) => {
+  handler: async (ctx, { key, workspaceId }) => {
     let setting;
 
-    if (businessId) {
-      // Business-scoped setting
+    if (workspaceId) {
+      // -scoped setting
       setting = await ctx.db
         .query("settings")
-        .withIndex("by_business_key", (indexQuery: any) =>
-          indexQuery.eq("businessId", businessId).eq("key", key)
+        .withIndex("by_workspace_key", (indexQuery: any) =>
+          indexQuery.eq("workspaceId", workspaceId).eq("key", key)
         )
         .first();
     } else {
-      // Global setting (no businessId)
+      // Global setting (no workspaceId)
       const allMatching = await ctx.db
         .query("settings")
         .withIndex("by_key", (indexQuery: any) => indexQuery.eq("key", key))
         .collect();
-      setting = allMatching.find((s: any) => !s.businessId);
+      setting = allMatching.find((s: any) => !s.workspaceId);
     }
 
     return setting?.value || null;
@@ -275,8 +275,8 @@ export const getCommitsForTask: any = action({
 
     // Extract ticket IDs from task title, tags, and ticketNumber
     // Get ticket prefix and custom pattern from settings
-    const ticketPrefix = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPrefix", businessId: (task as any).businessId });
-    const customPattern = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPattern", businessId: (task as any).businessId });
+    const ticketPrefix = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPrefix", workspaceId: (task as any).workspaceId });
+    const customPattern = await ctx.runQuery((api as any).github.getSetting, { key: "ticketPattern", workspaceId: (task as any).workspaceId });
 
     // Derive pattern from prefix if no custom pattern is set
     let pattern = DEFAULT_TICKET_PATTERN;
@@ -323,7 +323,7 @@ export const getCommitsForTask: any = action({
         commits: [],
         receipts: task.receipts || [],
         matchedTicketIds: uniqueTicketIds,
-        error: "No GitHub repo configured. Configure in business settings.",
+        error: "No GitHub repo configured. Configure in workspace settings.",
       };
     }
 

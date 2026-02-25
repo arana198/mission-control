@@ -35,7 +35,7 @@ export const requestWake = mutation({
     });
 
     // Note: Activity logging skipped for system-level agent wake requests
-    // (agents are shared across businesses, not tied to a specific businessId)
+    // (agents are shared across businesses, not tied to a specific workspaceId)
 
     // Update agent status to show wake requested
     await ctx.db.patch(agentId, {

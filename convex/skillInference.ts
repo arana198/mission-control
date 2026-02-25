@@ -50,7 +50,7 @@ function detectSkillLevel(taskCount: number): "junior" | "mid" | "senior" {
  */
 export const inferAgentSkills = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     agentId: v.id("agents"),
   },
   handler: async (ctx, args) => {
@@ -149,15 +149,15 @@ export const getAgentSkills = query({
 });
 
 /**
- * Get skills by business (for reporting)
+ * Get skills by workspace (for reporting)
  */
-export const getSkillsByBusiness = query({
+export const getSkillsBy = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
-    // Note: Agents are global (not business-scoped), so we return all agent skills
-    // In the future, if agents become business-scoped, filter by businessId
+    // Note: Agents are global (not workspace-scoped), so we return all agent skills
+    // In the future, if agents become workspace-scoped, filter by workspaceId
     const allAgentSkills = await ctx.db.query("agentSkills" as any).collect();
     const skills = (allAgentSkills as any[]);
 

@@ -12,11 +12,11 @@ import { Id } from "./_generated/dataModel";
 /**
  * PHASE 1: getSystemHealth() - Query
  *
- * Aggregate health metrics across all agents in a business.
+ * Aggregate health metrics across all agents in a workspace.
  *
  * Signature:
  *   export const getSystemHealth = query({
- *     args: { businessId: v.id("businesses") },
+ *     args: { workspaceId: v.id("workspaces") },
  *     handler: async (ctx, args) => {
  *       return { totalAgents, activeAgents, idleAgents, failedAgents, ... }
  *     }
@@ -49,11 +49,11 @@ import { Id } from "./_generated/dataModel";
  */
 export const getSystemHealth = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
-    // Step 1: Get all agents (agents are global, not per-business)
-    // For business-specific health, caller should filter by businessId separately
+    // Step 1: Get all agents (agents are global, not per-workspace)
+    // For business-specific health, caller should filter by workspaceId separately
     const agents = await ctx.db
       .query("agents")
       .collect();
@@ -453,7 +453,7 @@ export const detectAgentTimeout = mutation({
  */
 export const getSystemHealthFixed = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     // Get all agents

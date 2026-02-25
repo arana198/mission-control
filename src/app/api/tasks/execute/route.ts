@@ -216,7 +216,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     // Query execution status from Convex
-    // const execution = await client.query(api.executionLog.getById, { id: executionId })
+    // const execution = await client.query(api.executionLog.getWorkspaceById, { id: executionId })
 
     return new Response(
       JSON.stringify({

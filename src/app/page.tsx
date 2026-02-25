@@ -7,18 +7,18 @@ import { api } from "@/convex/_generated/api";
 import { LoadingSkeleton } from "@/components/LoadingSkeletons";
 
 /**
- * Root page redirects to default business overview
- * In multi-business mode, always goes to /<businessSlug>/overview
- * Falls back to /global/overview if no default business exists
+ * Root page redirects to default workspace overview
+ * In multi-workspace mode, always goes to /<workspaceSlug>/overview
+ * Falls back to /global/overview if no default workspace exists
  */
 export default function Home() {
   const router = useRouter();
-  const defaultBusiness = useQuery(api.businesses.getDefault);
-  const localStorage_slug = typeof window !== "undefined" ? localStorage.getItem("mission-control:businessSlug") : null;
-  const businesses = useQuery(api.businesses.getAll);
+  const defaultWorkspace = useQuery(api.workspaces.getDefaultWorkspace);
+  const savedSlug = typeof window !== "undefined" ? localStorage.getItem("mission-control:workspaceSlug") : null;
+  const allWorkspaces = useQuery(api.workspaces.getAll);
 
   useEffect(() => {
-    // Simply redirect to overview - business context is handled by BusinessProvider
+    // Simply redirect to overview - workspace context is handled by WorkspaceProvider
     router.push("/overview");
   }, [router]);
 

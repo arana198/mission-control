@@ -12,14 +12,14 @@ export const dynamic = "force-dynamic";
  * Phase 6B: Observability Dashboard using Phase 5 queries
  */
 export default function ControlPage() {
-  // Get first available business to satisfy query requirement
-  const businesses = useQuery(api.businesses.getAll);
-  const businessId = businesses?.[0]?._id;
+  // Get first available workspace to satisfy query requirement
+  const businesses = useQuery(api.workspaces.getAll);
+  const workspaceId = businesses?.[0]?._id;
 
   // Phase 5 Observability Queries
   const systemHealth = useQuery(
     api.agentLifecycle.getSystemHealthFixed,
-    businessId ? { businessId } : "skip"
+    workspaceId ? { workspaceId } : "skip"
   );
   const recentExecutions = useQuery(api.executions.getRecentExecutions, {
     limit: 20,

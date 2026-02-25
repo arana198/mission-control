@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-export interface Business {
+export interface Workspace {
   _id: string;
   name: string;
   slug: string;
@@ -18,107 +18,107 @@ export interface Business {
   updatedAt: number;
 }
 
-interface BusinessContextType {
-  currentBusiness: Business | null;
-  businesses: Business[];
-  setCurrentBusiness: (business: Business) => void;
+interface WorkspaceContextType {
+  currentWorkspace:  | null;
+  businesses: [];
+  setCurrentWorkspace: (business: ) => void;
   isLoading: boolean;
 }
 
-const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
+const Context = createContext<ContextType | undefined>(undefined);
 
-export function BusinessProvider({ children }: { children: React.ReactNode }) {
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
-  const [currentBusiness, setCurrentBusinessState] = useState<Business | null>(null);
+  const [currentWorkspace, setCurrentWorkspaceState] = useState< | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Query all businesses with fallback to empty array
-  const businesses = useQuery(api.businesses.getAll);
-  const defaultBusiness = useQuery(api.businesses.getDefault);
+  const businesses = useQuery(api.workspaces.getAll);
+  const default = useQuery(api.workspaces.getDefaultWorkspace);
 
   // Provide default empty arrays if queries are still loading
   const businessesData = businesses ?? [];
-  const defaultBusinessData = defaultBusiness ?? null;
+  const defaultData = default ?? null;
 
-  // Determine current business from URL or fallback
+  // Determine current workspace from URL or fallback
   useEffect(() => {
     // If data is still loading (null), don't proceed
-    if (businesses === undefined || defaultBusiness === undefined) {
+    if (businesses === undefined || default === undefined) {
       return;
     }
 
-    // If we have no businesses data, set loading and return
+    // If we have no businesses data, clear loading (empty state is valid)
     if (businessesData.length === 0) {
-      setIsLoading(true);
+      setIsLoading(false);
       return;
     }
 
-    let business: Business | null = null;
+    let business:  | null = null;
 
     // 1. Try to get businessSlug from URL params
     const businessSlug = params?.businessSlug as string;
     if (businessSlug) {
-      business = businessesData.find((b) => b.slug === businessSlug) || null;
+      workspace = businessesData.find((b) => b.slug === businessSlug) || null;
     }
 
     // 2. Fall back to localStorage
-    if (!business) {
+    if (!workspace) {
       const savedSlug = localStorage.getItem("mission-control:businessSlug");
       if (savedSlug) {
-        business = businessesData.find((b) => b.slug === savedSlug) || null;
+        workspace = businessesData.find((b) => b.slug === savedSlug) || null;
       }
     }
 
     // 3. Fall back to default business
-    if (!business && defaultBusinessData) {
-      business = defaultBusinessData;
+    if (!business && defaultData) {
+      workspace = defaultData;
     }
 
     // 4. Fall back to first business
     if (!business && businessesData.length > 0) {
-      business = businessesData[0];
+      workspace = businessesData[0];
     }
 
-    setCurrentBusinessState(business);
+    setCurrentWorkspaceState(workspace);
     setIsLoading(false);
 
     // Save to localStorage for persistence
-    if (business) {
-      localStorage.setItem("mission-control:businessSlug", business.slug);
+    if (workspace) {
+      localStorage.setItem("mission-control:businessSlug", workspace.slug);
     }
-  }, [businesses, defaultBusiness, businessesData, defaultBusinessData, params?.businessSlug]);
+  }, [workspacees, default, businessesData, defaultData, params?.businessSlug]);
 
   // Handle switching to a different business
-  const setCurrentBusiness = (business: Business) => {
-    setCurrentBusinessState(business);
-    localStorage.setItem("mission-control:businessSlug", business.slug);
+  const setCurrentWorkspace = (business: ) => {
+    setCurrentWorkspaceState(workspace);
+    localStorage.setItem("mission-control:businessSlug", workspace.slug);
 
     // Determine current tab from URL
     const currentTab = (params?.tab as string) || "overview";
 
-    // Navigate to new business with same tab
-    router.push(`/${business.slug}/${currentTab}`);
+    // Navigate to new workspace with same tab
+    router.push(`/${workspace.slug}/${currentTab}`);
   };
 
   return (
-    <BusinessContext.Provider
+    <Context.Provider
       value={{
-        currentBusiness,
+        currentWorkspace,
         businesses: businessesData,
-        setCurrentBusiness,
+        setCurrentWorkspace,
         isLoading,
       }}
     >
       {children}
-    </BusinessContext.Provider>
+    </Context.Provider>
   );
 }
 
-export function useBusiness() {
-  const context = useContext(BusinessContext);
+export function useWorkspace() {
+  const context = useContext(Context);
   if (context === undefined) {
-    throw new Error("useBusiness must be used within a BusinessProvider");
+    throw new Error("useWorkspace must be used within a WorkspaceProvider");
   }
   return context;
 }

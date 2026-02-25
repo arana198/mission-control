@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import {
   Brain, Search, FileText, Calendar, Target, Users,
   Clock, Tag, Filter, BookOpen, Database, Zap,
@@ -53,7 +53,7 @@ interface KnowledgeItem {
 }
 
 export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Activity[] }) {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<KnowledgeItem | null>(null);
@@ -73,12 +73,12 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
 
   // Fetch latest strategic report - always call hook, conditionally return data
   const latestReport = useQuery(api.strategicReports.getLatest,
-    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+    currentWorkspace ? { workspaceId: currentWorkspace._id as Id<"workspaces"> } : "skip"
   );
 
   // Fetch pattern insights from activity analysis (Phase 4D)
   const patternInsights = useQuery(api.goals.getPatternInsights,
-    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+    currentWorkspace ? { workspaceId: currentWorkspace._id as Id<"workspaces"> } : "skip"
   );
 
   // Always call mutations at component level (never conditionally)

@@ -2,31 +2,31 @@
 
 import React from "react";
 
-interface Business {
+interface Workspace {
   _id: string;
   name: string;
   emoji?: string;
   color?: string;
 }
 
-interface BusinessBadgeProps {
-  business: Business | null;
+interface WorkspaceBadgeProps {
+  business:  | null;
   variant?: "inline" | "small" | "large" | "emoji-only";
   onClick?: () => void;
 }
 
 /**
- * BusinessBadge Component
- * Shows business info in activity entries and other contexts
+ * WorkspaceBadge Component
+ * Shows workspace info in activity entries and other contexts
  * Displays emoji, name, and color styling
  */
-export function BusinessBadge({ business, variant = "inline", onClick }: BusinessBadgeProps) {
-  if (!business) {
-    return <span className="text-muted-foreground text-sm">Unknown Business</span>;
+export function WorkspaceBadge({ workspace, variant = "inline", onClick }: WorkspaceBadgeProps) {
+  if (!workspace) {
+    return <span className="text-muted-foreground text-sm">Unknown </span>;
   }
 
   // Determine background and text colors
-  const bgColor = business.color || "#6366f1";
+  const bgColor =  workspace.color || "#6366f1";
   const style = {
     backgroundColor: bgColor,
     color: "white",
@@ -35,12 +35,12 @@ export function BusinessBadge({ business, variant = "inline", onClick }: Busines
   if (variant === "emoji-only") {
     return (
       <span
-        title={business.name}
+        title={ workspace.name}
         className="inline-flex items-center justify-center w-6 h-6 rounded-full text-sm cursor-pointer hover:opacity-80 transition-opacity"
         style={style}
         onClick={onClick}
       >
-        {business.emoji || "•"}
+        { workspace.emoji || "•"}
       </span>
     );
   }
@@ -52,8 +52,8 @@ export function BusinessBadge({ business, variant = "inline", onClick }: Busines
         style={style}
         onClick={onClick}
       >
-        {business.emoji && <span>{business.emoji}</span>}
-        <span className="truncate">{business.name}</span>
+        { workspace.emoji && <span>{ workspace.emoji}</span>}
+        <span className="truncate">{ workspace.name}</span>
       </span>
     );
   }
@@ -65,8 +65,8 @@ export function BusinessBadge({ business, variant = "inline", onClick }: Busines
         style={style}
         onClick={onClick}
       >
-        {business.emoji && <span className="text-2xl">{business.emoji}</span>}
-        <span>{business.name}</span>
+        { workspace.emoji && <span className="text-2xl">{ workspace.emoji}</span>}
+        <span>{ workspace.name}</span>
       </span>
     );
   }
@@ -78,8 +78,8 @@ export function BusinessBadge({ business, variant = "inline", onClick }: Busines
       style={style}
       onClick={onClick}
     >
-      {business.emoji && <span>{business.emoji}</span>}
-      <span className="truncate">{business.name}</span>
+      { workspace.emoji && <span>{ workspace.emoji}</span>}
+      <span className="truncate">{ workspace.name}</span>
     </span>
   );
 }

@@ -59,7 +59,7 @@ function inferTagsFromContent(title: string, description: string): string[] {
 
 export const createTask = mutation({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     title: convexVal.string(),
     description: convexVal.string(),
     priority: convexVal.optional(convexVal.union(convexVal.literal("P0"), convexVal.literal("P1"), convexVal.literal("P2"), convexVal.literal("P3"))),
@@ -74,7 +74,7 @@ export const createTask = mutation({
   handler: wrapConvexHandler(async (
     ctx,
     {
-      businessId,
+      workspaceId,
       title,
       description,
       priority = "P2",
@@ -127,9 +127,9 @@ export const createTask = mutation({
     // OBS-01: Apply inferred tags if none provided
     const finalTags = tags.length > 0 ? tags : inferTagsFromContent(title, description);
 
-    // Create task (now includes businessId for multi-tenant isolation)
+    // Create task (now includes workspaceId for multi-tenant isolation)
     const taskId = await ctx.db.insert("tasks", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       title,
       description,
       status: "backlog",
@@ -155,24 +155,24 @@ export const createTask = mutation({
       await syncEpicTaskLink(ctx, taskId, undefined, epicId);
     }
 
-    // TKT-01: Assign atomic ticket number per business (ACME-001, ACME-002... per business)
+    // TKT-01: Assign atomic ticket number per workspace (ACME-001, ACME-002... per business)
     const counterSetting = await ctx.db
       .query("settings")
-      .withIndex("by_business_key", (q: any) => q.eq("businessId", businessId).eq("key", "taskCounter"))
+      .withIndex("by_workspace_key", (q: any) => q.eq("workspaceId", workspaceId).eq("key", "taskCounter"))
       .first();
     const nextNum = counterSetting ? parseInt((counterSetting as any).value) + 1 : 1;
 
-    // Get ticket prefix from business settings, fallback to "TASK"
+    // Get ticket prefix from workspace settings, fallback to "TASK"
     const prefixSetting = await ctx.db
       .query("settings")
-      .withIndex("by_business_key", (q: any) => q.eq("businessId", businessId).eq("key", "ticketPrefix"))
+      .withIndex("by_workspace_key", (q: any) => q.eq("workspaceId", workspaceId).eq("key", "ticketPrefix"))
       .first();
     const prefix = prefixSetting ? (prefixSetting as any).value : "TASK";
 
     const ticketNumber = `${prefix}-${String(nextNum).padStart(3, "0")}`;
     await ctx.db.patch(taskId, { ticketNumber } as any);
 
-    // Upsert per-business counter in settings
+    // Upsert per-workspace counter in settings
     if (counterSetting) {
       await ctx.db.patch((counterSetting as any)._id, {
         value: String(nextNum),
@@ -180,7 +180,7 @@ export const createTask = mutation({
       });
     } else {
       await ctx.db.insert("settings", {
-        businessId,  // ADD: business scoping
+        workspaceId,  // ADD: workspace scoping
         key: "taskCounter",
         value: "1",
         updatedAt: Date.now(),
@@ -190,7 +190,7 @@ export const createTask = mutation({
     // Log activity (LOG-01: resolve actor name)
     const actorName = await resolveActorName(ctx, createdBy);
     await ctx.db.insert("activities", {
-      businessId,  // ADD: business scoping
+      workspaceId,  // ADD: workspace scoping
       type: "task_created",
       agentId: createdBy,
       agentName: actorName,
@@ -209,7 +209,7 @@ export const createTask = mutation({
 
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
-          businessId,  // ADD: business scoping
+          workspaceId,  // ADD: workspace scoping
           agentId,
           taskId,
           level: "all",
@@ -239,12 +239,12 @@ export const createTask = mutation({
 // Comment counts available via separate query if needed
 export const getAllTasks = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .order("desc")
       .take(500);
     return allTasks;
@@ -274,15 +274,15 @@ export const getTaskById = query({
 // Get task by ticket number (human-readable ID like "MC-001")
 export const getTaskByTicketNumber = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     ticketNumber: convexVal.string(),
   },
-  handler: async (ctx, { businessId, ticketNumber }) => {
+  handler: async (ctx, { workspaceId, ticketNumber }) => {
     // Use by_ticket_number index (added in MIG-10) for fast lookup
     return await ctx.db
       .query("tasks")
       .withIndex("by_ticket_number", (q: any) =>
-        q.eq("businessId", businessId).eq("ticketNumber", ticketNumber)
+        q.eq("workspaceId", workspaceId).eq("ticketNumber", ticketNumber)
       )
       .first();
   },
@@ -328,7 +328,7 @@ export const moveStatus = mutation({
 // Get tasks by status (L-02 fix: added limit to prevent large collections)
 export const getByStatus = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     status: convexVal.union(
       convexVal.literal("backlog"),
       convexVal.literal("ready"),
@@ -339,10 +339,10 @@ export const getByStatus = query({
     ),
     limit: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { businessId, status, limit = 200 }) => {
+  handler: async (ctx, { workspaceId, status, limit = 200 }) => {
     return await ctx.db
       .query("tasks")
-      .withIndex("by_business_status", (q: any) => q.eq("businessId", businessId).eq("status", status))
+      .withIndex("by_workspace_status", (q: any) => q.eq("workspaceId", workspaceId).eq("status", status))
       .order("desc")
       .take(limit);
   },
@@ -351,17 +351,17 @@ export const getByStatus = query({
 // Get tasks assigned to specific agent (H-01 fix: scope to active tasks only)
 export const getForAgent = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     agentId: convexVal.id("agents"),
     limit: convexVal.optional(convexVal.number()), // Optional limit to prevent large scans
   },
-  handler: async (ctx, { businessId, agentId, limit = 50 }) => {
+  handler: async (ctx, { workspaceId, agentId, limit = 50 }) => {
     // Only load active/in-progress tasks to limit scope, not all tasks
     // Note: Convex doesn't support array membership queries via indexes
     // This is a known limitation - full scan is necessary here
     const tasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business_status", (q: any) => q.eq("businessId", businessId).eq("status", "in_progress"))
+      .withIndex("by_workspace_status", (q: any) => q.eq("workspaceId", workspaceId).eq("status", "in_progress"))
       .take(limit * 2); // Load more than limit to account for filtering
 
     // Filter to assigned tasks
@@ -373,7 +373,7 @@ export const getForAgent = query({
 // Get filtered tasks (for agent API queries)
 export const getFiltered = query({
   args: {
-    businessId: convexVal.id("businesses"),  // REQUIRED: business scoping
+    workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
     agentId: convexVal.id("agents"),
     status: convexVal.optional(convexVal.string()),
     priority: convexVal.optional(convexVal.string()),
@@ -383,7 +383,7 @@ export const getFiltered = query({
   },
   handler: async (
     ctx,
-    { businessId, agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
+    { workspaceId, agentId, status, priority, assignedToMe = false, limit = 50, offset = 0 }
   ) => {
     // Safety cap: hard limit of 200 records to prevent OOM
     const cap = Math.min(limit || 50, 200);
@@ -391,13 +391,13 @@ export const getFiltered = query({
     let tasks = await (status
       ? ctx.db
           .query("tasks")
-          .withIndex("by_business_status", (q: any) =>
-            q.eq("businessId", businessId).eq("status", status as any)
+          .withIndex("by_workspace_status", (q: any) =>
+            q.eq("workspaceId", workspaceId).eq("status", status as any)
           )
           .take(cap)
       : ctx.db
           .query("tasks")
-          .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+          .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
           .take(cap));
 
     // Apply priority filter
@@ -457,7 +457,7 @@ export const assign = mutation({
     // L-04 fix: Use agent name, not ID, in activity log
     const assigner = await ctx.db.get(assignedBy);
     await ctx.db.insert("activities", {
-      businessId: task.businessId,  // ADD: inherit businessId from task
+      workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
       type: "task_assigned",
       agentId: assignedBy,
       agentName: assigner?.name || String(assignedBy),
@@ -476,7 +476,7 @@ export const assign = mutation({
 
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
-          businessId: task.businessId,  // ADD: inherit businessId from task
+          workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
           agentId,
           taskId,
           level: "all",
@@ -563,7 +563,7 @@ export const updateStatus = mutation({
     const actorId = updatedBy || "system";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
-      businessId: task.businessId,  // ADD: inherit businessId from task
+      workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
       type: activityType,
       agentId: actorId,
       agentName: actorName,
@@ -702,7 +702,7 @@ export const update = mutation({
     if (patch.status && patch.status !== task.status) {
       const actorName = await resolveActorName(ctx, "user");
       await ctx.db.insert("activities", {
-        businessId: task.businessId,  // ADD: inherit businessId from task
+        workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
         type: patch.status === "done" ? "task_completed" : "task_updated",
         agentId: "user",
         agentName: actorName,
@@ -804,7 +804,7 @@ export const autoClaim = internalAction({
             });
 
             notifiedAgents.add(assignee.id);
-            const bId = task.businessId as string;
+            const bId = task.workspaceId as string;
             notifiedCount[bId] = (notifiedCount[bId] ?? 0) + 1;
 
             results.push({
@@ -818,10 +818,10 @@ export const autoClaim = internalAction({
         } catch (err) {
           // PHASE 6: Log assignment errors to activities table for audit trail
           const errMsg = err instanceof Error ? err.message : String(err);
-          const bId = task.businessId as string;
+          const bId = task.workspaceId as string;
 
           await ctx.runMutation(api.activities.create, {
-            businessId: bId as any,
+            workspaceId: bId as any,
             type: "task_assigned",
             agentId: "system",
             agentName: "Mission Control",
@@ -842,13 +842,13 @@ export const autoClaim = internalAction({
       }
     }
 
-    // PHASE 6: Log per-business activity logs instead of single cross-business log
-    const businessIds = Object.keys(notifiedCount);
-    for (const bId of businessIds) {
+    // PHASE 6: Log per-workspace activity logs instead of single cross-business log
+    const workspaceIds = Object.keys(notifiedCount);
+    for (const bId of workspaceIds) {
       const count = notifiedCount[bId];
       if (count > 0) {
         await ctx.runMutation(api.activities.create, {
-          businessId: bId as any,
+          workspaceId: bId as any,
           type: "task_assigned",
           agentId: "system",
           agentName: "Mission Control",
@@ -896,7 +896,7 @@ export const unassign = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,  // ADD: inherit businessId from task
+      workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
       type: "task_updated",
       agentId: unassignedBy || "system",
       agentName: unassignedBy || "system",
@@ -993,7 +993,7 @@ export const smartAssign = mutation({
 
       if (!existing) {
         await ctx.db.insert("threadSubscriptions", {
-          businessId: task.businessId,  // ADD: inherit businessId from task
+          workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
           agentId: agentId as any,
           taskId,
           level: "all",
@@ -1011,7 +1011,7 @@ export const smartAssign = mutation({
     const actorId = assignedBy?.toString() || "system:auto-assign";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
-      businessId: task.businessId,  // ADD: inherit businessId from task
+      workspaceId: task.workspaceId,  // ADD: inherit workspaceId from task
       type: "task_assigned",
       agentId: actorId,
       agentName: actorName,
@@ -1162,7 +1162,7 @@ export const createSubtask = mutation({
 
     // Create subtask
     const subtaskId = await ctx.db.insert("tasks", {
-      businessId: parent.businessId,  // ADD: inherit businessId from parent
+      workspaceId: parent.workspaceId,  // ADD: inherit workspaceId from parent
       title,
       description: description || "",
       status: "backlog",
@@ -1190,7 +1190,7 @@ export const createSubtask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: parent.businessId,  // ADD: inherit businessId from parent
+      workspaceId: parent.workspaceId,  // ADD: inherit workspaceId from parent
       type: "task_created",
       agentId: createdBy,
       agentName: createdBy,
@@ -1330,7 +1330,7 @@ export const deleteTask = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_updated",
       agentId: deletedBy,
       agentName: deletedBy,
@@ -1398,7 +1398,7 @@ export const addDependency = mutation({
 
       // Log the automatic status change
       await ctx.db.insert("activities", {
-        businessId: task.businessId,
+        workspaceId: task.workspaceId,
         type: "task_blocked",
         agentId: addedBy,
         agentName: addedBy,
@@ -1413,7 +1413,7 @@ export const addDependency = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "dependency_added",
       agentId: addedBy,
       agentName: addedBy,
@@ -1478,7 +1478,7 @@ export const removeDependency = mutation({
       });
 
       await ctx.db.insert("activities", {
-        businessId: task.businessId,
+        workspaceId: task.workspaceId,
         type: "task_updated",
         agentId: removedBy,
         agentName: removedBy,
@@ -1508,7 +1508,7 @@ export const removeDependency = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "dependency_removed",
       agentId: removedBy,
       agentName: removedBy,
@@ -1563,7 +1563,7 @@ export const completeByAgent = mutation({
 
     // Log activity
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "task_completed",
       agentId: agentId,
       agentName: agent.name,
@@ -1612,7 +1612,7 @@ export const addTags = mutation({
     const actorId = updatedBy || "system";
     const actorName = await resolveActorName(ctx, actorId);
     await ctx.db.insert("activities", {
-      businessId: task.businessId,
+      workspaceId: task.workspaceId,
       type: "tags_updated",
       agentId: actorId,
       agentName: actorName,
@@ -1727,15 +1727,15 @@ export const removeChecklistItem = mutation({
 
 export const getInboxForAgent = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     agentId: convexVal.id("agents"),
   },
-  handler: async (ctx, { businessId, agentId }) => {
+  handler: async (ctx, { workspaceId, agentId }) => {
     // PERF: Phase 5C - Cap results at 200 to prevent unbounded queries
-    // Fetch tasks for the business with cap and descending order
+    // Fetch tasks for the workspace with cap and descending order
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .order("desc")
       .take(200);
 
@@ -1783,17 +1783,17 @@ export const getInboxForAgent = query({
  */
 export const getStaleTaskIds = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     staleHours: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { businessId, staleHours = 24 }) => {
+  handler: async (ctx, { workspaceId, staleHours = 24 }) => {
     // Calculate cutoff timestamp (staleHours in the past)
     const cutoff = Date.now() - staleHours * 60 * 60 * 1000;
 
     // Fetch all tasks for the business
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     // Find tasks that are blocked or in_progress AND older than cutoff
@@ -1815,12 +1815,12 @@ export const getStaleTaskIds = query({
  */
 export const getCycleTimeMetrics = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     // Filter for completed tasks with both startedAt and completedAt
@@ -1892,19 +1892,19 @@ export const getCycleTimeMetrics = query({
  */
 export const getVelocityByWeek = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     weeks: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { businessId, weeks = 8 }) => {
+  handler: async (ctx, { workspaceId, weeks = 8 }) => {
     const now = Date.now();
     const weekMs = 7 * 24 * 60 * 60 * 1000;
     const cutoff = now - weeks * weekMs;
 
-    // Get task_completed activities for the business in the time range
+    // Get task_completed activities for the workspace in the time range
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_business_created_at", (q: any) =>
-        q.eq("businessId", businessId).gte("createdAt", cutoff)
+      .withIndex("by_workspace_created_at", (q: any) =>
+        q.eq("workspaceId", workspaceId).gte("createdAt", cutoff)
       )
       .collect();
 
@@ -1936,17 +1936,17 @@ export const getVelocityByWeek = query({
 });
 
 /**
- * GET status overview for business tasks (Phase 4B)
+ * GET status overview for workspace tasks (Phase 4B)
  * Shows task distribution by status and priority, plus completion rate
  */
 export const getStatusOverview = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
-  handler: async (ctx, { businessId }) => {
+  handler: async (ctx, { workspaceId }) => {
     const allTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_business", (q: any) => q.eq("businessId", businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .collect();
 
     const total = allTasks.length;

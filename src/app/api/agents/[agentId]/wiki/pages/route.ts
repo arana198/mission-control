@@ -5,7 +5,7 @@
  *
  * Query params:
  *   agentKey (REQUIRED) - Agent authentication key
- *   businessId (REQUIRED) - Business ID for scoping
+ *   workspaceId (REQUIRED) -  ID for scoping
  *
  * Request body:
  *   title (REQUIRED) - Page title
@@ -38,7 +38,7 @@ export async function POST(
     // Parse query params
     const url = new URL(request.url);
     const agentKey = url.searchParams.get("agentKey");
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
 
     // Validate required params
     if (!agentKey) {
@@ -51,11 +51,11 @@ export async function POST(
       );
     }
 
-    if (!businessId) {
+    if (!workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "businessId query param is required" },
+          error: { code: "VALIDATION_ERROR", message: "workspaceId query param is required" },
         },
         400
       );
@@ -92,7 +92,7 @@ export async function POST(
 
     log.info("Agent creating wiki page", {
       agentId,
-      businessId,
+      workspaceId,
       title,
       parentId,
       hasContent: !!content,
@@ -103,7 +103,7 @@ export async function POST(
     if (parentId) {
       // Create sub-page
       pageId = await convex.mutation(api.wiki.createPage, {
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
         parentId: parentId as any,
         title: title.trim(),
         content: pageContent,
@@ -115,7 +115,7 @@ export async function POST(
     } else {
       // Create root page
       pageId = await convex.mutation(api.wiki.createDepartment, {
-        businessId: businessId as any,
+        workspaceId: workspaceId as any,
         title: title.trim(),
         createdBy: agentId,
         createdByName: `Agent: ${agent.name}`,
@@ -145,13 +145,13 @@ export async function GET(
   try {
     const url = new URL(request.url);
     const agentKey = url.searchParams.get("agentKey");
-    const businessId = url.searchParams.get("businessId");
+    const workspaceId = url.searchParams.get("workspaceId");
 
-    if (!agentKey || !businessId) {
+    if (!agentKey || !workspaceId) {
       return jsonResponse(
         {
           success: false,
-          error: { code: "VALIDATION_ERROR", message: "agentKey and businessId are required" },
+          error: { code: "VALIDATION_ERROR", message: "agentKey and workspaceId are required" },
         },
         400
       );
@@ -169,11 +169,11 @@ export async function GET(
       );
     }
 
-    log.info("Agent fetching wiki tree", { agentId, businessId });
+    log.info("Agent fetching wiki tree", { agentId, workspaceId });
 
     // Fetch wiki tree for the business
     const tree = await convex.query(api.wiki.getTree, {
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
     });
 
     return jsonResponse(

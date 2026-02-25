@@ -8,40 +8,40 @@ import type { QueryBuilder } from "convex/server";
  * Organization Members - RBAC (Role-Based Access Control)
  *
  * Handles:
- * - Member queries (by business, by user)
+ * - Member queries (by workspace, by user)
  * - Member mutations (add, update, remove)
  * - Board-level access control
  * - Permission checks (requireAdmin, requireOwner)
  */
 
 /**
- * Get all members for a business with their roles
+ * Get all members for a workspace with their roles
  */
 export const getMembers = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
   },
   async handler(ctx, args) {
     return await ctx.db
       .query("organizationMembers")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
   },
 });
 
 /**
- * Get single member by business + user
+ * Get single member by workspace + user
  */
 export const getMemberByUser = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     userId: convexVal.string(),
   },
   async handler(ctx, args) {
     return await ctx.db
       .query("organizationMembers")
-      .withIndex("by_business_user", (q: any) =>
-        q.eq("businessId", args.businessId).eq("userId", args.userId)
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", args.userId)
       )
       .first();
   },
@@ -52,7 +52,7 @@ export const getMemberByUser = query({
  */
 export const hasAccess = query({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     userId: convexVal.string(),
     requiredRole: convexVal.optional(
       convexVal.union(convexVal.literal("owner"), convexVal.literal("admin"), convexVal.literal("member"))
@@ -61,8 +61,8 @@ export const hasAccess = query({
   async handler(ctx, args) {
     const member = await ctx.db
       .query("organizationMembers")
-      .withIndex("by_business_user", (q: any) =>
-        q.eq("businessId", args.businessId).eq("userId", args.userId)
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", args.userId)
       )
       .first();
 
@@ -81,7 +81,7 @@ export const hasAccess = query({
  */
 export const addMember = mutation({
   args: {
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     userId: convexVal.string(),
     userEmail: convexVal.optional(convexVal.string()),
     userName: convexVal.optional(convexVal.string()),
@@ -93,8 +93,8 @@ export const addMember = mutation({
     // Check if member already exists
     const existing = await ctx.db
       .query("organizationMembers")
-      .withIndex("by_business_user", (q: any) =>
-        q.eq("businessId", args.businessId).eq("userId", args.userId)
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", args.userId)
       )
       .first();
 
@@ -103,7 +103,7 @@ export const addMember = mutation({
     }
 
     const memberId = await ctx.db.insert("organizationMembers", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       userId: args.userId,
       userEmail: args.userEmail,
       userName: args.userName,
@@ -162,7 +162,7 @@ export const removeMember = mutation({
     if (member.role === "owner") {
       const ownerCount = await ctx.db
         .query("organizationMembers")
-        .withIndex("by_business", (q) => q.eq("businessId", member.businessId))
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", member.workspaceId))
         .collect();
 
       const ownerMembers = ownerCount.filter((m) => m.role === "owner");
@@ -192,7 +192,7 @@ export const removeMember = mutation({
 export const setBoardAccess = mutation({
   args: {
     memberId: convexVal.id("organizationMembers"),
-    businessId: convexVal.id("businesses"),
+    workspaceId: convexVal.id("workspaces"),
     canRead: convexVal.boolean(),
     canWrite: convexVal.boolean(),
   },
@@ -201,7 +201,7 @@ export const setBoardAccess = mutation({
     const existing = await ctx.db
       .query("boardAccess")
       .withIndex("by_member_business", (q) =>
-        q.eq("memberId", args.memberId).eq("businessId", args.businessId)
+        q.eq("memberId", args.memberId).eq("workspaceId", args.workspaceId)
       )
       .first();
 
@@ -212,7 +212,7 @@ export const setBoardAccess = mutation({
       });
     } else {
       await ctx.db.insert("boardAccess", {
-        businessId: args.businessId,
+        workspaceId: args.workspaceId,
         memberId: args.memberId,
         canRead: args.canRead,
         canWrite: args.canWrite,
@@ -229,16 +229,16 @@ export const setBoardAccess = mutation({
  */
 
 /**
- * Require that user is admin+ for a business (throws ConvexError if not)
+ * Require that user is admin+ for a workspace (throws ConvexError if not)
  */
 export async function requireAdmin(
   ctx: any,
-  businessId: Id<"businesses">,
+  workspaceId: Id<"workspaces">,
   userId: string
 ): Promise<void> {
   const member = await ctx.db
     .query("organizationMembers")
-    .withIndex("by_business_user", (q: any) => q.eq("businessId", businessId).eq("userId", userId))
+    .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", workspaceId).eq("userId", userId))
     .first();
 
   if (!member) {
@@ -251,16 +251,16 @@ export async function requireAdmin(
 }
 
 /**
- * Require that user is owner for a business (throws ConvexError if not)
+ * Require that user is owner for a workspace (throws ConvexError if not)
  */
 export async function requireOwner(
   ctx: any,
-  businessId: Id<"businesses">,
+  workspaceId: Id<"workspaces">,
   userId: string
 ): Promise<void> {
   const member = await ctx.db
     .query("organizationMembers")
-    .withIndex("by_business_user", (q: any) => q.eq("businessId", businessId).eq("userId", userId))
+    .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", workspaceId).eq("userId", userId))
     .first();
 
   if (!member) {

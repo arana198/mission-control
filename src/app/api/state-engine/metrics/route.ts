@@ -11,17 +11,17 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const businessId = searchParams.get("businessId");
+    const workspaceId = searchParams.get("workspaceId");
 
-    if (!businessId) {
+    if (!workspaceId) {
       return Response.json(
-        { error: "businessId parameter required" },
+        { error: "workspaceId parameter required" },
         { status: 400 }
       );
     }
 
     const metrics = await convex.query(api.opsMetrics.getSnapshot, {
-      businessId: businessId as any,
+      workspaceId: workspaceId as any,
     });
 
     return Response.json(metrics);

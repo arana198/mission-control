@@ -7,10 +7,10 @@ import { AlertCircle, Zap, Clock, Trash2, Plus } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 
 interface AutomationsPanelProps {
-  businessId: Id<"businesses">;
+  workspaceId: Id<"workspaces">;
 }
 
-export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
+export function AutomationsPanel({ workspaceId }: AutomationsPanelProps) {
   const [showNewRuleForm, setShowNewRuleForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -21,9 +21,9 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
   });
 
   // Fetch alert rules and decisions
-  const alertRules = useQuery(api.alertRules.getByBusiness, { businessId });
-  const recentDecisions = useQuery(api.decisions.getByBusiness, {
-    businessId,
+  const alertRules = useQuery(api.alertRules.getBy, { workspaceId });
+  const recentDecisions = useQuery(api.decisions.getBy, {
+    workspaceId,
     limit: 20,
   });
 
@@ -36,7 +36,7 @@ export function AutomationsPanel({ businessId }: AutomationsPanelProps) {
     e.preventDefault();
     try {
       await createRule({
-        businessId,
+        workspaceId,
         name: formData.name,
         description: `Auto-created rule: ${formData.condition}`,
         condition: formData.condition,

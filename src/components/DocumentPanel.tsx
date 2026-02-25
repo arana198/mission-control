@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import { GlassCard } from "./ui/GlassCard";
 import {
   FileText, Plus, Search, Clock, FileCode,
@@ -30,8 +30,8 @@ const DOC_TYPE_COLORS = {
 };
 
 export function DocumentPanel() {
-  const { currentBusiness } = useBusiness();
-  const documents = currentBusiness ? useQuery(api.documents.getAll, { businessId: currentBusiness._id as any, limit: 50 }) : null;
+  const { currentWorkspace } = useWorkspace();
+  const documents = currentWorkspace ? useQuery(api.documents.getAll, { workspaceId: currentWorkspace._id as any, limit: 50 }) : null;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<any>(null);
@@ -59,7 +59,7 @@ export function DocumentPanel() {
     type: "draft",
   });
 
-  if (!currentBusiness || documents === undefined) {
+  if (!currentWorkspace || documents === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-violet-500" />

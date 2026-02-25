@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { useBusiness } from "./BusinessProvider";
+import { useWorkspace } from "./WorkspaceProvider";
 import {
   AlertTriangle, TrendingDown, Network, Clock, Users,
   ChevronDown, ChevronRight
@@ -30,24 +30,24 @@ const HIGH_RISK_PROGRESS = 25;
 const CRITICAL_RISK_PROGRESS = 10;
 
 export function BottleneckVisualizer() {
-  const { currentBusiness } = useBusiness();
+  const { currentWorkspace } = useWorkspace();
   const [view, setView] = useState<"heatmap" | "graph" | "path" | "agents">("heatmap");
 
   // Always call hooks in the same order - React requirement
   const goals = useQuery(api.goals.getByProgress);
   const tasks = useQuery(
     api.tasks.getAllTasks,
-    currentBusiness ? { businessId: currentBusiness._id as Id<"businesses"> } : "skip"
+    currentWorkspace ? { workspaceId: currentWorkspace._id as Id<"workspaces"> } : "skip"
   );
   const agents = useQuery(api.agents.getAllAgents);
   
-  // Handle missing business context for global routes
-  if (!currentBusiness) {
+  // Handle missing workspace context for global routes
+  if (!currentWorkspace) {
     return (
       <div className="p-8 text-center">
         <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Business Context Required</h3>
-        <p className="text-muted-foreground">Bottleneck analysis requires selecting a business. Use the business selector to choose a business.</p>
+        <h3 className="text-lg font-semibold mb-2"> Context Required</h3>
+        <p className="text-muted-foreground">Bottleneck analysis requires selecting a workspace. Use the workspace selector to choose a workspace.</p>
       </div>
     );
   }

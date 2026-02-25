@@ -1,28 +1,28 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E Tests: Business Management
- * Tests business operations: create, configure, settings, switch
+ * E2E Tests: Workspace Management
+ * Tests workspace operations: create, configure, settings, switch
  */
 
-test.describe('Business Management', () => {
+test.describe('Workspace Management', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/mission-control-hq/overview');
     await page.waitForLoadState('networkidle');
   });
 
-  test('should display business selector in sidebar', async ({ page }) => {
-    // Find business selector button
+  test('should display workspace selector in sidebar', async ({ page }) => {
+    // Find workspace selector button
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     await expect(selector).toBeVisible();
   });
 
-  test('should open business dropdown when clicked', async ({ page }) => {
+  test('should open workspace dropdown when clicked', async ({ page }) => {
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
@@ -36,13 +36,13 @@ test.describe('Business Management', () => {
 
   test('should list available businesses', async ({ page }) => {
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
       await selector.click();
 
-      // Business items should be visible
+      // (Workspace) items should be visible
       const businessItems = page.locator('button').filter({
         has: page.locator('text=/[^]+/i')
       }).nth(1);
@@ -55,7 +55,7 @@ test.describe('Business Management', () => {
 
   test('should switch to another business', async ({ page }) => {
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
@@ -64,16 +64,16 @@ test.describe('Business Management', () => {
       await selector.click();
 
       // Try to select another business
-      const otherBusiness = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
+      const other(Workspace) = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
 
-      if (await otherBusiness.isVisible()) {
-        await otherBusiness.click();
+      if (await other(Workspace).isVisible()) {
+        await other(Workspace).click();
 
         // Should navigate to same tab for that business
         await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 5000 }).catch(() => null);
 
         const finalUrl = page.url();
-        // URL should change (different business slug)
+        // URL should change (different workspace slug)
         expect(initialUrl !== finalUrl).toBeTruthy();
       }
     }
@@ -84,16 +84,16 @@ test.describe('Business Management', () => {
     expect(page.url()).toContain('/overview');
 
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
       await selector.click();
 
-      const otherBusiness = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
+      const other(Workspace) = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
 
-      if (await otherBusiness.isVisible()) {
-        await otherBusiness.click();
+      if (await other(Workspace).isVisible()) {
+        await other(Workspace).click();
 
         // Should still be on overview tab (for the new business)
         await page.waitForURL('**/overview', { timeout: 5000 }).catch(() => null);
@@ -103,7 +103,7 @@ test.describe('Business Management', () => {
     }
   });
 
-  test('should navigate to business settings', async ({ page }) => {
+  test('should navigate to workspace settings', async ({ page }) => {
     // Look for settings option or gear icon
     const settingsBtn = page.locator('button[aria-label*="Settings"], button[title*="Settings"]').first();
 
@@ -118,13 +118,13 @@ test.describe('Business Management', () => {
     }
   });
 
-  test('should display business info in settings', async ({ page }) => {
+  test('should display workspace info in settings', async ({ page }) => {
     // Navigate to settings
     await page.goto('/mission-control-hq/settings');
     await page.waitForLoadState('networkidle');
 
-    // Business name should be displayed
-    const businessName = page.locator('text=/Business|Project|Team Name/i').first();
+    // (Workspace) name should be displayed
+    const businessName = page.locator('text=/(Workspace)|Project|Team Name/i').first();
 
     if (await businessName.isVisible()) {
       await expect(businessName).toBeVisible();
@@ -132,9 +132,9 @@ test.describe('Business Management', () => {
   });
 
   test('should allow creating new business', async ({ page }) => {
-    // Look for "Create Business" or "New Business" button
+    // Look for "Create Workspace" or "New (Workspace)" button
     const createBtn = page.locator('button').filter({
-      has: page.locator('text=/Create Business|New Business|Add Business/i')
+      has: page.locator('text=/Create Workspace|New (Workspace)|Add (Workspace)/i')
     }).first();
 
     if (await createBtn.isVisible()) {
@@ -144,17 +144,17 @@ test.describe('Business Management', () => {
       const modal = page.locator('div[role="dialog"], form[class*="create"]').first();
       await expect(modal).toBeVisible({ timeout: 3000 });
 
-      // Form should have business name input
-      const nameInput = page.locator('input[placeholder*="Name"], input[placeholder*="Business"]').first();
+      // Form should have workspace name input
+      const nameInput = page.locator('input[placeholder*="Name"], input[placeholder*="Workspace"]').first();
       if (await nameInput.isVisible()) {
         await expect(nameInput).toBeVisible();
       }
     }
   });
 
-  test('should validate required fields in business creation', async ({ page }) => {
+  test('should validate required fields in workspace creation', async ({ page }) => {
     const createBtn = page.locator('button').filter({
-      has: page.locator('text=/Create Business|New Business|Add Business/i')
+      has: page.locator('text=/Create Workspace|New (Workspace)|Add (Workspace)/i')
     }).first();
 
     if (await createBtn.isVisible()) {
@@ -220,10 +220,10 @@ test.describe('Business Management', () => {
     }
   });
 
-  test('should display business logo/emoji', async ({ page }) => {
-    // Business selector or sidebar should show logo/emoji
+  test('should display workspace logo/emoji', async ({ page }) => {
+    // (Workspace) selector or sidebar should show logo/emoji
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
@@ -233,24 +233,24 @@ test.describe('Business Management', () => {
     }
   });
 
-  test('should show active business indicator', async ({ page }) => {
+  test('should show active workspace indicator', async ({ page }) => {
     const selector = page.locator('button').filter({
-      has: page.locator('text=/Select Business|Mission Control|🚀/i')
+      has: page.locator('text=/Select (Workspace)|Mission Control|🚀/i')
     }).first();
 
     if (await selector.isVisible()) {
       await selector.click();
 
-      // Current business should be highlighted/indicated
-      const currentBusiness = page.locator('[class*="active"], [class*="selected"], [class*="current"]').first();
+      // Current workspace should be highlighted/indicated
+      const currentWorkspace = page.locator('[class*="active"], [class*="selected"], [class*="current"]').first();
 
-      if (await currentBusiness.isVisible()) {
-        await expect(currentBusiness).toBeVisible();
+      if (await currentWorkspace.isVisible()) {
+        await expect(currentWorkspace).toBeVisible();
       }
     }
   });
 
-  test('should allow updating business info', async ({ page }) => {
+  test('should allow updating workspace info', async ({ page }) => {
     // Navigate to settings
     await page.goto('/mission-control-hq/settings');
     await page.waitForLoadState('networkidle');

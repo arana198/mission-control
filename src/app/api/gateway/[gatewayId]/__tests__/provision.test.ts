@@ -19,7 +19,7 @@ jest.mock('@/services/agentProvisioning', () => ({
 jest.mock('@/convex/_generated/api', () => ({
   api: {
     gateways: {
-      getById: 'gateways:getById',
+      getWorkspaceById: 'gateways:getWorkspaceById',
     },
   },
 }));
@@ -107,7 +107,7 @@ describe('POST ?action=provision', () => {
     });
   });
 
-  it('calls provisionAgent(ws, { gatewayId, agent, business, otherAgents, baseUrl, authToken })', async () => {
+  it('calls provisionAgent(ws, { gatewayId, agent, workspace, otherAgents, baseUrl, authToken })', async () => {
     const { POST } = await import('../route');
 
     await POST(
@@ -219,12 +219,12 @@ describe('POST ?action=provision', () => {
     expect(mockConnect).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when business is missing from body', async () => {
+  it('returns 400 when workspace is missing from body', async () => {
     const { POST } = await import('../route');
-    const { business, ...bodyWithoutBusiness } = VALID_PROVISION_BODY;
+    const { workspace, ...bodyWithout } = VALID_PROVISION_BODY;
 
     const res = await POST(
-      makeProvisionRequest('gateway_123', bodyWithoutBusiness),
+      makeProvisionRequest('gateway_123', bodyWithout),
       { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
     );
 
@@ -232,7 +232,7 @@ describe('POST ?action=provision', () => {
     expect(mockConnect).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when business._id is missing', async () => {
+  it('returns 400 when workspace._id is missing', async () => {
     const { POST } = await import('../route');
     const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, _id: undefined } };
 
@@ -245,7 +245,7 @@ describe('POST ?action=provision', () => {
     expect(mockConnect).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when business.name is missing', async () => {
+  it('returns 400 when  workspace.name is missing', async () => {
     const { POST } = await import('../route');
     const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, name: undefined } };
 
@@ -258,7 +258,7 @@ describe('POST ?action=provision', () => {
     expect(mockConnect).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when business.slug is missing', async () => {
+  it('returns 400 when workspace.slug is missing', async () => {
     const { POST } = await import('../route');
     const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, slug: undefined } };
 

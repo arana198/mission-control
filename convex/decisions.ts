@@ -14,7 +14,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
  */
 export const create = mutation({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     action: v.union(
       v.literal("escalated"),
       v.literal("reassigned"),
@@ -34,7 +34,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const decisionId = await ctx.db.insert("decisions", {
-      businessId: args.businessId,
+      workspaceId: args.workspaceId,
       action: args.action,
       taskId: args.taskId,
       fromAgent: args.fromAgent,
@@ -53,11 +53,11 @@ export const create = mutation({
 });
 
 /**
- * Get decisions for a business (with optional filters)
+ * Get decisions for a workspace (with optional filters)
  */
-export const getByBusiness = query({
+export const getBy = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     since: v.optional(v.number()),
     action: v.optional(v.string()),
     decidedBy: v.optional(v.string()),
@@ -67,7 +67,7 @@ export const getByBusiness = query({
     const limit = args.limit || 50;
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     let filtered = decisions;
@@ -106,13 +106,13 @@ export const getByTask = query({
  */
 export const analyzePatterns = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     since: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Filter by time if provided
@@ -194,7 +194,7 @@ export const updateOutcome = mutation({
  */
 export const getAuditTrail = query({
   args: {
-    businessId: v.id("businesses"),
+    workspaceId: v.id("workspaces"),
     taskId: v.optional(v.id("tasks")),
     limit: v.optional(v.number()),
   },
@@ -202,7 +202,7 @@ export const getAuditTrail = query({
     const limit = args.limit || 100;
     const decisions = await ctx.db
       .query("decisions")
-      .withIndex("by_business", (q: any) => q.eq("businessId", args.businessId))
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     let filtered = decisions;
