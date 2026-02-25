@@ -1,0 +1,42 @@
+# Dependencies (will be reinstalled in Docker)
+node_modules/
+npm-debug.log
+
+# Build artifacts (will be rebuilt)
+.next/
+out/
+build/
+
+# Development and test files
+.git
+.gitignore
+.env.local
+.env.*.local
+
+# Test and coverage
+coverage/
+test-results/
+playwright-report/
+.jest-cache
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs/
+
+# Miscellaneous
+.turbo/
+.next/cache/
+
+# CI/CD
+.github/
+Makefile

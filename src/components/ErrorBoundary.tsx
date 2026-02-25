@@ -1,24 +1,26 @@
-"use client";
+'use client';
 
-import { ReactNode, Component, ErrorInfo } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import React, { ReactNode, Component, ErrorInfo } from 'react';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
   componentName?: string;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
+/**
+ * Error Boundary component to catch and display errors gracefully
+ * Prevents entire app from crashing due to component errors
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -26,37 +28,48 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(`Error in ${this.props.componentName || "component"}:`, error, errorInfo);
-    this.props.onError?.(error, errorInfo);
+    const componentName = this.props.componentName ? ` in ${this.props.componentName}` : '';
+    console.error(`🔴 Error Boundary caught${componentName}:`, error);
+    console.error('Component stack:', errorInfo.componentStack);
   }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
-  };
 
   render() {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <div className="card p-8 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-start gap-4">
-              <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-red-900 mb-2">
-                  {this.props.componentName ? `Error in ${this.props.componentName}` : "Something went wrong"}
-                </h3>
-                <p className="text-sm text-red-700 mb-4">
-                  {this.state.error?.message || "An unexpected error occurred"}
-                </p>
-                <button
-                  onClick={this.handleReset}
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Try Again
-                </button>
-              </div>
-            </div>
+          <div style={{
+            padding: '20px',
+            color: 'red',
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '4px',
+            margin: '20px',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            <h1 style={{ marginTop: 0, color: '#856404' }}>⚠️ Something Went Wrong</h1>
+            <p style={{ color: '#856404', marginBottom: '10px' }}>
+              An error occurred while rendering this page. Check the browser console for details.
+            </p>
+            <details style={{ whiteSpace: 'pre-wrap', color: '#666' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Error Details</summary>
+              <code style={{ display: 'block', marginTop: '10px', padding: '10px', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px', overflow: 'auto' }}>
+                {this.state.error?.toString()}
+                {'\n\n'}
+                {this.state.error?.stack}
+              </code>
+            </details>
+            <p style={{ marginBottom: 0, marginTop: '15px' }}>
+              <button onClick={() => window.location.reload()} style={{
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}>
+                Reload Page
+              </button>
+            </p>
           </div>
         )
       );
@@ -64,17 +77,4 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
-}
-
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  componentName: string
-) {
-  return function WithErrorBoundaryComponent(props: P) {
-    return (
-      <ErrorBoundary componentName={componentName}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
 }

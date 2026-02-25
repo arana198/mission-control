@@ -1,0 +1,55 @@
+# Docker Compose configuration for Mission Control
+# Runs Mission Control frontend in a containerized environment
+# Note: Convex backend is cloud-managed, not containerized here
+
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Required: Set the Convex URL for the application
+        # Example: https://your-project.convex.cloud
+        NEXT_PUBLIC_CONVEX_URL: ${NEXT_PUBLIC_CONVEX_URL}
+
+    container_name: mission-control-web
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      # Runtime environment variables
+      NODE_ENV: production
+      NEXT_PUBLIC_CONVEX_URL: ${NEXT_PUBLIC_CONVEX_URL}
+      # Optional: Set the public app URL for agent provisioning
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+
+    # Healthcheck for Docker to monitor container status
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+    # Auto-restart policy
+    restart: unless-stopped
+
+    # Resource limits (optional, uncomment to enforce)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 1G
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

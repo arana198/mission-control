@@ -4,7 +4,9 @@ import { ReactNode } from "react";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BusinessProvider } from "@/components/BusinessProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClientLayout } from "./ClientLayout";
+import "./globals.css";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -31,13 +33,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         className={`${geist.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <ConvexClientProvider>
-          <ThemeProvider>
-            <BusinessProvider>
-              <ClientLayout>{children}</ClientLayout>
-            </BusinessProvider>
-          </ThemeProvider>
-        </ConvexClientProvider>
+        <ErrorBoundary>
+          <ConvexClientProvider>
+            <ThemeProvider>
+              <BusinessProvider>
+                <ClientLayout>{children}</ClientLayout>
+              </BusinessProvider>
+            </ThemeProvider>
+          </ConvexClientProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

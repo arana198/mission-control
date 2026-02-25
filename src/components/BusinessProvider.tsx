@@ -33,13 +33,23 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
   const [currentBusiness, setCurrentBusinessState] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Query all businesses
-  const businesses = useQuery(api.businesses.getAll) || [];
+  // Query all businesses with fallback to empty array
+  const businesses = useQuery(api.businesses.getAll);
   const defaultBusiness = useQuery(api.businesses.getDefault);
+
+  // Provide default empty arrays if queries are still loading
+  const businessesData = businesses ?? [];
+  const defaultBusinessData = defaultBusiness ?? null;
 
   // Determine current business from URL or fallback
   useEffect(() => {
-    if (!businesses || businesses.length === 0) {
+    // If data is still loading (null), don't proceed
+    if (businesses === undefined || defaultBusiness === undefined) {
+      return;
+    }
+
+    // If we have no businesses data, set loading and return
+    if (businessesData.length === 0) {
       setIsLoading(true);
       return;
     }
@@ -49,25 +59,25 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     // 1. Try to get businessSlug from URL params
     const businessSlug = params?.businessSlug as string;
     if (businessSlug) {
-      business = businesses.find((b) => b.slug === businessSlug) || null;
+      business = businessesData.find((b) => b.slug === businessSlug) || null;
     }
 
     // 2. Fall back to localStorage
     if (!business) {
       const savedSlug = localStorage.getItem("mission-control:businessSlug");
       if (savedSlug) {
-        business = businesses.find((b) => b.slug === savedSlug) || null;
+        business = businessesData.find((b) => b.slug === savedSlug) || null;
       }
     }
 
     // 3. Fall back to default business
-    if (!business && defaultBusiness) {
-      business = defaultBusiness;
+    if (!business && defaultBusinessData) {
+      business = defaultBusinessData;
     }
 
     // 4. Fall back to first business
-    if (!business && businesses.length > 0) {
-      business = businesses[0];
+    if (!business && businessesData.length > 0) {
+      business = businessesData[0];
     }
 
     setCurrentBusinessState(business);
@@ -77,7 +87,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     if (business) {
       localStorage.setItem("mission-control:businessSlug", business.slug);
     }
-  }, [businesses, defaultBusiness, params?.businessSlug]);
+  }, [businesses, defaultBusiness, businessesData, defaultBusinessData, params?.businessSlug]);
 
   // Handle switching to a different business
   const setCurrentBusiness = (business: Business) => {
@@ -95,7 +105,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     <BusinessContext.Provider
       value={{
         currentBusiness,
-        businesses,
+        businesses: businessesData,
         setCurrentBusiness,
         isLoading,
       }}

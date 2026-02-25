@@ -29,9 +29,18 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const [openPanel, setOpenPanel] = useState<PanelType>(null);
   const [selectedTaskId, setSelectedTaskForChat] = useState<string | null>(null);
 
-  // Fetch notifications for badge count
+  // Fetch notifications for badge count with error handling
   const allNotifications = useQuery(api.notifications.getAll);
-  const unreadCount = (allNotifications || []).filter((n: any) => !n.read).length;
+  const notificationsData = allNotifications ?? [];
+  const unreadCount = notificationsData.filter((n: any) => !n.read).length;
+
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('✓ ClientLayout mounted', {
+      currentBusiness: currentBusiness?.name,
+      notificationsCount: notificationsData.length
+    });
+  }
 
   // Extract current tab from pathname
   const currentTab = ((pathname || "").split("/").pop() || "overview");
@@ -56,20 +65,20 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     {
       label: "BUSINESS BOARD",
       items: [
-        { id: "overview", label: "📊 Overview", icon: LayoutDashboard, isGlobal: false },
-        { id: "board", label: "📋 Board", icon: Activity, isGlobal: false },
-        { id: "epics", label: "🗺️ Epics", icon: Zap, isGlobal: false },
-        { id: "wiki", label: "📖 Wiki", icon: MessageSquare, isGlobal: false },
-        { id: "settings", label: "⚙️ Settings", icon: Settings, isGlobal: false, disabled: true },
+        { id: "overview", label: "Overview", icon: LayoutDashboard, isGlobal: false },
+        { id: "board", label: "Board", icon: Activity, isGlobal: false },
+        { id: "epics", label: "Epics", icon: Zap, isGlobal: false },
+        { id: "wiki", label: "Wiki", icon: MessageSquare, isGlobal: false },
+        { id: "settings", label: "Settings", icon: Settings, isGlobal: false, disabled: true },
       ],
     },
     {
       label: "ADMINISTRATION",
       items: [
-        { id: "workload", label: "📈 Workload", icon: BarChart3, isGlobal: true },
-        { id: "api-docs", label: "📚 API Docs", icon: Package, isGlobal: true },
-        { id: "bottlenecks", label: "🚨 Bottlenecks", icon: Cpu, isGlobal: true, disabled: true },
-        { id: "control", label: "🎛️ Control", icon: Building2, isGlobal: true },
+        { id: "workload", label: "Workload", icon: BarChart3, isGlobal: true },
+        { id: "api-docs", label: "API Docs", icon: Package, isGlobal: true },
+        { id: "bottlenecks", label: "Bottlenecks", icon: Cpu, isGlobal: true, disabled: true },
+        { id: "control", label: "Control", icon: Building2, isGlobal: true },
       ],
     },
   ];
