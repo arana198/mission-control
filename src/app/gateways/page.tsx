@@ -6,16 +6,28 @@ import { api } from "@/convex/_generated/api";
 import { useBusiness } from "@/components/BusinessProvider";
 import { GatewayForm } from "@/components/GatewayForm";
 import { GatewaySessionsPanel } from "@/components/GatewaySessionsPanel";
+import { GatewayHealthBadge } from "@/components/GatewayHealthBadge";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useGatewaySessions } from "@/hooks/useGatewaySessions";
-import { Plus, Trash2, Activity } from "lucide-react";
+import { useGatewayHealth } from "@/hooks/useGatewayHealth";
+import { usePageActive } from "@/hooks/usePageActive";
+import { Plus, Trash2 } from "lucide-react";
 
 /**
  * Gateway Sessions Panel with Hook
- * Wraps GatewaySessionsPanel with useGatewaySessions hook
+ * Wraps GatewaySessionsPanel with useGatewaySessions and useGatewayHealth hooks
  */
-function GatewaySessionsPanelWithHook({ gatewayId }: { gatewayId: string }) {
-  const { sessions, isLoading, error, sendMessage, fetchHistory } =
-    useGatewaySessions(gatewayId);
+function GatewaySessionsPanelWithHook({
+  gatewayId,
+  isPageActive
+}: {
+  gatewayId: string;
+  isPageActive: boolean;
+}) {
+  const { sessions, isLoading, error, sendMessage, fetchHistory, refresh } =
+    useGatewaySessions(gatewayId, isPageActive);
+
+  const { isHealthy, lastChecked } = useGatewayHealth(gatewayId, isPageActive);
 
   return (
     <div className="p-6">
@@ -38,7 +50,13 @@ function GatewaySessionsPanelWithHook({ gatewayId }: { gatewayId: string }) {
         <GatewaySessionsPanel
           gatewayId={gatewayId}
           sessions={sessions}
+          isLoading={isLoading}
+          error={error}
+          isHealthy={isHealthy}
+          lastHealthCheck={lastChecked}
           onSendMessage={sendMessage}
+          onFetchHistory={fetchHistory}
+          onRefresh={refresh}
         />
       )}
     </div>
@@ -48,13 +66,18 @@ function GatewaySessionsPanelWithHook({ gatewayId }: { gatewayId: string }) {
 /**
  * Gateways Admin Page
  * URL: /gateways
- * Lists all gateways with health status and controls
- * Phase 4: Gateways UI Integration
+ * Lists all gateways with live health status and session management
+ * Phase 4: Complete UI Integration with polling and page visibility detection
  */
 export default function GatewaysPage() {
   const { currentBusiness } = useBusiness();
   const [showForm, setShowForm] = useState(false);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(null);
+  const [deleteConfirmGatewayId, setDeleteConfirmGatewayId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Detect if page is active (visible/focused) to pause polling
+  const { isActive } = usePageActive();
 
   // Queries
   const gateways = useQuery(
@@ -65,35 +88,21 @@ export default function GatewaysPage() {
   // Mutations
   const deleteGateway = useMutation(api.gateways.deleteGateway);
 
-  const handleDeleteGateway = async (gatewayId: string) => {
-    if (confirm("Delete this gateway? This action cannot be undone.")) {
-      try {
-        await deleteGateway({ gatewayId: gatewayId as any });
-        if (selectedGatewayId === gatewayId) {
-          setSelectedGatewayId(null);
-        }
-      } catch (error) {
-        console.error("Failed to delete gateway:", error);
-      }
-    }
-  };
+  const handleDeleteGateway = async () => {
+    if (!deleteConfirmGatewayId) return;
 
-  const getHealthBadge = (isHealthy?: boolean) => {
-    if (isHealthy === undefined)
-      return (
-        <span className="px-2 py-1 bg-slate-700 text-gray-300 text-xs rounded">
-          Unknown
-        </span>
-      );
-    return isHealthy ? (
-      <span className="px-2 py-1 bg-green-900/30 text-green-300 text-xs rounded">
-        🟢 Healthy
-      </span>
-    ) : (
-      <span className="px-2 py-1 bg-red-900/30 text-red-300 text-xs rounded">
-        🔴 Unhealthy
-      </span>
-    );
+    setIsDeleting(true);
+    try {
+      await deleteGateway({ gatewayId: deleteConfirmGatewayId as any });
+      if (selectedGatewayId === deleteConfirmGatewayId) {
+        setSelectedGatewayId(null);
+      }
+      setDeleteConfirmGatewayId(null);
+    } catch (error) {
+      console.error("Failed to delete gateway:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!currentBusiness) {
@@ -170,11 +179,14 @@ export default function GatewaysPage() {
                     {gateway.url}
                   </div>
                   <div className="flex items-center justify-between">
-                    {getHealthBadge(gateway.isHealthy)}
+                    <GatewayHealthBadge
+                      gatewayId={gateway._id}
+                      isActive={isActive}
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteGateway(gateway._id);
+                        setDeleteConfirmGatewayId(gateway._id);
                       }}
                       className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
                       title="Delete gateway"
@@ -193,6 +205,7 @@ export default function GatewaysPage() {
           {selectedGatewayId && gateways ? (
             <GatewaySessionsPanelWithHook
               gatewayId={selectedGatewayId}
+              isPageActive={isActive}
             />
           ) : (
             <div className="h-full flex items-center justify-center p-8">
@@ -226,6 +239,20 @@ export default function GatewaysPage() {
           </ul>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmGatewayId && (
+        <ConfirmDialog
+          title="Delete Gateway?"
+          description="This gateway and all its associated sessions will be permanently deleted. This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="destructive"
+          isLoading={isDeleting}
+          onConfirm={handleDeleteGateway}
+          onCancel={() => setDeleteConfirmGatewayId(null)}
+        />
+      )}
     </div>
   );
 }
