@@ -11,7 +11,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useGatewaySessions } from "@/hooks/useGatewaySessions";
 import { useGatewayHealth } from "@/hooks/useGatewayHealth";
 import { usePageActive } from "@/hooks/usePageActive";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { useRole } from "@/hooks/useRole";
+import { useNotification } from "@/hooks/useNotification";
+import { Plus, Trash2, Edit2, Lock } from "lucide-react";
 
 /**
  * Gateway Sessions Panel with Hook
@@ -71,6 +73,10 @@ function GatewaySessionsPanelWithHook({
  */
 export default function GatewaysPage() {
   const { currentBusiness } = useBusiness();
+  const { isAdmin, isLoading: roleLoading } = useRole(
+    currentBusiness?._id as any
+  );
+  const notif = useNotification();
   const [showForm, setShowForm] = useState(false);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(null);
   const [editGatewayId, setEditGatewayId] = useState<string | null>(null);
@@ -105,8 +111,12 @@ export default function GatewaysPage() {
         setSelectedGatewayId(null);
       }
       setDeleteConfirmGatewayId(null);
+      notif.success("Gateway deleted");
     } catch (error) {
       console.error("Failed to delete gateway:", error);
+      notif.error(
+        error instanceof Error ? error.message : "Failed to delete gateway"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -131,18 +141,26 @@ export default function GatewaysPage() {
           <p className="text-sm text-gray-400 mt-1">
             Manage distributed runtime connections
           </p>
+          {!roleLoading && !isAdmin && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-amber-400">
+              <Lock size={14} />
+              <span>Read-only</span>
+            </div>
+          )}
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 font-medium transition-colors"
-        >
-          <Plus size={18} />
-          New Gateway
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 font-medium transition-colors"
+          >
+            <Plus size={18} />
+            New Gateway
+          </button>
+        )}
       </div>
 
       {/* Create Form */}
-      {showForm && (
+      {showForm && isAdmin && (
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Create New Gateway</h3>
           <GatewayForm
@@ -150,6 +168,7 @@ export default function GatewaysPage() {
             onClose={() => setShowForm(false)}
             onSuccess={() => {
               setShowForm(false);
+              notif.success("Gateway created");
             }}
           />
         </div>
@@ -216,28 +235,30 @@ export default function GatewaysPage() {
                       gatewayId={gateway._id}
                       isActive={isActive}
                     />
-                    <div className="flex gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditGatewayId(gateway._id);
-                        }}
-                        className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
-                        title="Edit gateway"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirmGatewayId(gateway._id);
-                        }}
-                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                        title="Delete gateway"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditGatewayId(gateway._id);
+                          }}
+                          className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                          title="Edit gateway"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmGatewayId(gateway._id);
+                          }}
+                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                          title="Delete gateway"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </button>
               ));
@@ -297,7 +318,7 @@ export default function GatewaysPage() {
               onClose={() => setEditGatewayId(null)}
               onSuccess={() => {
                 setEditGatewayId(null);
-                // Refresh is automatic via Convex reactivity
+                notif.success("Gateway updated");
               }}
             />
           </div>
