@@ -63,7 +63,7 @@ export function LiveFeedPanel({ isOpen, onClose, businessId }: LiveFeedPanelProp
       {/* Backdrop overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/20 transition-opacity"
+          className="fixed inset-0 z-40 bg-overlay/20 transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />

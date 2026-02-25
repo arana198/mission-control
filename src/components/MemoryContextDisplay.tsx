@@ -212,7 +212,7 @@ export function MemoryContextDisplay({
             {context.recommendations.map((rec, idx) => (
               <div
                 key={idx}
-                className="text-xs p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400"
+                className="text-xs p-2 rounded bg-warning/10 border border-warning/30 text-warning"
               >
                 <div className="flex items-start gap-2">
                   <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" />

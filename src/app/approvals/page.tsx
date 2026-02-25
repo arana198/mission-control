@@ -15,7 +15,7 @@ export default function ApprovalsPage() {
   if (!currentBusiness) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-slate-800 rounded p-4 border border-slate-700 text-center text-gray-400">
+        <div className="bg-card rounded p-4 border border-border text-center text-muted-foreground">
           No business selected
         </div>
       </div>
