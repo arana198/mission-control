@@ -356,8 +356,8 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
 
       {/* Stale Task Escalation Banner (Phase 3B) */}
       {staleData && staleData.count > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-          <div className="flex items-center gap-2 text-amber-700">
+        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-warning/10 border border-warning/30 rounded-lg text-sm">
+          <div className="flex items-center gap-2 text-warning">
             <AlertTriangle className="w-4 h-4" />
             <span>{staleData.count} task{staleData.count > 1 ? "s" : ""} stuck &gt;24h (blocked or in progress)</span>
           </div>

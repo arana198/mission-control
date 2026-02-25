@@ -151,34 +151,34 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
 
       {/* Gateway Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Gateway Name *</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">Gateway Name *</label>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
           placeholder="e.g., Production Gateway"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
         />
       </div>
 
       {/* WebSocket URL */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">WebSocket URL *</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">WebSocket URL *</label>
         <input
           type="text"
           name="url"
           value={formData.url}
           onChange={handleChange}
           placeholder="wss://gateway.example.com:443"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary font-mono text-sm"
+          className="w-full px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary font-mono text-sm"
         />
-        <p className="text-xs text-gray-500 mt-1">Must start with ws:// or wss://</p>
+        <p className="text-xs text-muted-foreground mt-1">Must start with ws:// or wss://</p>
       </div>
 
       {/* Auth Token */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Auth Token (Optional)</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">Auth Token (Optional)</label>
         <div className="flex gap-2">
           <input
             type={showToken ? "text" : "password"}
@@ -186,13 +186,13 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
             value={isEditMode && gateway?.token && !formData.token ? "••••••••" : formData.token}
             onChange={handleChange}
             placeholder="Leave empty if no auth required"
-            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary"
+            className="flex-1 px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={() => setShowToken(!showToken)}
             aria-label="Toggle token visibility"
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-gray-400 hover:text-gray-300 transition-colors"
+            className="px-3 py-2 bg-muted hover:bg-muted/80 rounded text-muted-foreground hover:text-foreground transition-colors"
           >
             {showToken ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -201,28 +201,28 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
 
       {/* Workspace Root */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Workspace Root *</label>
+        <label className="block text-sm font-medium text-muted-foreground mb-1">Workspace Root *</label>
         <input
           type="text"
           name="workspaceRoot"
           value={formData.workspaceRoot}
           onChange={handleChange}
           placeholder="/workspace"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary font-mono text-sm"
+          className="w-full px-3 py-2 bg-card border border-border rounded text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary font-mono text-sm"
         />
       </div>
 
       {/* Options */}
-      <div className="space-y-2 pt-2 border-t border-slate-700">
+      <div className="space-y-2 pt-2 border-t border-border">
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
             name="disableDevicePairing"
             checked={formData.disableDevicePairing}
             onChange={handleChange}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-900"
+            className="w-4 h-4 rounded border-border bg-card"
           />
-          <span className="text-sm text-gray-300">Disable Device Pairing (connect as control_ui mode)</span>
+          <span className="text-sm text-muted-foreground">Disable Device Pairing (connect as control_ui mode)</span>
         </label>
 
         <label className="flex items-center gap-3 cursor-pointer">
@@ -231,9 +231,9 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
             name="allowInsecureTls"
             checked={formData.allowInsecureTls}
             onChange={handleChange}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-900"
+            className="w-4 h-4 rounded border-border bg-card"
           />
-          <span className="text-sm text-gray-300">Allow Insecure TLS (for self-signed certs)</span>
+          <span className="text-sm text-muted-foreground">Allow Insecure TLS (for self-signed certs)</span>
         </label>
       </div>
 
@@ -259,12 +259,12 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
       )}
 
       {/* Test Connection Button */}
-      <div className="pt-2 pb-2 border-b border-slate-700">
+      <div className="pt-2 pb-2 border-b border-border">
         <button
           type="button"
           onClick={handleTestConnection}
           disabled={isTestingConnection || isSubmitting}
-          className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 disabled:bg-muted/50 disabled:opacity-50 text-foreground rounded px-4 py-2 font-medium transition-colors"
         >
           {isTestingConnection ? (
             <>
@@ -278,7 +278,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 pt-4 border-t border-slate-700">
+      <div className="flex gap-2 pt-4 border-t border-border">
         <button
           type="submit"
           disabled={isSubmitting}
@@ -300,7 +300,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="flex-1 flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 disabled:bg-muted/50 disabled:opacity-50 text-foreground rounded px-4 py-2 font-medium transition-colors"
         >
           <X size={18} />
           Cancel
