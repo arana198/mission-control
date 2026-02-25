@@ -45,7 +45,7 @@ export function BottleneckVisualizer() {
   if (!currentBusiness) {
     return (
       <div className="p-8 text-center">
-        <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+        <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">Business Context Required</h3>
         <p className="text-muted-foreground">Bottleneck analysis requires selecting a business. Use the business selector to choose a business.</p>
       </div>
@@ -65,7 +65,7 @@ export function BottleneckVisualizer() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-amber-500" />
+            <AlertTriangle className="w-6 h-6 text-warning" />
             Bottleneck Analysis
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -130,9 +130,9 @@ function HeatmapView({ goals }: { goals: any[] }) {
     <div className="grid grid-cols-2 gap-4">
       {severities.map((item) => {
         const colors = {
-          critical: "bg-red-500 text-white",
-          high: "bg-amber-500 text-white",
-          medium: "bg-yellow-500 text-white",
+          critical: "bg-destructive text-destructive-foreground",
+          high: "bg-warning text-warning-foreground",
+          medium: "bg-warning text-warning-foreground",
         };
         return (
           <div
@@ -179,7 +179,7 @@ function DependencyGraph({ goals, tasks }: { goals: any[]; tasks: any[] }) {
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {(goal.relatedTaskIds || []).slice(0, 3).map((taskId: any, idx: number) => (
-                  <span key={idx} className="text-xs bg-red-500/20 text-red-700 dark:text-red-400 px-2 py-1 rounded">
+                  <span key={idx} className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">
                     Task {idx + 1}
                   </span>
                 ))}
@@ -189,7 +189,7 @@ function DependencyGraph({ goals, tasks }: { goals: any[]; tasks: any[] }) {
         </div>
       </div>
 
-      <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 text-sm text-blue-700 dark:text-blue-400">
+      <div className="p-4 bg-primary/10 rounded-lg border border-primary/30 text-sm text-primary">
         💡 <strong>Hint:</strong> Break critical tasks into smaller milestones to unblock parallel work.
       </div>
     </div>
@@ -222,10 +222,10 @@ function CriticalPathView({ goals, tasks }: { goals: any[]; tasks: any[] }) {
           <div key={goal._id} className="p-4 border border-border rounded-lg">
             <div className="flex items-center gap-3 mb-3">
               <div className="font-semibold">{goal.title}</div>
-              <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400">
+              <span className="text-xs px-2 py-1 rounded bg-warning/10 text-warning">
                 {taskCount} {taskCount === 1 ? "task" : "tasks"}
               </span>
-              <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-700 dark:text-blue-400">
+              <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
                 {goal.progress}% progress
               </span>
             </div>
@@ -234,10 +234,10 @@ function CriticalPathView({ goals, tasks }: { goals: any[]; tasks: any[] }) {
             <div className="space-y-2">
               {(goal.relatedTaskIds || []).slice(0, 4).map((taskId: any, step: number) => (
                 <div key={taskId} className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
                     {step + 1}
                   </div>
-                  <div className="flex-1 h-1 bg-gradient-to-r from-blue-500 to-blue-300" />
+                  <div className="flex-1 h-1 bg-gradient-to-r from-primary to-primary/60" />
                 </div>
               ))}
             </div>
@@ -294,17 +294,17 @@ function AgentUtilizationView({ agents, goals, tasks }: { agents: any[]; goals: 
     <div className="space-y-4">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-          <div className="text-2xl font-bold text-red-600">{overloaded.length}</div>
-          <div className="text-xs text-red-700 dark:text-red-400">Overloaded</div>
+        <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/30">
+          <div className="text-2xl font-bold text-destructive">{overloaded.length}</div>
+          <div className="text-xs text-destructive">Overloaded</div>
         </div>
-        <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-          <div className="text-2xl font-bold text-green-600">{balanced}</div>
-          <div className="text-xs text-green-700 dark:text-green-400">Balanced</div>
+        <div className="p-4 bg-success/10 rounded-lg border border-success/30">
+          <div className="text-2xl font-bold text-success">{balanced}</div>
+          <div className="text-xs text-success">Balanced</div>
         </div>
-        <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-          <div className="text-2xl font-bold text-blue-600">{underutilized.length}</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400">Underutilized</div>
+        <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+          <div className="text-2xl font-bold text-primary">{underutilized.length}</div>
+          <div className="text-xs text-primary">Underutilized</div>
         </div>
       </div>
 
@@ -320,7 +320,7 @@ function AgentUtilizationView({ agents, goals, tasks }: { agents: any[]; goals: 
               <span className="font-medium text-sm">{agent.name}</span>
               <span className={clsx(
                 "text-xs font-bold",
-                agent.current > OVERLOAD_THRESHOLD ? "text-red-600" : agent.current > 50 ? "text-amber-600" : "text-green-600"
+                agent.current > OVERLOAD_THRESHOLD ? "text-destructive" : agent.current > 50 ? "text-warning" : "text-success"
               )}>
                 {Math.round(agent.current)}%
               </span>
@@ -329,7 +329,7 @@ function AgentUtilizationView({ agents, goals, tasks }: { agents: any[]; goals: 
               <div
                 className={clsx(
                   "h-full transition-all",
-                  agent.current > OVERLOAD_THRESHOLD ? "bg-red-500" : agent.current > 50 ? "bg-amber-500" : "bg-green-500"
+                  agent.current > OVERLOAD_THRESHOLD ? "bg-destructive" : agent.current > 50 ? "bg-warning" : "bg-success"
                 )}
                 style={{ width: `${agent.current}%` }}
               />
@@ -342,9 +342,9 @@ function AgentUtilizationView({ agents, goals, tasks }: { agents: any[]; goals: 
       </div>
 
       {/* Recommendations */}
-      <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 space-y-2">
-        <div className="font-semibold text-sm text-blue-700 dark:text-blue-400">Rebalancing Recommendations</div>
-        <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+      <div className="p-4 bg-primary/10 rounded-lg border border-primary/30 space-y-2">
+        <div className="font-semibold text-sm text-primary">Rebalancing Recommendations</div>
+        <ul className="text-xs text-primary space-y-1">
           <li>• Shift {overloaded.length} tasks from overloaded agents to underutilized ones</li>
           <li>• Prioritize P0 tasks for high-capacity agents</li>
           <li>• Consider temporary pause for {overloaded.length > 0 ? "new task intake" : "none needed"}</li>

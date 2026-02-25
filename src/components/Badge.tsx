@@ -27,11 +27,11 @@ export function getPriorityLabel(priority: string): string {
 
 export function getTimeEstimateBadgeClass(estimate: string): string {
   const colors: Record<string, string> = {
-    XS: "bg-green-100 text-green-700",
-    S: "bg-blue-100 text-blue-700",
-    M: "bg-yellow-100 text-yellow-700",
-    L: "bg-orange-100 text-orange-700",
-    XL: "bg-red-100 text-red-700",
+    XS: "bg-success/10 text-success",
+    S: "bg-primary/10 text-primary",
+    M: "bg-warning/10 text-warning",
+    L: "bg-warning/10 text-warning",
+    XL: "bg-destructive/10 text-destructive",
   };
-  return `badge ${colors[estimate] || "bg-gray-100 text-gray-700"}`;
+  return `badge ${colors[estimate] || "bg-muted text-muted-foreground"}`;
 }

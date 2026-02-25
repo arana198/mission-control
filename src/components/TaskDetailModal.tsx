@@ -282,16 +282,16 @@ export function TaskDetailModal({
                             key={blocker._id}
                             onClick={() => setBlockerToRemove(blocker._id)}
                             disabled={isRemovingDependency}
-                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-destructive/10 transition-colors"
                             aria-label={`Remove blocker: ${blocker.title}`}
                           >
                             <span className="text-sm text-muted-foreground">
                               {blocker.title}
                             </span>
                             {isRemovingDependency ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                              <Loader2 className="w-4 h-4 animate-spin text-destructive" />
                             ) : (
-                              <X className="w-4 h-4 text-red-600" />
+                              <X className="w-4 h-4 text-destructive" />
                             )}
                           </button>
                         ))}
@@ -470,7 +470,7 @@ export function TaskDetailModal({
               {/* Blocked Status */}
               {isBlocked && (
                 <div className="mt-4 pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-2 text-amber-600 text-sm">
+                  <div className="flex items-center gap-2 text-warning text-sm">
                     <AlertTriangle className="w-4 h-4" />
                     <span className="font-medium">Blocked</span>
                   </div>
@@ -509,7 +509,7 @@ export function TaskDetailModal({
                               notif.error("Failed to remove assignee");
                             }
                           }}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-600 rounded transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive rounded transition-all"
                           title="Remove assignee"
                           aria-label={`Remove ${agent.name}`}
                         >

@@ -183,7 +183,7 @@ function TreeNodeWithExpanded({
         style={{ paddingLeft: `${level * 20}px` }}
         className={`flex items-center gap-2 px-2 py-1.5 rounded-lg group transition-colors relative ${
           isSelected
-            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+            ? "bg-primary/10 text-primary"
             : "hover:bg-muted/60 text-foreground/70 hover:text-foreground"
         } ${isDragOverThis ? "bg-primary/20" : ""}`}
         draggable
@@ -217,20 +217,20 @@ function TreeNodeWithExpanded({
         {hasChildren ? (
           <BookOpen
             className={`w-4 h-4 flex-shrink-0 ${
-              isSelected ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
+              isSelected ? "text-primary" : "text-muted-foreground"
             }`}
           />
         ) : (
           <FileText
             className={`w-4 h-4 flex-shrink-0 ${
-              isSelected ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
+              isSelected ? "text-primary" : "text-muted-foreground"
             }`}
           />
         )}
 
         {/* [DRAFT] status badge - only for drafts */}
         {page.status === "draft" && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400 flex-shrink-0 ml-auto mr-auto">
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warning/10 text-warning flex-shrink-0 ml-auto mr-auto">
             DRAFT
           </span>
         )}

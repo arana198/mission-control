@@ -11,6 +11,16 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
+/**
+ * Apply theme to document element
+ * Sets both data-theme attribute (backward compat) and .dark class (for Tailwind darkMode: "class")
+ */
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  root.setAttribute("data-theme", theme);
+  root.classList.toggle("dark", theme === "dark");
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
@@ -20,10 +30,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("theme") as Theme;
     if (saved) {
       setTheme(saved);
-      document.documentElement.setAttribute("data-theme", saved);
+      applyTheme(saved);
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       setTheme("dark");
-      document.documentElement.setAttribute("data-theme", "dark");
+      applyTheme("dark");
     }
     setMounted(true);
   }, []);
@@ -31,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
+    applyTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
 

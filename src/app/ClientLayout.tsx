@@ -104,7 +104,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
               <button className="relative p-2 hover:bg-muted rounded-lg transition-colors">
                 <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute top-1 right-1 h-5 w-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}
@@ -135,7 +135,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                           isActive
-                            ? "bg-blue-100 text-blue-800 font-semibold"
+                            ? "bg-primary/10 text-primary font-semibold"
                             : isDisabled
                             ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -155,7 +155,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           {/* Sidebar Footer: System Status */}
           <div className="border-t border-border p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="h-2 w-2 rounded-full bg-success" />
               System operational
             </div>
           </div>

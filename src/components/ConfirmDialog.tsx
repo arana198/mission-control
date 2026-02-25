@@ -53,7 +53,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-overlay/60 flex items-center justify-center z-50"
       onClick={onCancel}
       role="alertdialog"
       aria-modal="true"
@@ -68,7 +68,7 @@ export function ConfirmDialog({
         <div className="flex items-start gap-4 mb-4">
           {variant === "destructive" && (
             <div className="flex-shrink-0 mt-0.5">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <AlertTriangle className="w-5 h-5 text-destructive" />
             </div>
           )}
           <div className="flex-1">

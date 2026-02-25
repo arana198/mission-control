@@ -85,8 +85,8 @@ export function AnalyticsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-            <BarChart3 className="w-5 h-5 text-blue-600" />
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <BarChart3 className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h2 className="text-lg font-semibold">Analytics Dashboard</h2>
@@ -133,12 +133,12 @@ export function AnalyticsDashboard() {
         </div>
 
         {/* Errors */}
-        <div className="card p-4 border-red-200 dark:border-red-900/50">
+        <div className="card p-4 border-destructive/50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">Errors</span>
-            <AlertCircle className="w-4 h-4 text-red-600" />
+            <AlertCircle className="w-4 h-4 text-destructive" />
           </div>
-          <p className="text-2xl font-bold text-red-600">{metricsData?.errors || 0}</p>
+          <p className="text-2xl font-bold text-destructive">{metricsData?.errors || 0}</p>
           <p className="text-xs text-muted-foreground mt-1">failed operations</p>
         </div>
       </div>
@@ -183,7 +183,7 @@ export function AnalyticsDashboard() {
               topOperations.map((op, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-1 rounded min-w-fit">
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded min-w-fit">
                       {i + 1}
                     </span>
                     <span className="truncate text-muted-foreground">{op.name}</span>
@@ -200,14 +200,14 @@ export function AnalyticsDashboard() {
 
       {/* Slowest Operation Alert */}
       {metricsData?.avgResponseTime && metricsData.avgResponseTime > 100 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-4">
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
           <div className="flex gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0" />
             <div>
-              <h4 className="font-semibold text-yellow-900 dark:text-yellow-200">
+              <h4 className="font-semibold text-warning">
                 Performance Notice
               </h4>
-              <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-1">
+              <p className="text-sm text-warning mt-1">
                 Average response time is {metricsData.avgResponseTime}ms. Slowest operation:
                 <span className="font-semibold"> {metricsData.slowestOperation}</span>
               </p>

@@ -122,25 +122,25 @@ export function AgentInbox({ agents, businessId }: AgentInboxProps) {
             <div className="text-xs text-muted-foreground">Total Tasks</div>
           </div>
           <div className="card p-3">
-            <div className="text-2xl font-bold text-blue-500">
+            <div className="text-2xl font-bold text-primary">
               {inboxData.summary.inProgress}
             </div>
             <div className="text-xs text-muted-foreground">In Progress</div>
           </div>
           <div className="card p-3">
-            <div className="text-2xl font-bold text-green-500">
+            <div className="text-2xl font-bold text-success">
               {inboxData.summary.readyCount}
             </div>
             <div className="text-xs text-muted-foreground">Ready</div>
           </div>
           <div className="card p-3">
-            <div className="text-2xl font-bold text-amber-500">
+            <div className="text-2xl font-bold text-warning">
               {inboxData.summary.blockedCount}
             </div>
             <div className="text-xs text-muted-foreground">Blocked</div>
           </div>
           <div className="card p-3">
-            <div className="text-2xl font-bold text-purple-500">
+            <div className="text-2xl font-bold text-accent">
               {inboxData.summary.inReviewCount}
             </div>
             <div className="text-xs text-muted-foreground">In Review</div>
@@ -231,11 +231,11 @@ function InboxSection({
   const [open, setOpen] = useState(defaultOpen);
 
   const colorClasses = {
-    blue: "bg-blue-500/10 text-blue-600 border-blue-200",
-    green: "bg-green-500/10 text-green-600 border-green-200",
-    amber: "bg-amber-500/10 text-amber-600 border-amber-200",
-    purple: "bg-purple-500/10 text-purple-600 border-purple-200",
-    gray: "bg-gray-500/10 text-gray-600 border-gray-200",
+    blue: "bg-primary/10 text-primary border-primary/30",
+    green: "bg-success/10 text-success border-success/30",
+    amber: "bg-warning/10 text-warning border-warning/30",
+    purple: "bg-accent/10 text-accent border-accent/30",
+    gray: "bg-muted/10 text-muted-foreground border-border",
   };
 
   return (
@@ -279,7 +279,7 @@ function InboxSection({
                       <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
                         {task.title?.substring(0, 3).toUpperCase() || "TASK"}
                       </span>
-                      <span className="text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-700">
+                      <span className="text-xs font-medium px-2 py-1 rounded bg-primary/10 text-primary">
                         {task.priority || "P2"}
                       </span>
                     </div>
@@ -291,7 +291,7 @@ function InboxSection({
                     </p>
                   </div>
                   {task.blockedBy && task.blockedBy.length > 0 && (
-                    <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-medium">
+                    <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-warning/10 text-warning text-xs font-medium">
                       <AlertTriangle className="w-3 h-3" />
                       {task.blockedBy.length}
                     </div>

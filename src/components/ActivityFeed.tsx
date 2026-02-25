@@ -96,8 +96,8 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
         </div>
         
         <div className="card p-16 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: "var(--muted)" }}>
-            <Activity className="w-8 h-8" style={{ color: "var(--muted-foreground)" }} />
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center bg-muted">
+            <Activity className="w-8 h-8 text-muted-foreground" />
           </div>
           <h3 className="text-xl font-semibold mb-3">No Activity Yet</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
@@ -120,8 +120,8 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5" style={{ color: "var(--accent)" }} />
-            <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>Live</span>
+            <Zap className="w-5 h-5 text-accent" />
+            <span className="text-sm font-medium text-accent">Live</span>
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
                 <p className="text-2xl font-bold">{activities.filter(a => a.type === 'task_created').length}</p>
                 <p className="text-xs text-muted-foreground">Tasks Created</p>
               </div>
-              <PlusCircle className="w-5 h-5" style={{ color: "rgba(59, 130, 246, 0.7)" }} />
+              <PlusCircle className="w-5 h-5 text-primary/70" />
             </div>
           </div>
           <div className="card p-4">
@@ -142,7 +142,7 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
                 <p className="text-2xl font-bold">{activities.filter(a => a.type === 'task_completed').length}</p>
                 <p className="text-xs text-muted-foreground">Tasks Completed</p>
               </div>
-              <CheckCircle2 className="w-5 h-5" style={{ color: "rgba(34, 197, 94, 0.7)" }} />
+              <CheckCircle2 className="w-5 h-5 text-success/70" />
             </div>
           </div>
           <div className="card p-4">
@@ -151,7 +151,7 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
                 <p className="text-2xl font-bold">{activities.filter(a => a.type === 'comment_added').length}</p>
                 <p className="text-xs text-muted-foreground">Comments</p>
               </div>
-              <Send className="w-5 h-5" style={{ color: "rgba(245, 158, 11, 0.7)" }} />
+              <Send className="w-5 h-5 text-warning/70" />
             </div>
           </div>
           <div className="card p-4">
@@ -160,15 +160,15 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
                 <p className="text-2xl font-bold">{new Set(activities.map(a => a.agentName)).size}</p>
                 <p className="text-xs text-muted-foreground">Active Agents</p>
               </div>
-              <TrendingUp className="w-5 h-5" style={{ color: "rgba(168, 85, 247, 0.7)" }} />
+              <TrendingUp className="w-5 h-5 text-accent/70" />
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
+        <div className="flex items-center gap-4 p-4 rounded-lg bg-muted">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+            <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">Filters:</span>
           </div>
           
@@ -213,25 +213,15 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
         {grouped.map(([date, dayActivities]) => (
           <div key={date} className="relative">
             {/* Date Header */}
-            <div className="sticky top-0 z-10 flex items-center gap-4 mb-6 py-2" style={{ background: "var(--background)" }}>
+            <div className="sticky top-0 z-10 flex items-center gap-4 mb-6 py-2 bg-background">
               <div className="flex items-center gap-3">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center border-2"
-                  style={{ 
-                    background: "var(--background)",
-                    borderColor: "var(--accent)",
-                    color: "var(--accent)"
-                  }}
-                >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 bg-background border-accent text-accent">
                   <Calendar className="w-4 h-4" />
                 </div>
                 <h3 className="text-lg font-semibold">{formatDateFull(date)}</h3>
               </div>
-              <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
-              <span className="text-sm px-3 py-1 rounded-full" style={{ 
-                background: "var(--muted)",
-                color: "var(--muted-foreground)"
-              }}>
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground">
                 {dayActivities.length} activities
               </span>
             </div>
@@ -249,10 +239,10 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
       {/* Footer */}
       {filteredActivities.length === 0 && activities.length > 0 && (
         <div className="card p-8 text-center mt-8">
-          <Filter className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--muted-foreground)" }} />
+          <Filter className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
           <h3 className="font-semibold mb-2">No activities match your filters</h3>
           <p className="text-muted-foreground mb-4">Try adjusting your filter criteria to see more results.</p>
-          <button 
+          <button
             onClick={() => { setFilter(null); setTimeFilter("all"); }}
             className="btn btn-secondary"
           >
@@ -266,44 +256,30 @@ export function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
 
 function ActivityRow({ activity }: { activity: ActivityItem }) {
   const Icon = activityIcons[activity.type] || MessageSquare;
-  
+
   return (
     <div className="group relative">
       {/* Timeline line connector */}
-      <div 
-        className="absolute left-6 top-12 w-px h-6 opacity-20"
-        style={{ background: "var(--border)" }}
-      />
-      
-      <div className="flex items-start gap-4 p-4 rounded-lg group-hover:opacity-90 transition-all" style={{ background: "var(--surface)" }}>
+      <div className="absolute left-6 top-12 w-px h-6 opacity-20 bg-border" />
+
+      <div className="flex items-start gap-4 p-4 rounded-lg group-hover:opacity-90 transition-all bg-surface">
         {/* Icon */}
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ 
-            background: "var(--accent)",
-            color: "var(--accent-foreground)"
-          }}
-        >
+        <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-accent text-accent-foreground">
           <Icon className="w-5 h-5" />
         </div>
-        
+
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-1">
             <div>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>
+              <p className="text-sm leading-relaxed text-foreground">
                 {activity.message}
               </p>
               {activity.ticketNumber && activity.taskId && activity.businessId ? (
                 <div className="flex items-center gap-2 mt-2">
                   <Link
                     href={`/${activity.businessId}/board?task=${activity.taskId}`}
-                    className="text-xs px-2 py-1 rounded font-mono font-semibold transition-colors hover:opacity-80"
-                    style={{
-                      background: "rgba(59, 130, 246, 0.2)",
-                      color: "var(--accent)",
-                      cursor: "pointer"
-                    }}
+                    className="text-xs px-2 py-1 rounded font-mono font-semibold transition-colors hover:opacity-80 bg-primary/20 text-accent cursor-pointer"
                   >
                     {activity.ticketNumber}
                   </Link>
@@ -315,44 +291,32 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
                 </div>
               ) : activity.taskTitle ? (
                 <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className="text-xs px-2 py-1 rounded"
-                    style={{
-                      background: "rgba(59, 130, 246, 0.1)",
-                      color: "var(--accent)"
-                    }}
-                  >
+                  <span className="text-xs px-2 py-1 rounded bg-primary/10 text-accent">
                     {activity.taskTitle}
                   </span>
                 </div>
               ) : null}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                {new Date(activity.createdAt).toLocaleTimeString("en-GB", { 
-                  hour: "2-digit", 
-                  minute: "2-digit" 
+              <span className="text-xs text-muted-foreground">
+                {new Date(activity.createdAt).toLocaleTimeString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit"
                 })}
               </span>
             </div>
           </div>
-          
+
           {activity.agentName && (
             <div className="flex items-center gap-2 mt-2">
-              <div 
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
-                style={{ 
-                  background: "var(--accent)",
-                  color: "var(--accent-foreground)"
-                }}
-              >
+              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] bg-accent text-accent-foreground">
                 {activity.agentName[0]}
               </div>
-              <span className="text-xs font-medium" style={{ color: "var(--accent)" }}>
+              <span className="text-xs font-medium text-accent">
                 {activity.agentName}
               </span>
               {activity.agentRole && (
-                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <span className="text-xs text-muted-foreground">
                   • {activity.agentRole}
                 </span>
               )}

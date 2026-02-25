@@ -4,85 +4,109 @@
 
 :root {
   /* Light mode (default) */
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-foreground: #ffffff;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-  --highlight: #fbbf24;
-  
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 98%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 98%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 221 83% 53%;
+  --accent-hover: 221 83% 46%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 59%;
+  --destructive-hover: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+  --highlight: 43 96% 56%;
+  --border: 214 32% 91%;
+  --border-strong: 213 27% 84%;
+  --input: 214 32% 91%;
+  --ring: 221 83% 53%;
+  --surface: 0 0% 100%;
+  --surface-elevated: 0 0% 100%;
+  --overlay: 222 47% 11%;
+
   /* Status colors */
-  --status-backlog: #94a3b8;
-  --status-ready: #3b82f6;
-  --status-in-progress: #f59e0b;
-  --status-review: #8b5cf6;
-  --status-blocked: #ef4444;
-  --status-done: #10b981;
-  
+  --status-backlog: 215 16% 65%;
+  --status-ready: 217 91% 60%;
+  --status-in-progress: 38 92% 50%;
+  --status-review: 258 90% 66%;
+  --status-blocked: 0 72% 59%;
+  --status-done: 160 84% 39%;
+
   /* Priority colors */
-  --priority-p0: #dc2626;
-  --priority-p1: #ea580c;
-  --priority-p2: #6b7280;
-  --priority-p3: #9ca3af;
-  
-  /* Card/Surface */
-  --surface: #ffffff;
-  --surface-elevated: #ffffff;
+  --priority-p0: 0 72% 50%;
+  --priority-p1: 21 90% 48%;
+  --priority-p2: 220 9% 46%;
+  --priority-p3: 220 9% 61%;
 }
 
 [data-theme="dark"],
 .dark {
   /* Dark mode */
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --border: #334155;
-  --border-strong: #475569;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-foreground: #ffffff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-  --highlight: #fbbf24;
-  
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 98%;
+  --popover: 217 33% 17%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 16% 65%;
+  --accent: 217 91% 60%;
+  --accent-hover: 221 83% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 91% 71%;
+  --destructive-hover: 0 72% 59%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+  --highlight: 43 96% 56%;
+  --border: 215 25% 27%;
+  --border-strong: 215 19% 35%;
+  --input: 215 25% 27%;
+  --ring: 217 91% 60%;
+  --surface: 217 33% 17%;
+  --surface-elevated: 215 25% 27%;
+  --overlay: 222 47% 11%;
+
   /* Status colors - dark */
-  --status-backlog: #64748b;
-  --status-ready: #60a5fa;
-  --status-in-progress: #fbbf24;
-  --status-review: #a78bfa;
-  --status-blocked: #f87171;
-  --status-done: #4ade80;
-  
+  --status-backlog: 215 19% 35%;
+  --status-ready: 213 93% 68%;
+  --status-in-progress: 43 96% 56%;
+  --status-review: 258 90% 73%;
+  --status-blocked: 0 91% 71%;
+  --status-done: 142 71% 55%;
+
   /* Priority colors - dark */
-  --priority-p0: #f87171;
-  --priority-p1: #fb923c;
-  --priority-p2: #9ca3af;
-  --priority-p3: #6b7280;
-  
-  /* Card/Surface - dark */
-  --surface: #1e293b;
-  --surface-elevated: #334155;
+  --priority-p0: 0 91% 71%;
+  --priority-p1: 22 100% 72%;
+  --priority-p2: 220 9% 61%;
+  --priority-p3: 220 9% 46%;
 }
 
 @layer base {
   * {
-    border-color: var(--border);
+    border-color: hsl(var(--border));
   }
-  
+
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -91,31 +115,30 @@
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     letter-spacing: -0.025em;
-    color: var(--foreground);
+    color: hsl(var(--foreground));
   }
 
   p {
-    color: var(--foreground);
+    color: hsl(var(--foreground));
   }
 }
 
 @layer components {
   /* Professional card */
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
     border-radius: 8px;
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     overflow: hidden;
   }
 
-  [data-theme="dark"] .card,
   .dark .card {
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
   }
 
   .card-hover:hover {
-    border-color: var(--border-strong);
+    border-color: hsl(var(--border-strong));
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
@@ -135,41 +158,41 @@
   }
 
   .btn-primary {
-    background: var(--accent);
-    color: var(--accent-foreground);
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: var(--accent-hover);
+    background: hsl(var(--accent-hover));
   }
 
   .btn-secondary {
-    background: var(--muted);
-    color: var(--foreground);
-    border: 1px solid var(--border);
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--surface-elevated);
-    border-color: var(--border-strong);
+    background: hsl(var(--surface-elevated));
+    border-color: hsl(var(--border-strong));
   }
 
   .btn-danger {
-    background: var(--danger);
-    color: white;
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
   }
 
   .btn-danger:hover:not(:disabled) {
-    background: var(--danger-hover);
+    background: hsl(var(--destructive-hover));
   }
 
   .btn-ghost {
     background: transparent;
-    color: var(--foreground);
+    color: hsl(var(--foreground));
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background: var(--muted);
+    background: hsl(var(--muted));
   }
 
   .btn:disabled {
@@ -182,26 +205,21 @@
     width: 100%;
     padding: 8px 12px;
     font-size: 14px;
-    border: 1px solid var(--border);
+    border: 1px solid hsl(var(--border));
     border-radius: 6px;
-    background: var(--background);
-    color: var(--foreground);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     transition: all 0.15s ease;
   }
 
   .input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-  }
-
-  [data-theme="dark"] .input:focus,
-  .dark .input:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    border-color: hsl(var(--accent));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.25);
   }
 
   .input::placeholder {
-    color: var(--muted-foreground);
+    color: hsl(var(--muted-foreground));
   }
 
   /* Badge styles */
@@ -217,99 +235,99 @@
   }
 
   .badge-status-backlog {
-    background: var(--muted);
-    color: var(--status-backlog);
+    background: hsl(var(--status-backlog) / 0.1);
+    color: hsl(var(--status-backlog));
   }
 
   .badge-status-ready {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--status-ready);
+    background: hsl(var(--status-ready) / 0.1);
+    color: hsl(var(--status-ready));
   }
 
   .badge-status-in_progress {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--status-in-progress);
+    background: hsl(var(--status-in-progress) / 0.1);
+    color: hsl(var(--status-in-progress));
   }
 
   .badge-status-review {
-    background: rgba(139, 92, 246, 0.1);
-    color: var(--status-review);
+    background: hsl(var(--status-review) / 0.1);
+    color: hsl(var(--status-review));
   }
 
   .badge-status-blocked {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--status-blocked);
+    background: hsl(var(--status-blocked) / 0.1);
+    color: hsl(var(--status-blocked));
   }
 
   .badge-status-done {
-    background: rgba(34, 197, 94, 0.1);
-    color: var(--status-done);
+    background: hsl(var(--status-done) / 0.1);
+    color: hsl(var(--status-done));
   }
 
   .badge-priority-p0 {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--priority-p0);
+    background: hsl(var(--priority-p0) / 0.1);
+    color: hsl(var(--priority-p0));
     font-weight: 600;
   }
 
   .badge-priority-p1 {
-    background: rgba(251, 146, 60, 0.1);
-    color: var(--priority-p1);
+    background: hsl(var(--priority-p1) / 0.1);
+    color: hsl(var(--priority-p1));
     font-weight: 600;
   }
 
   .badge-priority-p2 {
-    background: var(--muted);
-    color: var(--priority-p2);
+    background: hsl(var(--muted));
+    color: hsl(var(--priority-p2));
   }
 
   .badge-priority-p3 {
-    background: var(--muted);
-    color: var(--priority-p3);
+    background: hsl(var(--muted));
+    color: hsl(var(--priority-p3));
   }
 
   /* Agent level badges */
   .badge-level-lead {
-    background: rgba(37, 99, 235, 0.15);
-    color: var(--accent);
+    background: hsl(var(--accent) / 0.15);
+    color: hsl(var(--accent));
     font-weight: 600;
   }
 
   .badge-level-specialist {
-    background: var(--muted);
-    color: var(--muted-foreground);
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
   }
 
   .badge-level-intern {
-    background: rgba(245, 158, 11, 0.15);
-    color: var(--warning);
+    background: hsl(var(--warning) / 0.15);
+    color: hsl(var(--warning));
   }
 
   /* Epic indicator */
   .epic-indicator {
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid hsl(var(--accent));
     padding-left: 12px;
-    background: linear-gradient(90deg, var(--muted) 0%, transparent 50%);
+    background: linear-gradient(90deg, hsl(var(--muted)) 0%, transparent 50%);
   }
 
   /* Section styles */
   .section-title {
     font-size: 16px;
     font-weight: 600;
-    color: var(--foreground);
+    color: hsl(var(--foreground));
   }
 
   /* Stat card with icon */
   .stat-card {
     padding: 20px;
     border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
   }
 
   /* Kanban column */
   .kanban-column {
-    background: var(--muted);
+    background: hsl(var(--muted));
     border-radius: 8px;
     min-height: 200px;
     padding: 12px;
@@ -317,8 +335,8 @@
 
   /* Task card */
   .task-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
     border-radius: 6px;
     padding: 12px;
     cursor: grab;
@@ -326,12 +344,11 @@
   }
 
   .task-card:hover {
-    border-color: var(--border-strong);
+    border-color: hsl(var(--border-strong));
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
     transform: translateY(-1px);
   }
 
-  [data-theme="dark"] .task-card:hover,
   .dark .task-card:hover {
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
   }
@@ -344,7 +361,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.6);
+    background: hsl(var(--overlay) / 0.6);
     backdrop-filter: blur(4px);
     z-index: 50;
     display: flex;
@@ -354,18 +371,18 @@
   }
 
   .modal-content {
-    background: var(--surface);
+    background: hsl(var(--surface));
     border-radius: 12px;
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2);
     max-height: 90vh;
     overflow-y: auto;
-    border: 1px solid var(--border);
+    border: 1px solid hsl(var(--border));
   }
 
   /* Menu/dropdown */
   .dropdown {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
     border-radius: 8px;
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2);
     min-width: 200px;
@@ -378,22 +395,22 @@
     gap: 8px;
     padding: 8px 12px;
     font-size: 14px;
-    color: var(--foreground);
+    color: hsl(var(--foreground));
     cursor: pointer;
     transition: background 0.1s ease;
   }
 
   .dropdown-item:hover {
-    background: var(--muted);
+    background: hsl(var(--muted));
   }
 
   .dropdown-item-danger {
-    color: var(--danger);
+    color: hsl(var(--destructive));
   }
 
   .dropdown-divider {
     height: 1px;
-    background: var(--border);
+    background: hsl(var(--border));
     margin: 4px 0;
   }
 
@@ -401,13 +418,13 @@
   .empty-state {
     text-align: center;
     padding: 48px 24px;
-    color: var(--muted-foreground);
+    color: hsl(var(--muted-foreground));
   }
 
   /* Theme toggle button */
   .theme-toggle {
-    background: var(--muted);
-    border: 1px solid var(--border);
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
     padding: 8px;
     border-radius: 8px;
     cursor: pointer;
@@ -415,7 +432,7 @@
   }
 
   .theme-toggle:hover {
-    background: var(--surface-elevated);
+    background: hsl(var(--surface-elevated));
   }
 
   /* Wiki editor - Tables */
@@ -427,14 +444,14 @@
 
   .wiki-editor-content td,
   .wiki-editor-content th {
-    border: 1px solid var(--border);
+    border: 1px solid hsl(var(--border));
     padding: 0.5rem 0.75rem;
     min-width: 60px;
     vertical-align: top;
   }
 
   .wiki-editor-content th {
-    background: var(--muted);
+    background: hsl(var(--muted));
     font-weight: 600;
   }
 
@@ -468,31 +485,26 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: hsl(var(--muted));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: hsl(var(--border-strong));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: hsl(var(--muted-foreground));
 }
 
 /* Selection */
 ::selection {
-  background: rgba(37, 99, 235, 0.3);
-}
-
-[data-theme="dark"] ::selection,
-.dark ::selection {
-  background: rgba(59, 130, 246, 0.4);
+  background: hsl(var(--ring) / 0.3);
 }
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid hsl(var(--accent));
   outline-offset: 2px;
 }
 

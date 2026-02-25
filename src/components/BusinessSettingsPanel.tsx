@@ -156,8 +156,8 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <Settings className="w-5 h-5 text-blue-600" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Settings className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h2 className="text-xl font-semibold">Business Settings</h2>
@@ -227,11 +227,11 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
               <span className="ml-2 text-xs text-muted-foreground">(auto-derived from prefix)</span>
             </label>
             {ticketPrefix && (
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 mb-3">
-                <p className="text-sm font-mono text-blue-900 dark:text-blue-100">
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 mb-3">
+                <p className="text-sm font-mono text-primary">
                   {derivedPattern}
                 </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                <p className="text-xs text-primary mt-1">
                   Automatically matches: {ticketPrefix}-001, {ticketPrefix}-002, etc.
                 </p>
               </div>
@@ -293,8 +293,8 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       {saveMessage && (
         <div className={`flex items-center gap-3 p-4 rounded-lg mb-6 ${
           saveMessage.type === "success"
-            ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200"
-            : "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+            ? "bg-success/10 text-success"
+            : "bg-destructive/10 text-destructive"
         }`}>
           {saveMessage.type === "success" ? (
             <CheckCircle className="w-5 h-5 flex-shrink-0" />
@@ -326,8 +326,8 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
       <div className="card p-6 mb-6 border-l-4" style={{ borderLeftColor: '#fbbf24' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-              <Star className="w-5 h-5 text-yellow-600" />
+            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+              <Star className="w-5 h-5 text-warning" />
             </div>
             <div>
               <h3 className="font-semibold">Default Business</h3>
@@ -370,9 +370,9 @@ export function BusinessSettingsPanel({ businessId }: BusinessSettingsPanelProps
         </div>
 
         {showDeleteConfirm ? (
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
+          <div className="bg-destructive/10 p-4 rounded-lg mb-4">
             <p className="text-sm font-medium mb-3">
-              Are you sure? Type <code className="bg-white dark:bg-black px-2 py-1 rounded">{business?.name}</code> to confirm:
+              Are you sure? Type <code className="bg-card px-2 py-1 rounded">{business?.name}</code> to confirm:
             </p>
             <input
               type="text"

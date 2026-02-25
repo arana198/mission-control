@@ -153,7 +153,7 @@ export function AgentWorkload({ agents, tasks, epics }: {
             Rebalance
           </button>
           {rebalanceResult && (
-            <span className="text-sm text-green-600 font-medium">{rebalanceResult}</span>
+            <span className="text-sm text-success font-medium">{rebalanceResult}</span>
           )}
           <select
             value={sortBy}
@@ -205,9 +205,9 @@ export function AgentWorkload({ agents, tasks, epics }: {
         {agentWorkloads.map((workload) => {
           const { agent } = workload;
           const levelColors = {
-            lead: "bg-blue-500",
-            specialist: "bg-slate-500",
-            intern: "bg-amber-500",
+            lead: "bg-primary",
+            specialist: "bg-muted-foreground",
+            intern: "bg-warning",
           };
 
           return (
@@ -215,7 +215,7 @@ export function AgentWorkload({ agents, tasks, epics }: {
               key={agent._id}
               onClick={() => setSelectedAgent(agent)}
               className={`card p-4 cursor-pointer hover:scale-[1.02] transition-transform ${
-                workload.totalEstimatedHours > 80 ? "ring-2 ring-red-200" : ""
+                workload.totalEstimatedHours > 80 ? "ring-2 ring-destructive/30" : ""
               }`}
             >
               {/* Header */}
@@ -245,11 +245,11 @@ export function AgentWorkload({ agents, tasks, epics }: {
                   <span className="font-medium">{workload.totalEstimatedHours}h</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full rounded-full ${
-                      workload.totalEstimatedHours > 80 ? "bg-red-500" :
-                      workload.totalEstimatedHours > 40 ? "bg-amber-500" :
-                      "bg-green-500"
+                      workload.totalEstimatedHours > 80 ? "bg-destructive" :
+                      workload.totalEstimatedHours > 40 ? "bg-warning" :
+                      "bg-success"
                     }`}
                     style={{ width: `${Math.min((workload.totalEstimatedHours / 80) * 100, 100)}%` }}
                   />
@@ -262,29 +262,29 @@ export function AgentWorkload({ agents, tasks, epics }: {
                   <p className="font-semibold text-sm">{workload.assignedTasks}</p>
                   <p className="text-[10px] text-muted-foreground uppercase">Total</p>
                 </div>
-                <div className="bg-blue-50 rounded p-2">
-                  <p className="font-semibold text-sm text-blue-700">{workload.inProgressTasks}</p>
-                  <p className="text-[10px] text-blue-600 uppercase">Active</p>
+                <div className="bg-primary/10 rounded p-2">
+                  <p className="font-semibold text-sm text-primary">{workload.inProgressTasks}</p>
+                  <p className="text-[10px] text-primary uppercase">Active</p>
                 </div>
-                <div className="bg-amber-50 rounded p-2">
-                  <p className="font-semibold text-sm text-amber-700">{workload.criticalTasks}</p>
-                  <p className="text-[10px] text-amber-600 uppercase">P0/P1</p>
+                <div className="bg-warning/10 rounded p-2">
+                  <p className="font-semibold text-sm text-warning">{workload.criticalTasks}</p>
+                  <p className="text-[10px] text-warning uppercase">P0/P1</p>
                 </div>
-                <div className="bg-red-50 rounded p-2">
-                  <p className="font-semibold text-sm text-red-700">{workload.overdueTasks.length}</p>
-                  <p className="text-[10px] text-red-600 uppercase">Overdue</p>
+                <div className="bg-destructive/10 rounded p-2">
+                  <p className="font-semibold text-sm text-destructive">{workload.overdueTasks.length}</p>
+                  <p className="text-[10px] text-destructive uppercase">Overdue</p>
                 </div>
               </div>
 
               {workload.totalEstimatedHours > 80 && (
-                <div className="mt-3 flex items-center gap-1 text-xs text-red-600 font-medium">
+                <div className="mt-3 flex items-center gap-1 text-xs text-destructive font-medium">
                   <AlertTriangle className="w-3 h-3" />
                   Overloaded ({workload.totalEstimatedHours}h)
                 </div>
               )}
 
               {workload.overdueTasks.length > 0 && (
-                <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">
+                <div className="mt-3 p-2 bg-destructive/10 rounded text-xs text-destructive">
                   {workload.overdueTasks.length} overdue task{workload.overdueTasks.length > 1 ? "s" : ""}
                 </div>
               )}
@@ -385,9 +385,9 @@ function AgentDetailView({ workload, epics, onBack }: {
       <div className="card p-6 mb-6">
         <div className="flex items-start gap-4">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white font-bold ${
-            agent.level === "lead" ? "bg-blue-500" :
-            agent.level === "specialist" ? "bg-slate-500" :
-            "bg-amber-500"
+            agent.level === "lead" ? "bg-primary" :
+            agent.level === "specialist" ? "bg-muted-foreground" :
+            "bg-warning"
           }`}>
             {agent.name[0]}
           </div>
@@ -445,7 +445,7 @@ function AgentDetailView({ workload, epics, onBack }: {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {task.timeEstimate && (
-                          <span className="badge bg-blue-100 text-blue-700 text-xs">
+                          <span className="badge bg-primary/10 text-primary text-xs">
                             {task.timeEstimate}
                           </span>
                         )}
@@ -476,13 +476,13 @@ function AgentDetailView({ workload, epics, onBack }: {
                     {status.replace("_", " ")}
                   </span>
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full bg-${
-                        status === "done" ? "green" :
-                        status === "in_progress" ? "blue" :
-                        status === "blocked" ? "amber" :
-                        "slate"
-                      }-500`}
+                    <div
+                      className={`h-full rounded-full ${
+                        status === "done" ? "bg-success" :
+                        status === "in_progress" ? "bg-primary" :
+                        status === "blocked" ? "bg-warning" :
+                        "bg-muted-foreground"
+                      }`}
                       style={{ width: `${(tasks.length / workload.assignedTasks) * 100}%` }}
                     />
                   </div>
@@ -511,15 +511,15 @@ function AgentDetailView({ workload, epics, onBack }: {
           </div>
 
           {workload.overdueTasks.length > 0 && (
-            <div className="card p-4 border-red-300">
-              <h3 className="font-semibold mb-2 flex items-center gap-2 text-red-600">
+            <div className="card p-4 border-destructive/30">
+              <h3 className="font-semibold mb-2 flex items-center gap-2 text-destructive">
                 <Calendar className="w-4 h-4" /> Overdue Tasks
               </h3>
               <div className="space-y-2">
                 {workload.overdueTasks.map((task: any) => (
                   <div key={task._id} className="text-sm">
                     <p className="font-medium truncate">{task.title}</p>
-                    <p className="text-xs text-red-600">
+                    <p className="text-xs text-destructive">
                       Due {new Date(task.dueDate).toLocaleDateString()} · {
                         Math.ceil((Date.now() - task.dueDate) / 86400000)
                       } days overdue
@@ -535,16 +535,16 @@ function AgentDetailView({ workload, epics, onBack }: {
   );
 }
 
-function StatCard({ label, value, icon: Icon, color }: { 
-  label: string; 
-  value: string | number; 
-  icon: any; 
+function StatCard({ label, value, icon: Icon, color }: {
+  label: string;
+  value: string | number;
+  icon: any;
   color?: string;
 }) {
-  const colorClass = color === "green" ? "bg-green-100 text-green-700" :
-                     color === "amber" ? "bg-amber-100 text-amber-700" :
-                     color === "red" ? "bg-red-100 text-red-700" :
-                     color === "orange" ? "bg-orange-100 text-orange-700" :
+  const colorClass = color === "green" ? "bg-success/10 text-success" :
+                     color === "amber" ? "bg-warning/10 text-warning" :
+                     color === "red" ? "bg-destructive/10 text-destructive" :
+                     color === "orange" ? "bg-warning/20 text-warning" :
                      "bg-muted text-muted-foreground";
 
   return (

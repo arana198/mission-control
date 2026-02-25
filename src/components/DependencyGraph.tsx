@@ -9,19 +9,19 @@ interface DependencyGraphProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  done: "bg-green-100 border-green-300 text-green-900",
-  blocked: "bg-amber-100 border-amber-300 text-amber-900",
-  in_progress: "bg-blue-100 border-blue-300 text-blue-900",
-  ready: "bg-gray-100 border-gray-300 text-gray-900",
-  review: "bg-purple-100 border-purple-300 text-purple-900",
+  done: "bg-success/10 border-success/30 text-success",
+  blocked: "bg-warning/10 border-warning/30 text-warning",
+  in_progress: "bg-primary/10 border-primary/30 text-primary",
+  ready: "bg-muted/10 border-muted/30 text-muted-foreground",
+  review: "bg-accent/10 border-accent/30 text-accent",
 };
 
 const STATUS_DOT_COLORS: Record<string, string> = {
-  done: "bg-green-600",
-  blocked: "bg-amber-600",
-  in_progress: "bg-blue-600",
-  ready: "bg-gray-600",
-  review: "bg-purple-600",
+  done: "bg-success",
+  blocked: "bg-warning",
+  in_progress: "bg-primary",
+  ready: "bg-muted-foreground",
+  review: "bg-accent",
 };
 
 /**

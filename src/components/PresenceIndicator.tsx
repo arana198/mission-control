@@ -22,26 +22,26 @@ function StatusBadge({ status }: { status: string }) {
     { bg: string; text: string; icon: string; label: string }
   > = {
     online: {
-      bg: "bg-green-100",
-      text: "text-green-700",
+      bg: "bg-success/10",
+      text: "text-success",
       icon: "🟢",
       label: "Online",
     },
     away: {
-      bg: "bg-yellow-100",
-      text: "text-yellow-700",
+      bg: "bg-warning/10",
+      text: "text-warning",
       icon: "🟡",
       label: "Away",
     },
     do_not_disturb: {
-      bg: "bg-red-100",
-      text: "text-red-700",
+      bg: "bg-destructive/10",
+      text: "text-destructive",
       icon: "🔴",
       label: "Do Not Disturb",
     },
     offline: {
-      bg: "bg-gray-100",
-      text: "text-gray-700",
+      bg: "bg-muted/10",
+      text: "text-muted-foreground",
       icon: "⚪",
       label: "Offline",
     },
@@ -77,17 +77,17 @@ export function PresenceIndicator({
   if (!presence) {
     return (
       <div className="flex items-center gap-2">
-        <Circle className="w-3 h-3 fill-gray-300 text-gray-300" />
+        <Circle className="w-3 h-3 fill-muted-foreground text-muted-foreground" />
         <span className="text-xs text-muted-foreground">Offline</span>
       </div>
     );
   }
 
   const colorMap: Record<string, string> = {
-    online: "fill-green-500 text-green-500",
-    away: "fill-yellow-500 text-yellow-500",
-    do_not_disturb: "fill-red-500 text-red-500",
-    offline: "fill-gray-300 text-gray-300",
+    online: "fill-success text-success",
+    away: "fill-warning text-warning",
+    do_not_disturb: "fill-destructive text-destructive",
+    offline: "fill-muted-foreground text-muted-foreground",
   };
 
   return (
@@ -152,7 +152,7 @@ export function PresenceList({
             className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                 {agent.name[0]}
               </div>
               <div className="min-w-0">
@@ -170,11 +170,11 @@ export function PresenceList({
                     <Circle
                       className={`w-2 h-2 fill-current ${
                         {
-                          online: "text-green-500",
-                          away: "text-yellow-500",
-                          do_not_disturb: "text-red-500",
-                          offline: "text-gray-400",
-                        }[presence.status] || "text-gray-400"
+                          online: "text-success",
+                          away: "text-warning",
+                          do_not_disturb: "text-destructive",
+                          offline: "text-muted-foreground/50",
+                        }[presence.status] || "text-muted-foreground/50"
                       }`}
                     />
                     <span className="text-xs font-medium capitalize">
@@ -255,11 +255,11 @@ export function CurrentUserPresence({
         <Circle
           className={`w-3 h-3 fill-current ${
             {
-              online: "text-green-500",
-              away: "text-yellow-500",
-              do_not_disturb: "text-red-500",
-              offline: "text-gray-400",
-            }[currentStatus] || "text-gray-400"
+              online: "text-success",
+              away: "text-warning",
+              do_not_disturb: "text-destructive",
+              offline: "text-muted-foreground/50",
+            }[currentStatus] || "text-muted-foreground/50"
           }`}
         />
         <span className="text-sm capitalize hidden sm:inline">
@@ -269,7 +269,7 @@ export function CurrentUserPresence({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border p-4 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-card rounded-lg shadow-lg border p-4 z-50">
           {/* Status Selection */}
           <div className="mb-4">
             <p className="text-xs font-semibold text-muted-foreground mb-2">
@@ -282,7 +282,7 @@ export function CurrentUserPresence({
                   onClick={() => handleStatusChange(status.value)}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
                     currentStatus === status.value
-                      ? "bg-blue-50 text-blue-700"
+                      ? "bg-primary/10 text-primary"
                       : "hover:bg-muted"
                   }`}
                 >
@@ -304,11 +304,11 @@ export function CurrentUserPresence({
                 value={activity}
                 onChange={(e) => setActivity(e.target.value)}
                 placeholder={presence?.currentActivity || "Task name..."}
-                className="w-full px-3 py-2 border rounded-md text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border rounded-md text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="submit"
-                className="w-full px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 Update Activity
               </button>
@@ -327,7 +327,7 @@ export function CurrentUserPresence({
                 });
                 setIsOpen(false);
               }}
-              className="w-full text-left px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+              className="w-full text-left px-3 py-2 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2"
             >
               <LogOut className="w-4 h-4" />
               Go Offline

@@ -114,7 +114,7 @@ function KanbanColumnComponent({
 
       <div
         className={`flex-1 space-y-2 min-h-[200px] rounded-lg p-2 transition-colors ${
-          isDragOver ? "bg-blue-50 dark:bg-blue-900/20" : ""
+          isDragOver ? "bg-primary/10" : ""
         }`}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -137,7 +137,7 @@ function KanbanColumnComponent({
               onDragStart={() => !bulkMode && onDragStart(task)}
               onClick={() => !bulkMode && onTaskClick(task)}
               onKeyDown={(e) => handleTaskKeyDown(e, index)}
-              className={`card p-3 cursor-pointer hover:shadow-md transition-all relative focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
+              className={`card p-3 cursor-pointer hover:shadow-md transition-all relative focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary ${
                 task._id === draggedTaskId ? "opacity-50 scale-95" : ""
               }`}
               role="button"
@@ -176,7 +176,7 @@ function KanbanColumnComponent({
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {task.blockedBy && task.blockedBy.length > 0 && (
-                    <span className="badge bg-red-100 text-red-700">
+                    <span className="badge bg-destructive/10 text-destructive">
                       <AlertCircle className="w-3 h-3" />
                       Blocked
                     </span>
@@ -213,11 +213,11 @@ function KanbanColumnComponent({
                       const agent = agents.find((a) => a._id === agentId);
                       const presenceStatus = presenceMap?.get(agentId);
                       const dotColor = {
-                        online: "bg-green-500",
-                        away: "bg-yellow-500",
-                        do_not_disturb: "bg-red-500",
-                        offline: "bg-gray-300",
-                      }[presenceStatus ?? "offline"] ?? "bg-gray-300";
+                        online: "bg-success",
+                        away: "bg-warning",
+                        do_not_disturb: "bg-destructive",
+                        offline: "bg-muted-foreground",
+                      }[presenceStatus ?? "offline"] ?? "bg-muted-foreground";
 
                       return agent ? (
                         <span
@@ -244,9 +244,9 @@ function KanbanColumnComponent({
                   <div
                     className={`flex items-center gap-1 text-xs ${
                       isOverdue(task.dueDate)
-                        ? "text-red-600 font-medium"
+                        ? "text-destructive font-medium"
                         : isDueSoon(task.dueDate)
-                          ? "text-orange-600 font-medium"
+                          ? "text-warning font-medium"
                           : "text-muted-foreground"
                     }`}
                   >
@@ -269,7 +269,7 @@ function KanbanColumnComponent({
         )}
 
         {isDragOver && (
-          <div className="py-4 border-2 border-dashed border-blue-400 rounded-lg text-center text-sm text-blue-600">
+          <div className="py-4 border-2 border-dashed border-primary/50 rounded-lg text-center text-sm text-primary">
             Drop here
           </div>
         )}

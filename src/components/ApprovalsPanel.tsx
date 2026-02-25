@@ -60,9 +60,9 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-green-400";
-    if (confidence >= 50) return "text-yellow-400";
-    return "text-red-400";
+    if (confidence >= 80) return "text-success";
+    if (confidence >= 50) return "text-warning";
+    return "text-destructive";
   };
 
   const timeAgo = (ts: number) => {
@@ -77,19 +77,19 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
   const resolvedApprovals = approvals?.filter((a) => a.status !== "pending") || [];
 
   return (
-    <div className="flex h-screen gap-6 p-6 bg-slate-950">
+    <div className="flex h-screen gap-6 p-6 bg-background">
       {/* Left Column: Approval List */}
-      <div className="w-80 flex flex-col border border-slate-700 rounded-lg bg-slate-900">
-        <div className="p-4 border-b border-slate-700">
-          <h3 className="font-semibold text-white">Approvals</h3>
-          <p className="text-sm text-gray-400">{pendingApprovals.length} pending</p>
+      <div className="w-80 flex flex-col border border-border rounded-lg bg-card">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">Approvals</h3>
+          <p className="text-sm text-muted-foreground">{pendingApprovals.length} pending</p>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 p-2">
           {/* Pending Section */}
           {pendingApprovals.length > 0 && (
             <>
-              <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
                 Pending ({pendingApprovals.length})
               </div>
               {pendingApprovals.map((approval) => (
@@ -98,17 +98,17 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
                   onClick={() => setSelectedApprovalId(approval._id)}
                   className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
                     selectedApprovalId === approval._id
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-300 hover:bg-slate-800"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-muted"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`font-medium ${getConfidenceColor(approval.confidence)}`}>
                       {approval.confidence}%
                     </span>
-                    <span className="text-xs text-gray-500">{approval.actionType}</span>
+                    <span className="text-xs text-muted-foreground">{approval.actionType}</span>
                   </div>
-                  <div className="text-xs text-gray-400">{timeAgo(approval.createdAt)}</div>
+                  <div className="text-xs text-muted-foreground">{timeAgo(approval.createdAt)}</div>
                 </button>
               ))}
             </>
@@ -117,7 +117,7 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
           {/* Resolved Section */}
           {resolvedApprovals.length > 0 && (
             <>
-              <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase mt-4">
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase mt-4">
                 Resolved ({resolvedApprovals.length})
               </div>
               {resolvedApprovals.map((approval) => (
@@ -126,8 +126,8 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
                   onClick={() => setSelectedApprovalId(approval._id)}
                   className={`w-full text-left px-3 py-2 rounded text-sm transition-colors opacity-75 ${
                     selectedApprovalId === approval._id
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-400 hover:bg-slate-800"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -135,14 +135,14 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
                       {approval.status === "approved" ? "✓ Approved" : "✗ Rejected"}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500">{timeAgo(approval.resolvedAt || 0)}</div>
+                  <div className="text-xs text-muted-foreground">{timeAgo(approval.resolvedAt || 0)}</div>
                 </button>
               ))}
             </>
           )}
 
           {!approvals || approvals.length === 0 && (
-            <div className="text-center py-8 text-gray-400 text-sm">
+            <div className="text-center py-8 text-muted-foreground text-sm">
               No approvals yet — agents will request approval here
             </div>
           )}
@@ -151,45 +151,45 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
 
       {/* Right Column: Detail View */}
       {selectedApproval ? (
-        <div className="flex-1 border border-slate-700 rounded-lg bg-slate-900 p-6 overflow-y-auto">
+        <div className="flex-1 border border-border rounded-lg bg-card p-6 overflow-y-auto">
           <div className="space-y-6">
             {/* Header */}
-            <div className="border-b border-slate-700 pb-4">
+            <div className="border-b border-border pb-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-bold text-white">{selectedApproval.actionType}</h2>
+                <h2 className="text-2xl font-bold text-foreground">{selectedApproval.actionType}</h2>
                 <span
                   className={`px-3 py-1 rounded text-sm font-medium ${
                     selectedApproval.status === "pending"
-                      ? "bg-yellow-900/30 text-yellow-300"
+                      ? "bg-warning/20 text-warning"
                       : selectedApproval.status === "approved"
-                      ? "bg-green-900/30 text-green-300"
-                      : "bg-red-900/30 text-red-300"
+                      ? "bg-success/20 text-success"
+                      : "bg-destructive/10 text-destructive"
                   }`}
                 >
                   {selectedApproval.status}
                 </span>
               </div>
               {selectedApproval.agentId && (
-                <p className="text-sm text-gray-400">Agent ID: {selectedApproval.agentId}</p>
+                <p className="text-sm text-muted-foreground">Agent ID: {selectedApproval.agentId}</p>
               )}
             </div>
 
             {/* Confidence Meter */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-gray-300">Confidence Score</span>
+                <span className="text-sm font-semibold text-foreground">Confidence Score</span>
                 <span className={`text-2xl font-bold ${getConfidenceColor(selectedApproval.confidence)}`}>
                   {selectedApproval.confidence}%
                 </span>
               </div>
-              <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="w-full bg-muted rounded-full h-2">
                 <div
                   className={`h-full rounded-full transition-all ${
                     selectedApproval.confidence >= 80
-                      ? "bg-green-500"
+                      ? "bg-success"
                       : selectedApproval.confidence >= 50
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
+                      ? "bg-warning"
+                      : "bg-destructive"
                   }`}
                   style={{ width: `${selectedApproval.confidence}%` }}
                 />
@@ -198,17 +198,17 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
 
             {/* Lead Reasoning */}
             <div>
-              <h3 className="font-semibold text-white mb-2">Lead Reasoning</h3>
-              <blockquote className="border-l-4 border-blue-500 pl-4 py-2 text-gray-300 italic">
+              <h3 className="font-semibold text-foreground mb-2">Lead Reasoning</h3>
+              <blockquote className="border-l-4 border-primary pl-4 py-2 text-foreground italic">
                 {selectedApproval.leadReasoning}
               </blockquote>
             </div>
 
             {/* Risk Indicators */}
             {(selectedApproval.isExternal || selectedApproval.isRisky) && (
-              <div className="bg-red-900/20 border border-red-700 rounded p-4">
-                <h3 className="font-semibold text-red-300 mb-2">Risk Flags</h3>
-                <div className="space-y-1 text-sm text-red-200">
+              <div className="bg-destructive/10 border border-destructive/30 rounded p-4">
+                <h3 className="font-semibold text-destructive mb-2">Risk Flags</h3>
+                <div className="space-y-1 text-sm text-destructive/80">
                   {selectedApproval.isExternal && <div>🔓 External Action</div>}
                   {selectedApproval.isRisky && <div>⚠️ Risky Operation</div>}
                 </div>
@@ -218,12 +218,12 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
             {/* Rubric Scores */}
             {selectedApproval.rubricScores && Object.keys(selectedApproval.rubricScores).length > 0 && (
               <div>
-                <h3 className="font-semibold text-white mb-3">Rubric Scores</h3>
+                <h3 className="font-semibold text-foreground mb-3">Rubric Scores</h3>
                 <div className="space-y-2">
                   {Object.entries(selectedApproval.rubricScores).map(([dimension, score]: any) => (
                     <div key={dimension} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-300 capitalize">{dimension}</span>
-                      <span className="font-medium text-white">{score}/100</span>
+                      <span className="text-muted-foreground capitalize">{dimension}</span>
+                      <span className="font-medium text-foreground">{score}/100</span>
                     </div>
                   ))}
                 </div>
@@ -232,17 +232,17 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
 
             {/* Actions */}
             {selectedApproval.status === "pending" && (
-              <div className="flex gap-3 pt-4 border-t border-slate-700">
+              <div className="flex gap-3 pt-4 border-t border-border">
                 <button
                   onClick={() => handleApprove(selectedApproval._id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-success hover:bg-success/90 text-success-foreground rounded px-4 py-2 font-medium transition-colors"
                 >
                   <Check size={18} />
                   Approve
                 </button>
                 <button
                   onClick={() => handleReject(selectedApproval._id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded px-4 py-2 font-medium transition-colors"
                 >
                   <X size={18} />
                   Reject
@@ -251,20 +251,20 @@ export function ApprovalsPanel({ businessId }: ApprovalsPanelProps) {
             )}
 
             {selectedApproval.status !== "pending" && (
-              <div className="bg-slate-800 rounded p-4 text-sm">
-                <div className="text-gray-400 mb-2">
+              <div className="bg-muted rounded p-4 text-sm">
+                <div className="text-muted-foreground mb-2">
                   Resolved {selectedApproval.resolvedAt && new Date(selectedApproval.resolvedAt).toLocaleDateString()}
                 </div>
                 {selectedApproval.resolvedBy && (
-                  <div className="text-gray-400">by {selectedApproval.resolvedBy}</div>
+                  <div className="text-muted-foreground">by {selectedApproval.resolvedBy}</div>
                 )}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="flex-1 border border-slate-700 rounded-lg bg-slate-900 flex items-center justify-center">
-          <p className="text-gray-400">Select an approval to view details</p>
+        <div className="flex-1 border border-border rounded-lg bg-card flex items-center justify-center">
+          <p className="text-muted-foreground">Select an approval to view details</p>
         </div>
       )}
     </div>

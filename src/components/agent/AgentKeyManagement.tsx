@@ -86,73 +86,73 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
   return (
     <div className="space-y-6">
       {/* Current API Key Section */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             Current API Key
-            <span className="text-sm font-normal px-2 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+            <span className="text-sm font-normal px-2 py-1 rounded-full bg-success/10 text-success">
               Active
             </span>
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Use this key to authenticate with the Mission Control API. Keep it secure.
           </p>
         </div>
         <div className="px-6 py-4 space-y-4">
           {/* Key Display */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-medium text-foreground">
               API Key
             </label>
-            <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
-              <code className="flex-1 font-mono text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-3">
+              <code className="flex-1 font-mono text-sm text-foreground">
                 {showKey ? currentApiKey : "•".repeat(32)}
               </code>
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
                 title={showKey ? "Hide key" : "Show key"}
               >
                 {showKey ? (
-                  <EyeOff className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
               <button
                 onClick={handleCopyKey}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
                 title={copiedToClipboard ? "Copied!" : "Copy to clipboard"}
               >
                 {copiedToClipboard ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                 ) : (
-                  <Copy className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <Copy className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Rotate your key regularly for security
             </p>
           </div>
 
           {/* Security Info */}
-          <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 p-3 flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 dark:text-amber-200">
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-warning">
               Never share your API key in public repositories or with untrusted parties.
             </p>
           </div>
 
           {/* Rotation History (if available) */}
           {agent && agent.lastKeyRotationAt && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm bg-gray-50 dark:bg-gray-900">
-              <p className="font-medium text-gray-700 dark:text-gray-300">Last Rotation</p>
-              <p className="text-gray-600 dark:text-gray-400">
+            <div className="rounded-lg border border-border p-3 text-sm bg-muted">
+              <p className="font-medium text-foreground">Last Rotation</p>
+              <p className="text-muted-foreground">
                 {new Date(agent.lastKeyRotationAt).toLocaleString()}
               </p>
               {agent.keyRotationCount && (
-                <p className="text-xs text-gray-500 dark:text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Total rotations: {agent.keyRotationCount}
                 </p>
               )}
@@ -162,20 +162,20 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
       </div>
 
       {/* Key Rotation Section */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <RotateCcw className="h-5 w-5" />
             Rotate API Key
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Generate a new API key. The old key will expire after the grace period.
           </p>
         </div>
         <div className="px-6 py-4 space-y-4">
           {/* Rotation Reason */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-medium text-foreground">
               Reason for Rotation
             </label>
             <select
@@ -185,27 +185,27 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
                   e.target.value as "scheduled" | "compromised" | "deployment" | "refresh"
                 )
               }
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
             >
               <option value="refresh">Regular Refresh</option>
               <option value="scheduled">Scheduled Rotation</option>
               <option value="deployment">New Deployment</option>
               <option value="compromised">Key Compromised (Emergency)</option>
             </select>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
+            <p className="text-xs text-muted-foreground">
               This helps track rotation patterns and security incidents
             </p>
           </div>
 
           {/* Grace Period */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-medium text-foreground">
               Grace Period
             </label>
             <select
               value={gracePeriod.toString()}
               onChange={(e) => setGracePeriod(parseInt(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
             >
               <option value="0">Immediate (0 seconds)</option>
               <option value="30">30 seconds</option>
@@ -213,7 +213,7 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
               <option value="120">2 minutes</option>
               <option value="300">5 minutes</option>
             </select>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Time window for old key to remain valid during transition
             </p>
           </div>
@@ -223,21 +223,21 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
             <div
               className={`rounded-lg border p-3 flex gap-3 ${
                 rotationResult.success
-                  ? "border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950"
-                  : "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950"
+                  ? "border-success/30 bg-success/10"
+                  : "border-destructive/30 bg-destructive/10"
               }`}
             >
               {rotationResult.success ? (
                 <>
-                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-800 dark:text-green-200">
+                  <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-success">
                     {rotationResult.data && (
                       <div className="space-y-1">
                         <p className="font-medium">Key rotated successfully!</p>
                         <p className="text-sm">
                           Old key expires in {rotationResult.data.gracePeriodSeconds} seconds
                         </p>
-                        <p className="text-sm font-mono text-xs break-all bg-green-100 dark:bg-green-900 p-2 rounded mt-1">
+                        <p className="text-sm font-mono text-xs break-all bg-success/20 p-2 rounded mt-1">
                           {rotationResult.data.newApiKey}
                         </p>
                       </div>
@@ -246,8 +246,8 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-red-800 dark:text-red-200">
+                  <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-destructive">
                     <p className="font-medium">{rotationResult.error?.code}</p>
                     <p className="text-sm">{rotationResult.error?.message}</p>
                   </div>
@@ -260,7 +260,7 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
           <button
             onClick={handleRotateKey}
             disabled={isRotating}
-            className="w-full px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {isRotating ? (
               <>
@@ -278,9 +278,9 @@ export function AgentKeyManagement({ agentId, currentApiKey }: KeyManagementProp
       </div>
 
       {/* Rate Limiting Notice */}
-      <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950 p-3 flex gap-3">
-        <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-800 dark:text-blue-200">
+      <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 flex gap-3">
+        <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-primary">
           You can rotate your key maximum 3 times per hour. Exceeding this limit will temporarily
           block key rotation requests.
         </p>

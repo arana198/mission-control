@@ -35,7 +35,7 @@ function GatewaySessionsPanelWithHook({
     <div className="p-6">
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-400">
+          <div className="text-muted-foreground">
             <div className="animate-spin inline-block mr-2">⟳</div>
             Loading sessions...
           </div>
@@ -43,7 +43,7 @@ function GatewaySessionsPanelWithHook({
       )}
 
       {error && (
-        <div className="bg-red-900/20 border border-red-700 rounded p-4 text-red-300 text-sm">
+        <div className="bg-destructive/10 border border-destructive/30 rounded p-4 text-destructive text-sm">
           Error: {error}
         </div>
       )}
@@ -125,7 +125,7 @@ export default function GatewaysPage() {
   if (!currentBusiness) {
     return (
       <div className="p-6 max-w-6xl mx-auto">
-        <div className="bg-slate-800 rounded p-4 border border-slate-700 text-center text-gray-400">
+        <div className="bg-muted rounded p-4 border border-border text-center text-muted-foreground">
           No business selected
         </div>
       </div>
@@ -137,12 +137,12 @@ export default function GatewaysPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-white">🌐 Gateways</h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <h2 className="text-3xl font-bold text-foreground">🌐 Gateways</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage distributed runtime connections
           </p>
           {!roleLoading && !isAdmin && (
-            <div className="flex items-center gap-1 mt-2 text-xs text-amber-400">
+            <div className="flex items-center gap-1 mt-2 text-xs text-warning">
               <Lock size={14} />
               <span>Read-only</span>
             </div>
@@ -151,7 +151,7 @@ export default function GatewaysPage() {
         {isAdmin && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 font-medium transition-colors"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded px-4 py-2 font-medium transition-colors"
           >
             <Plus size={18} />
             New Gateway
@@ -161,8 +161,8 @@ export default function GatewaysPage() {
 
       {/* Create Form */}
       {showForm && isAdmin && (
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Create New Gateway</h3>
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Create New Gateway</h3>
           <GatewayForm
             businessId={currentBusiness._id as any}
             onClose={() => setShowForm(false)}
@@ -176,28 +176,28 @@ export default function GatewaysPage() {
 
       {/* Gateway List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 border border-slate-700 rounded-lg bg-slate-900 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-700">
+        <div className="lg:col-span-1 border border-border rounded-lg bg-card overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-white">Gateways</h3>
+              <h3 className="font-semibold text-foreground">Gateways</h3>
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as any)}
-                className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-gray-300 focus:outline-none focus:border-blue-500"
+                className="px-2 py-1 bg-muted border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="name">Name (A-Z)</option>
                 <option value="health">Health</option>
                 <option value="recent">Recent</option>
               </select>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {gateways?.length || 0} configured
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-700">
+          <div className="flex-1 overflow-y-auto divide-y divide-border">
             {!gateways || gateways.length === 0 ? (
-              <div className="p-6 text-center text-gray-400 text-sm">
+              <div className="p-6 text-center text-muted-foreground text-sm">
                 No gateways configured yet
               </div>
             ) : (
@@ -222,12 +222,12 @@ export default function GatewaysPage() {
                   onClick={() => setSelectedGatewayId(gateway._id)}
                   className={`w-full text-left p-4 transition-colors ${
                     selectedGatewayId === gateway._id
-                      ? "bg-blue-600"
-                      : "hover:bg-slate-800"
+                      ? "bg-primary"
+                      : "hover:bg-muted"
                   }`}
                 >
-                  <div className="font-medium text-white mb-2">{gateway.name}</div>
-                  <div className="text-xs text-gray-400 truncate mb-2">
+                  <div className="font-medium text-foreground mb-2">{gateway.name}</div>
+                  <div className="text-xs text-muted-foreground truncate mb-2">
                     {gateway.url}
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -242,7 +242,7 @@ export default function GatewaysPage() {
                             e.stopPropagation();
                             setEditGatewayId(gateway._id);
                           }}
-                          className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                          className="p-1 text-primary hover:text-primary/80 hover:bg-primary/20 rounded transition-colors"
                           title="Edit gateway"
                         >
                           <Edit2 size={16} />
@@ -252,7 +252,7 @@ export default function GatewaysPage() {
                             e.stopPropagation();
                             setDeleteConfirmGatewayId(gateway._id);
                           }}
-                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                          className="p-1 text-destructive hover:text-destructive/80 hover:bg-destructive/20 rounded transition-colors"
                           title="Delete gateway"
                         >
                           <Trash2 size={16} />
@@ -268,7 +268,7 @@ export default function GatewaysPage() {
         </div>
 
         {/* Detail View */}
-        <div className="lg:col-span-2 border border-slate-700 rounded-lg bg-slate-900">
+        <div className="lg:col-span-2 border border-border rounded-lg bg-card">
           {selectedGatewayId && gateways ? (
             <GatewaySessionsPanelWithHook
               gatewayId={selectedGatewayId}
@@ -276,7 +276,7 @@ export default function GatewaysPage() {
             />
           ) : (
             <div className="h-full flex items-center justify-center p-8">
-              <p className="text-gray-400 text-center">
+              <p className="text-muted-foreground text-center">
                 Select a gateway to view details and manage sessions
               </p>
             </div>
@@ -286,9 +286,9 @@ export default function GatewaysPage() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
-          <h3 className="font-semibold text-white mb-2">📋 Features</h3>
-          <ul className="text-sm text-gray-400 space-y-1">
+        <div className="bg-card rounded-lg p-6 border border-border">
+          <h3 className="font-semibold text-foreground mb-2">📋 Features</h3>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>✓ WebSocket connection management</li>
             <li>✓ Health monitoring</li>
             <li>✓ Agent provisioning</li>
@@ -296,9 +296,9 @@ export default function GatewaysPage() {
           </ul>
         </div>
 
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
-          <h3 className="font-semibold text-white mb-2">🔧 Configuration</h3>
-          <ul className="text-sm text-gray-400 space-y-1">
+        <div className="bg-card rounded-lg p-6 border border-border">
+          <h3 className="font-semibold text-foreground mb-2">🔧 Configuration</h3>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>• WebSocket URL (ws:// or wss://)</li>
             <li>• Optional auth token</li>
             <li>• Workspace root path</li>
@@ -309,9 +309,9 @@ export default function GatewaysPage() {
 
       {/* Edit Gateway Modal */}
       {editGatewayId && editingGateway && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-lg max-w-lg w-full p-6 border border-slate-700">
-            <h2 className="text-xl font-semibold text-white mb-4">Edit Gateway</h2>
+        <div className="fixed inset-0 bg-overlay/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg max-w-lg w-full p-6 border border-border">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Edit Gateway</h2>
             <GatewayForm
               businessId={currentBusiness!._id as any}
               gateway={editingGateway}

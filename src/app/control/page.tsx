@@ -55,47 +55,47 @@ export default function ControlPage() {
     switch (status) {
       case "success":
       case "idle":
-        return "text-green-400";
+        return "text-success";
       case "busy":
       case "running":
-        return "text-yellow-400";
+        return "text-warning";
       case "failed":
       case "error":
-        return "text-red-400";
+        return "text-destructive";
       default:
-        return "text-gray-400";
+        return "text-muted-foreground";
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "info":
-        return "text-blue-400";
+        return "text-primary";
       case "warning":
-        return "text-yellow-400";
+        return "text-warning";
       case "error":
-        return "text-red-400";
+        return "text-destructive";
       default:
-        return "text-gray-400";
+        return "text-muted-foreground";
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               🎛️ Mission Control
             </h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               Observability Dashboard — Phase 6B Control Plane
             </p>
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
           >
             ↻ Refresh
           </button>
@@ -103,7 +103,7 @@ export default function ControlPage() {
 
         {/* System Health Stats */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">System Health</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">System Health</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               label="Total Agents"
@@ -132,28 +132,28 @@ export default function ControlPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Recent Executions */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-white mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               📋 Recent Executions
             </h3>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {recentExecutions?.slice(0, 10).map((exec: any) => (
                 <div
                   key={exec._id}
-                  className="bg-slate-800 rounded p-3 border border-slate-700 hover:border-slate-600 transition-colors"
+                  className="bg-muted rounded p-3 border border-border hover:border-border-strong transition-colors"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
-                      <div className="font-medium text-white">
+                      <div className="font-medium text-foreground">
                         {exec.agentName || "Unknown"}
                       </div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {exec.triggerType || "manual"} •{" "}
                         <span className={getStatusColor(exec.status)}>
                           {exec.status}
                         </span>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-gray-400">
+                    <div className="text-right text-sm text-muted-foreground">
                       <div>{formatTokens(exec.inputTokens || 0)} tokens</div>
                       <div className="text-xs">
                         {timeAgo(exec.startTime || 0)}
@@ -163,21 +163,21 @@ export default function ControlPage() {
                 </div>
               ))}
               {!recentExecutions || recentExecutions.length === 0 && (
-                <div className="text-center text-gray-500 py-8">No recent executions</div>
+                <div className="text-center text-muted-foreground py-8">No recent executions</div>
               )}
             </div>
           </div>
 
           {/* Live Event Feed */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-white mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               📢 Event Stream
             </h3>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {events?.slice(0, 15).map((event: any) => (
                 <div
                   key={event._id}
-                  className="bg-slate-800 rounded p-3 border border-slate-700 hover:border-slate-600 transition-colors"
+                  className="bg-muted rounded p-3 border border-border hover:border-border-strong transition-colors"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
@@ -185,22 +185,22 @@ export default function ControlPage() {
                         <span className={`font-medium ${getSeverityColor(event.severity)}`}>
                           ●
                         </span>
-                        <span className="text-white font-medium text-sm">
+                        <span className="text-foreground font-medium text-sm">
                           {event.type}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-400 truncate">
+                      <div className="text-sm text-muted-foreground truncate">
                         {event.message}
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500 whitespace-nowrap">
+                    <div className="text-xs text-muted-foreground/75 whitespace-nowrap">
                       {timeAgo(event.timestamp || 0)}
                     </div>
                   </div>
                 </div>
               ))}
               {!events || events.length === 0 && (
-                <div className="text-center text-gray-500 py-8">No events</div>
+                <div className="text-center text-muted-foreground py-8">No events</div>
               )}
             </div>
           </div>
@@ -208,25 +208,25 @@ export default function ControlPage() {
 
         {/* Cost Breakdown */}
         <section className="card mb-8">
-          <h3 className="text-lg font-semibold text-white mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             💰 Cost Today
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-800 rounded p-4 border border-slate-700">
-              <div className="text-sm text-gray-400 mb-2">Total Cost</div>
-              <div className="text-3xl font-bold text-white">
+            <div className="bg-muted rounded p-4 border border-border">
+              <div className="text-sm text-muted-foreground mb-2">Total Cost</div>
+              <div className="text-3xl font-bold text-foreground">
                 {formatCents(costBreakdown?.totalCostCents || 0)}
               </div>
             </div>
-            <div className="bg-slate-800 rounded p-4 border border-slate-700">
-              <div className="text-sm text-gray-400 mb-2">Agents</div>
-              <div className="text-3xl font-bold text-white">
+            <div className="bg-muted rounded p-4 border border-border">
+              <div className="text-sm text-muted-foreground mb-2">Agents</div>
+              <div className="text-3xl font-bold text-foreground">
                 {costBreakdown?.byAgent?.length || 0}
               </div>
             </div>
-            <div className="bg-slate-800 rounded p-4 border border-slate-700">
-              <div className="text-sm text-gray-400 mb-2">Avg per Agent</div>
-              <div className="text-3xl font-bold text-white">
+            <div className="bg-muted rounded p-4 border border-border">
+              <div className="text-sm text-muted-foreground mb-2">Avg per Agent</div>
+              <div className="text-3xl font-bold text-foreground">
                 {formatCents(
                   ((costBreakdown?.totalCostCents || 0) / (costBreakdown?.byAgent?.length || 1)) | 0
                 )}
@@ -234,19 +234,19 @@ export default function ControlPage() {
             </div>
           </div>
           {costBreakdown?.byAgent && costBreakdown.byAgent.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-slate-700">
-              <div className="text-sm text-gray-400 mb-3">Per-Agent Breakdown</div>
+            <div className="mt-6 pt-6 border-t border-border">
+              <div className="text-sm text-muted-foreground mb-3">Per-Agent Breakdown</div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {costBreakdown.byAgent.map((item: any) => (
                   <div
                     key={item.agentId}
-                    className="bg-slate-900 rounded p-3 flex justify-between items-center"
+                    className="bg-card rounded p-3 flex justify-between items-center"
                   >
-                    <span className="text-gray-300 text-sm truncate">
+                    <span className="text-foreground text-sm truncate">
                       {agents?.find((a: any) => a._id === item.agentId)?.name ||
                         "Unknown"}
                     </span>
-                    <span className="text-white font-medium">
+                    <span className="text-foreground font-medium">
                       {formatCents(item.costCents)}
                     </span>
                   </div>
@@ -258,7 +258,7 @@ export default function ControlPage() {
 
         {/* Agent Registry */}
         <section>
-          <h3 className="text-lg font-semibold text-white mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             🤖 Agent Registry
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -266,16 +266,16 @@ export default function ControlPage() {
               <div key={agent._id} className="card">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold text-white">{agent.name}</h4>
-                    <p className="text-sm text-gray-400">
+                    <h4 className="font-semibold text-foreground">{agent.name}</h4>
+                    <p className="text-sm text-muted-foreground">
                       {agent.role} • Level {agent.level || 1}
                     </p>
                   </div>
-                  <span className="badge bg-slate-700 text-gray-300 text-xs">
+                  <span className="badge bg-muted text-muted-foreground text-xs">
                     {agent.runtimeStatus || "idle"}
                   </span>
                 </div>
-                <div className="space-y-1 text-sm text-gray-400">
+                <div className="space-y-1 text-sm text-muted-foreground">
                   <div>
                     {agent.workspacePath ? (
                       <div className="truncate font-mono text-xs">
@@ -313,8 +313,8 @@ function StatCard({
       <div className="flex justify-between items-start mb-2">
         <span className="text-2xl">{icon}</span>
       </div>
-      <div className="text-gray-400 text-sm mb-1">{label}</div>
-      <div className="text-3xl font-bold text-white">{value}</div>
+      <div className="text-muted-foreground text-sm mb-1">{label}</div>
+      <div className="text-3xl font-bold text-foreground">{value}</div>
     </div>
   );
 }

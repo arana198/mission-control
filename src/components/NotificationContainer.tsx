@@ -41,14 +41,14 @@ export function NotificationContainer() {
   const getStyles = (type: string) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 text-green-800 border-green-200';
+        return 'bg-success/10 text-success border-success/30';
       case 'error':
-        return 'bg-red-50 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/30';
       case 'warning':
-        return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+        return 'bg-warning/10 text-warning border-warning/30';
       case 'info':
       default:
-        return 'bg-blue-50 text-blue-800 border-blue-200';
+        return 'bg-primary/10 text-primary border-primary/30';
     }
   };
 

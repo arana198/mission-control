@@ -114,23 +114,23 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
       <div className="p-6 space-y-6">
           {/* Status Row - Dark Mode Compatible */}
           <div className="flex gap-4">
-            <div className="flex-1 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
-              <p className="text-xs uppercase mb-1" style={{ color: "var(--muted-foreground)" }}>Status</p>
+            <div className="flex-1 p-4 rounded-lg bg-muted">
+              <p className="text-xs uppercase mb-1 text-muted-foreground">Status</p>
               <p className={`font-medium ${
-                agent.status === "active" ? "text-[var(--success)]" :
-                agent.status === "blocked" ? "text-[var(--warning)]" :
-                "text-[var(--muted-foreground)]"
+                agent.status === "active" ? "text-success" :
+                agent.status === "blocked" ? "text-warning" :
+                "text-muted-foreground"
               }`}>
                 {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
               </p>
             </div>
-            <div className="flex-1 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
-              <p className="text-xs uppercase mb-1" style={{ color: "var(--muted-foreground)" }}>Session</p>
-              <p className="font-mono text-sm truncate" style={{ color: "var(--muted-foreground)" }}>{agent.sessionKey}</p>
+            <div className="flex-1 p-4 rounded-lg bg-muted">
+              <p className="text-xs uppercase mb-1 text-muted-foreground">Session</p>
+              <p className="font-mono text-sm truncate text-muted-foreground">{agent.sessionKey}</p>
             </div>
-            <div className="flex-1 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
-              <p className="text-xs uppercase mb-1" style={{ color: "var(--muted-foreground)" }}>Last Active</p>
-              <p className="font-medium text-sm" style={{ color: "var(--foreground)" }}>
+            <div className="flex-1 p-4 rounded-lg bg-muted">
+              <p className="text-xs uppercase mb-1 text-muted-foreground">Last Active</p>
+              <p className="font-medium text-sm text-foreground">
                 {new Date(agent.lastHeartbeat).toLocaleTimeString()}
               </p>
             </div>
@@ -138,7 +138,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
 
           {/* Current Tasks - Dark Mode Compatible */}
           <div>
-            <h3 className="text-sm font-medium mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-foreground">
               <Briefcase className="w-4 h-4" />
               Assigned Tasks ({tasks.length})
             </h3>
@@ -148,15 +148,14 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
                   <button
                     key={task._id}
                     onClick={() => handleTaskClick(task._id)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:opacity-80"
-                    style={{ background: "var(--muted)" }}
+                    className="w-full flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:opacity-80 bg-muted"
                     title="Click to view task on board"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`badge badge-priority-${task.priority.toLowerCase()} text-xs flex-shrink-0`}>
                         {task.priority}
                       </span>
-                      <span className="text-sm truncate" style={{ color: "var(--foreground)" }}>{task.title}</span>
+                      <span className="text-sm truncate text-foreground">{task.title}</span>
                     </div>
                     <span className={`badge badge-status-${task.status} text-xs flex-shrink-0`}>
                       {task.status.replace("_", " ")}
@@ -165,7 +164,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
                 ))}
               </div>
             ) : (
-              <p className="text-sm p-4 rounded-lg" style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+              <p className="text-sm p-4 rounded-lg bg-muted text-muted-foreground">
                 No tasks assigned to this agent
               </p>
             )}
@@ -173,37 +172,37 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
 
           {/* Activity Log - Dark Mode Compatible */}
           <div>
-            <h3 className="text-sm font-medium mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-foreground">
               <History className="w-4 h-4" />
               Recent Activity
-              <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>
+              <span className="text-xs font-normal text-muted-foreground">
                 ({agentActivities?.length || 0} entries)
               </span>
             </h3>
-            <div className="rounded-lg p-4 max-h-60 overflow-y-auto" style={{ background: "var(--muted)" }}>
+            <div className="rounded-lg p-4 max-h-60 overflow-y-auto bg-muted">
               {agentActivities && agentActivities.length > 0 ? (
                 <div className="space-y-3">
                   {groupActivitiesByDate(agentActivities).map(([date, activities]) => (
                     <div key={date}>
                       {/* Date Header */}
                       <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
-                        <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>{date}</span>
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">{date}</span>
                       </div>
                       {/* Activities */}
                       <div className="space-y-2 ml-5">
                         {activities.map((activity: Activity) => {
                           const ActIcon = activityIcons[activity.type] || MessageSquare;
                           return (
-                            <div key={activity._id} className="flex items-start gap-2 p-2 rounded-lg transition-colors hover:opacity-80" style={{ background: "var(--surface)" }}>
-                              <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}>
+                            <div key={activity._id} className="flex items-start gap-2 p-2 rounded-lg transition-colors hover:opacity-80 bg-surface">
+                              <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-accent text-accent-foreground">
                                 <ActIcon className="w-3 h-3" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm leading-snug" style={{ color: "var(--foreground)" }}>
+                                <p className="text-sm leading-snug text-foreground">
                                   {activity.message}
                                 </p>
-                                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+                                <p className="text-xs mt-1 text-muted-foreground">
                                   {new Date(activity.createdAt).toLocaleTimeString("en-GB", {
                                     hour: "2-digit",
                                     minute: "2-digit"
@@ -218,7 +217,7 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-center py-4" style={{ color: "var(--muted-foreground)" }}>
+                <p className="text-sm text-center py-4 text-muted-foreground">
                   No recent activity for this agent
                 </p>
               )}
@@ -226,8 +225,8 @@ export function AgentDetailModal({ agent, levelBadge, tasks, onClose }: AgentDet
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
-            <button 
+          <div className="flex gap-3 pt-4 border-t border-border">
+            <button
               onClick={() => notif.info(`Agent ${agent.name} workspace integration coming soon. Use OpenClaw CLI for direct agent interaction.`)}
               className="btn btn-primary flex-1 opacity-90"
             >

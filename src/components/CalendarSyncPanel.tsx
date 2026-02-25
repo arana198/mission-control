@@ -68,8 +68,8 @@ export function CalendarSyncPanel() {
       <div className={clsx(
         "p-4 rounded-lg border",
         connected
-          ? "bg-green-50/50 dark:bg-green-950/20 border-green-500/30"
-          : "bg-gray-50/50 dark:bg-gray-950/20 border-gray-500/30"
+          ? "bg-success/10 border-success/30"
+          : "bg-muted/50 border-border/50"
       )}>
         <div className="flex items-center justify-between">
           <div>
@@ -146,13 +146,13 @@ export function CalendarSyncPanel() {
 
           {/* Conflict Detection */}
           {conflicts > 0 && (
-            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-500/30 rounded-lg space-y-2">
-              <div className="flex items-center gap-2 font-medium text-sm text-amber-700 dark:text-amber-400">
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 font-medium text-sm text-warning">
                 <AlertCircle className="w-4 h-4" />
                 {conflicts} Scheduling Conflict{conflicts !== 1 ? "s" : ""}
               </div>
               <button
-                className="text-xs text-amber-700 dark:text-amber-400 hover:underline"
+                className="text-xs text-warning hover:underline"
                 aria-label="Review and resolve scheduling conflicts"
               >
                 Review and resolve conflicts
@@ -201,7 +201,7 @@ export function CalendarSyncPanel() {
       )}
 
       {/* Help Text */}
-      <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-500/30 rounded-lg text-xs text-blue-700 dark:text-blue-400">
+      <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg text-xs text-primary">
         💡 <strong>Pro Tip:</strong> Enable two-way sync to keep your calendar and Mission Control tasks in perfect sync. Automatic syncs happen hourly.
       </div>
     </div>
