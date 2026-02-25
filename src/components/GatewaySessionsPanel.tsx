@@ -1,7 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare, ChevronDown, ChevronUp, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageSquare, ChevronDown, ChevronUp, Send, RefreshCw } from "lucide-react";
+import { GatewaySession } from "@/hooks/useGatewaySessions";
+
+/**
+ * History entry structure
+ */
+interface HistoryEntry {
+  type: "sent" | "received";
+  content: string;
+  timestamp: number;
+}
 
 /**
  * Gateway Sessions Panel Component
@@ -9,18 +19,49 @@ import { MessageSquare, ChevronDown, ChevronUp, Send } from "lucide-react";
  */
 interface GatewaySessionsPanelProps {
   gatewayId: string;
-  sessions?: any[];
+  sessions?: GatewaySession[];
+  isLoading?: boolean;
+  error?: string | null;
+  isHealthy?: boolean;
+  lastHealthCheck?: number | null;
   onSendMessage?: (sessionKey: string, message: string) => Promise<void>;
+  onFetchHistory?: (sessionKey: string) => Promise<HistoryEntry[]>;
+  onRefresh?: () => void;
 }
 
 export function GatewaySessionsPanel({
   gatewayId,
   sessions = [],
+  isLoading = false,
+  error = null,
+  isHealthy = undefined,
+  lastHealthCheck = null,
   onSendMessage,
+  onFetchHistory,
+  onRefresh,
 }: GatewaySessionsPanelProps) {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [messageInputs, setMessageInputs] = useState<Record<string, string>>({});
-  const [history, setHistory] = useState<Record<string, any[]>>({});
+  const [history, setHistory] = useState<Record<string, HistoryEntry[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<Record<string, boolean>>({});
+
+  // Fetch history when session is expanded
+  useEffect(() => {
+    if (expandedSession && onFetchHistory && !history[expandedSession]) {
+      setLoadingHistory((prev) => ({ ...prev, [expandedSession]: true }));
+      onFetchHistory(expandedSession)
+        .then((entries) => {
+          setHistory((prev) => ({ ...prev, [expandedSession]: entries }));
+        })
+        .catch((err) => {
+          console.error("Failed to fetch history:", err);
+          setHistory((prev) => ({ ...prev, [expandedSession]: [] }));
+        })
+        .finally(() => {
+          setLoadingHistory((prev) => ({ ...prev, [expandedSession]: false }));
+        });
+    }
+  }, [expandedSession, onFetchHistory, history]);
 
   const handleSendMessage = async (sessionKey: string) => {
     const message = messageInputs[sessionKey]?.trim();
@@ -30,14 +71,14 @@ export function GatewaySessionsPanel({
       await onSendMessage(sessionKey, message);
       setMessageInputs((prev) => ({ ...prev, [sessionKey]: "" }));
 
-      // Simulate message added to history
+      // Add sent message to history
       setHistory((prev) => ({
         ...prev,
         [sessionKey]: [
           ...(prev[sessionKey] || []),
           {
             type: "sent",
-            message,
+            content: message,
             timestamp: Date.now(),
           },
         ],
@@ -56,14 +97,55 @@ export function GatewaySessionsPanel({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Active Sessions</h3>
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-700 rounded p-4 text-red-300 text-sm">
+          Error: {error}
+        </div>
+      )}
 
-        {sessions.length === 0 ? (
+      <div>
+        {/* Header with Title and Refresh Button */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Active Sessions</h3>
+            {lastHealthCheck && (
+              <p className="text-xs text-gray-400 mt-1">
+                Last checked {timeAgo(lastHealthCheck)} ago
+                {isHealthy !== undefined && (
+                  <span className={isHealthy ? " · 🟢 Healthy" : " · 🔴 Unhealthy"} />
+                )}
+              </p>
+            )}
+          </div>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+              title="Refresh sessions"
+            >
+              <RefreshCw size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
+            <div className="animate-spin inline-block mr-2">⟳</div>
+            Loading sessions...
+          </div>
+        )}
+
+        {/* No Sessions */}
+        {!isLoading && sessions.length === 0 && (
           <div className="bg-slate-800 rounded-lg p-8 text-center text-gray-400">
             No active sessions
           </div>
-        ) : (
+        )}
+
+        {/* Sessions List */}
+        {!isLoading && sessions.length > 0 && (
           <div className="space-y-2">
             {sessions.map((session) => (
               <div key={session.key} className="border border-slate-700 rounded-lg overflow-hidden">
@@ -101,7 +183,12 @@ export function GatewaySessionsPanel({
                     <div>
                       <h4 className="text-sm font-semibold text-gray-300 mb-2">Message History</h4>
                       <div className="bg-slate-900 rounded h-48 p-3 overflow-y-auto space-y-2 border border-slate-700 mb-3">
-                        {(!history[session.key] || history[session.key].length === 0) && (
+                        {loadingHistory[session.key] && (
+                          <div className="text-center text-gray-500 text-sm py-8">
+                            Loading messages...
+                          </div>
+                        )}
+                        {!loadingHistory[session.key] && (!history[session.key] || history[session.key].length === 0) && (
                           <div className="text-center text-gray-500 text-sm py-8">
                             No messages yet. Send a message to start.
                           </div>
@@ -116,7 +203,7 @@ export function GatewaySessionsPanel({
                             }`}
                           >
                             <div className="text-xs text-gray-400 mb-1">{timeAgo(msg.timestamp)}</div>
-                            <div>{msg.message}</div>
+                            <div>{msg.content}</div>
                           </div>
                         ))}
                       </div>
