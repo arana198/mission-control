@@ -12,6 +12,15 @@ jest.mock('@/services/gatewayRpc', () => ({
   call: jest.fn(),
   ping: jest.fn(),
 }));
+jest.mock('@/services/gatewayConnectionPool', () => ({
+  gatewayPool: {
+    acquire: jest.fn(),
+    release: jest.fn(),
+    buildCacheKey: jest.fn((gatewayId, config) =>
+      `${gatewayId}:${config.url}:${config.token ?? ''}:${config.disableDevicePairing}:${config.allowInsecureTls}`
+    ),
+  },
+}));
 jest.mock('@/convex/_generated/api', () => ({
   api: {
     gateways: {
@@ -22,12 +31,16 @@ jest.mock('@/convex/_generated/api', () => ({
 
 import { ConvexHttpClient } from 'convex/browser';
 import { connect, call } from '@/services/gatewayRpc';
+import { gatewayPool } from '@/services/gatewayConnectionPool';
 
 const mockConnect = connect as jest.Mock;
 const mockCall = call as jest.Mock;
+const mockAcquire = (gatewayPool.acquire as jest.Mock);
+const mockRelease = (gatewayPool.release as jest.Mock);
+const mockBuildCacheKey = (gatewayPool.buildCacheKey as jest.Mock);
 const MockConvexHttpClient = ConvexHttpClient as jest.MockedClass<typeof ConvexHttpClient>;
 const mockQuery = jest.fn();
-const mockWs = { close: jest.fn() };
+const mockWs = { close: jest.fn(), terminate: jest.fn() };
 
 const GATEWAY_CONFIG = {
   _id: 'gateway_123',
@@ -47,6 +60,7 @@ beforeEach(() => {
     mutation: jest.fn(),
   }) as any);
   mockConnect.mockResolvedValue(mockWs);
+  mockAcquire.mockResolvedValue(mockWs);
   mockQuery.mockResolvedValue(GATEWAY_CONFIG);
 });
 
@@ -57,7 +71,7 @@ describe('GET ?action=sessions', () => {
     );
   }
 
-  it('calls connect() with gateway url, token, disableDevicePairing, allowInsecureTls', async () => {
+  it('passes gateway config to pool.acquire()', async () => {
     const { GET } = await import('../route');
     mockCall.mockResolvedValue({ sessions: [] });
 
@@ -65,7 +79,7 @@ describe('GET ?action=sessions', () => {
       params: Promise.resolve({ gatewayId: 'gateway_123' }),
     });
 
-    expect(mockConnect).toHaveBeenCalledWith({
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
       url: GATEWAY_CONFIG.url,
       token: GATEWAY_CONFIG.token,
       disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
@@ -109,7 +123,7 @@ describe('GET ?action=sessions', () => {
     expect(data.sessions[1]).toMatchObject({ key: 's2', label: 'Backup' });
   });
 
-  it('closes ws after successful call', async () => {
+  it('calls pool.release() after successful call', async () => {
     const { GET } = await import('../route');
     mockCall.mockResolvedValue({ sessions: [] });
 
@@ -117,10 +131,10 @@ describe('GET ?action=sessions', () => {
       params: Promise.resolve({ gatewayId: 'gateway_123' }),
     });
 
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
-  it('closes ws even when call() throws', async () => {
+  it('calls pool.release() even when call() throws', async () => {
     const { GET } = await import('../route');
     mockCall.mockRejectedValue(new Error('RPC call timeout: sessions.list'));
 
@@ -129,7 +143,7 @@ describe('GET ?action=sessions', () => {
     });
 
     expect(res.status).toBe(500);
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it('returns 404 when gateway not found in Convex', async () => {
@@ -141,12 +155,12 @@ describe('GET ?action=sessions', () => {
     });
 
     expect(res.status).toBe(404);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
-  it('returns 500 when connect() throws (gateway offline)', async () => {
+  it('returns 500 when acquire() throws (gateway offline)', async () => {
     const { GET } = await import('../route');
-    mockConnect.mockRejectedValue(new Error('Gateway connection timeout'));
+    mockAcquire.mockRejectedValue(new Error('Gateway connection timeout'));
 
     const res = await GET(makeSessionsRequest('gateway_123'), {
       params: Promise.resolve({ gatewayId: 'gateway_123' }),
@@ -155,8 +169,8 @@ describe('GET ?action=sessions', () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toContain('Gateway connection timeout');
-    // ws was never opened so close should not be called
-    expect(mockWs.close).not.toHaveBeenCalled();
+    // ws was never acquired so release should not be called
+    expect(mockRelease).not.toHaveBeenCalled();
   });
 
   it('returns 500 when call() throws (RPC error)', async () => {
@@ -183,6 +197,67 @@ describe('GET ?action=sessions', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.sessions).toEqual([]);
+  });
+
+  it('calls gatewayPool.acquire() with gatewayId and connect config', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockResolvedValue({ sessions: [] });
+
+    await GET(makeSessionsRequest('gateway_123'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
+      url: GATEWAY_CONFIG.url,
+      token: GATEWAY_CONFIG.token,
+      disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
+      allowInsecureTls: GATEWAY_CONFIG.allowInsecureTls,
+    });
+  });
+
+  it('calls gatewayPool.buildCacheKey() with gatewayId and connect config', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockResolvedValue({ sessions: [] });
+
+    await GET(makeSessionsRequest('gateway_123'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(mockBuildCacheKey).toHaveBeenCalledWith('gateway_123', {
+      url: GATEWAY_CONFIG.url,
+      token: GATEWAY_CONFIG.token,
+      disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
+      allowInsecureTls: GATEWAY_CONFIG.allowInsecureTls,
+    });
+  });
+
+  it('calls gatewayPool.release() in finally block after successful call', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockResolvedValue({ sessions: [] });
+
+    await GET(makeSessionsRequest('gateway_123'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
+  });
+
+  it('calls gatewayPool.release() in finally block even when call() throws', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockRejectedValue(new Error('RPC error'));
+
+    const res = await GET(makeSessionsRequest('gateway_123'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
   });
 
   describe('status derivation', () => {
@@ -314,7 +389,7 @@ describe('GET ?action=history', () => {
     });
   });
 
-  it('closes ws after call', async () => {
+  it('calls pool.release() after call', async () => {
     const { GET } = await import('../route');
     mockCall.mockResolvedValue({ history: [] });
 
@@ -322,7 +397,7 @@ describe('GET ?action=history', () => {
       params: Promise.resolve({ gatewayId: 'gateway_123' }),
     });
 
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it('returns 400 when sessionKey is missing', async () => {
@@ -334,18 +409,48 @@ describe('GET ?action=history', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
-  it('returns 500 when connect() throws', async () => {
+  it('returns 500 when acquire() throws', async () => {
     const { GET } = await import('../route');
-    mockConnect.mockRejectedValue(new Error('ECONNREFUSED'));
+    mockAcquire.mockRejectedValue(new Error('ECONNREFUSED'));
 
     const res = await GET(makeHistoryRequest('gateway_123', 'session-main'), {
       params: Promise.resolve({ gatewayId: 'gateway_123' }),
     });
 
     expect(res.status).toBe(500);
+  });
+
+  it('calls gatewayPool.acquire() instead of connect()', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockResolvedValue({ history: [] });
+
+    await GET(makeHistoryRequest('gateway_123', 'session-main'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
+      url: GATEWAY_CONFIG.url,
+      token: GATEWAY_CONFIG.token,
+      disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
+      allowInsecureTls: GATEWAY_CONFIG.allowInsecureTls,
+    });
+  });
+
+  it('calls gatewayPool.release() in finally block', async () => {
+    const { GET } = await import('../route');
+    mockCall.mockResolvedValue({ history: [] });
+
+    await GET(makeHistoryRequest('gateway_123', 'session-main'), {
+      params: Promise.resolve({ gatewayId: 'gateway_123' }),
+    });
+
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
   });
 });
 
@@ -399,7 +504,7 @@ describe('POST ?action=message', () => {
     expect(data.ok).toBe(true);
   });
 
-  it('closes ws after successful send', async () => {
+  it('calls pool.release() after successful send', async () => {
     const { POST } = await import('../route');
     mockCall.mockResolvedValue({ ok: true });
 
@@ -411,10 +516,10 @@ describe('POST ?action=message', () => {
       { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
     );
 
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
-  it('closes ws even when call() throws', async () => {
+  it('calls pool.release() even when call() throws', async () => {
     const { POST } = await import('../route');
     mockCall.mockRejectedValue(new Error('RPC call timeout: chat.send'));
 
@@ -427,7 +532,7 @@ describe('POST ?action=message', () => {
     );
 
     expect(res.status).toBe(500);
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it('returns 400 when sessionKey is missing', async () => {
@@ -439,7 +544,7 @@ describe('POST ?action=message', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when content is missing', async () => {
@@ -451,7 +556,7 @@ describe('POST ?action=message', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 404 when gateway not found', async () => {
@@ -467,12 +572,12 @@ describe('POST ?action=message', () => {
     );
 
     expect(res.status).toBe(404);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
-  it('returns 500 when connect() throws (gateway offline)', async () => {
+  it('returns 500 when acquire() throws (gateway offline)', async () => {
     const { POST } = await import('../route');
-    mockConnect.mockRejectedValue(new Error('Gateway connection timeout'));
+    mockAcquire.mockRejectedValue(new Error('Gateway connection timeout'));
 
     const res = await POST(
       makeMessageRequest('gateway_123', {
@@ -485,5 +590,62 @@ describe('POST ?action=message', () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toContain('Gateway connection timeout');
+  });
+
+  it('calls gatewayPool.acquire() instead of connect()', async () => {
+    const { POST } = await import('../route');
+    mockCall.mockResolvedValue({ ok: true });
+
+    await POST(
+      makeMessageRequest('gateway_123', {
+        sessionKey: 'session-main',
+        content: 'Hello',
+      }),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
+      url: GATEWAY_CONFIG.url,
+      token: GATEWAY_CONFIG.token,
+      disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
+      allowInsecureTls: GATEWAY_CONFIG.allowInsecureTls,
+    });
+  });
+
+  it('calls gatewayPool.release() in finally block after send', async () => {
+    const { POST } = await import('../route');
+    mockCall.mockResolvedValue({ ok: true });
+
+    await POST(
+      makeMessageRequest('gateway_123', {
+        sessionKey: 'session-main',
+        content: 'Hello',
+      }),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
+  });
+
+  it('calls gatewayPool.release() in finally block even when call() throws', async () => {
+    const { POST } = await import('../route');
+    mockCall.mockRejectedValue(new Error('RPC error'));
+
+    const res = await POST(
+      makeMessageRequest('gateway_123', {
+        sessionKey: 'session-main',
+        content: 'Hello',
+      }),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
   });
 });

@@ -64,10 +64,10 @@ test.describe('Workspace Management', () => {
       await selector.click();
 
       // Try to select another business
-      const other(Workspace) = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
+      const otherWorkspaceBtn = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
 
-      if (await other(Workspace).isVisible()) {
-        await other(Workspace).click();
+      if (await otherWorkspaceBtn.isVisible()) {
+        await otherWorkspaceBtn.click();
 
         // Should navigate to same tab for that business
         await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 5000 }).catch(() => null);
@@ -90,10 +90,10 @@ test.describe('Workspace Management', () => {
     if (await selector.isVisible()) {
       await selector.click();
 
-      const other(Workspace) = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
+      const otherWorkspaceBtn2 = page.locator('div[class*="popover"] button, div[class*="dropdown"] button').nth(1);
 
-      if (await other(Workspace).isVisible()) {
-        await other(Workspace).click();
+      if (await otherWorkspaceBtn2.isVisible()) {
+        await otherWorkspaceBtn2.click();
 
         // Should still be on overview tab (for the new business)
         await page.waitForURL('**/overview', { timeout: 5000 }).catch(() => null);

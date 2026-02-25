@@ -14,7 +14,8 @@
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { connect, call, ping } from '@/services/gatewayRpc';
+import { call, ping } from '@/services/gatewayRpc';
+import { gatewayPool } from '@/services/gatewayConnectionPool';
 import WebSocket from 'ws';
 import { provisionAgent, getSessionKey } from '@/services/agentProvisioning';
 
@@ -146,6 +147,8 @@ async function handleGetSessions(
   gatewayId: string
 ): Promise<Response> {
   let ws: WebSocket | undefined;
+  let cacheKey: string | undefined;
+  let lastError: Error | undefined;
   try {
     const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -158,12 +161,14 @@ async function handleGetSessions(
       );
     }
 
-    ws = await connect({
+    const connectConfig = {
       url: gateway.url,
       token: gateway.token,
       disableDevicePairing: gateway.disableDevicePairing,
       allowInsecureTls: gateway.allowInsecureTls,
-    });
+    };
+    cacheKey = gatewayPool.buildCacheKey(gatewayId, connectConfig);
+    ws = await gatewayPool.acquire(gatewayId, connectConfig);
 
     const result = await call(ws, 'sessions.list', {});
 
@@ -198,13 +203,18 @@ async function handleGetSessions(
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    lastError = error;
     return new Response(
       JSON.stringify({ error: error?.message || 'Failed to fetch sessions' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {
-    if (ws) {
-      try { ws.close(); } catch { /* ignore close errors on already-closed socket */ }
+    if (ws && cacheKey) {
+      // Force-evict socket if RPC timed out (call() leaves it open but degraded)
+      if (lastError?.message?.includes('RPC call timeout')) {
+        try { ws.terminate(); } catch { /* ignore terminate errors */ }
+      }
+      gatewayPool.release(ws, cacheKey);
     }
   }
 }
@@ -218,6 +228,8 @@ async function handleGetHistory(
   sessionKey: string
 ): Promise<Response> {
   let ws: WebSocket | undefined;
+  let cacheKey: string | undefined;
+  let lastError: Error | undefined;
   try {
     const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -230,12 +242,14 @@ async function handleGetHistory(
       );
     }
 
-    ws = await connect({
+    const connectConfig = {
       url: gateway.url,
       token: gateway.token,
       disableDevicePairing: gateway.disableDevicePairing,
       allowInsecureTls: gateway.allowInsecureTls,
-    });
+    };
+    cacheKey = gatewayPool.buildCacheKey(gatewayId, connectConfig);
+    ws = await gatewayPool.acquire(gatewayId, connectConfig);
 
     const result = await call(ws, 'chat.history', { sessionKey });
 
@@ -255,13 +269,18 @@ async function handleGetHistory(
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    lastError = error;
     return new Response(
       JSON.stringify({ error: error?.message || 'Failed to fetch history' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {
-    if (ws) {
-      try { ws.close(); } catch { /* ignore */ }
+    if (ws && cacheKey) {
+      // Force-evict socket if RPC timed out
+      if (lastError?.message?.includes('RPC call timeout')) {
+        try { ws.terminate(); } catch { /* ignore terminate errors */ }
+      }
+      gatewayPool.release(ws, cacheKey);
     }
   }
 }
@@ -286,6 +305,8 @@ async function handleSendMessage(
   }
 
   let ws: WebSocket | undefined;
+  let cacheKey: string | undefined;
+  let lastError: Error | undefined;
   try {
     const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -298,12 +319,14 @@ async function handleSendMessage(
       );
     }
 
-    ws = await connect({
+    const connectConfig = {
       url: gateway.url,
       token: gateway.token,
       disableDevicePairing: gateway.disableDevicePairing,
       allowInsecureTls: gateway.allowInsecureTls,
-    });
+    };
+    cacheKey = gatewayPool.buildCacheKey(gatewayId, connectConfig);
+    ws = await gatewayPool.acquire(gatewayId, connectConfig);
 
     // chat.send expects { sessionKey, message } per agentProvisioning.ts
     await call(ws, 'chat.send', { sessionKey, message: content });
@@ -317,13 +340,18 @@ async function handleSendMessage(
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    lastError = error;
     return new Response(
       JSON.stringify({ error: error?.message || 'Failed to send message' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {
-    if (ws) {
-      try { ws.close(); } catch { /* ignore */ }
+    if (ws && cacheKey) {
+      // Force-evict socket if RPC timed out
+      if (lastError?.message?.includes('RPC call timeout')) {
+        try { ws.terminate(); } catch { /* ignore terminate errors */ }
+      }
+      gatewayPool.release(ws, cacheKey);
     }
   }
 }
@@ -420,6 +448,8 @@ async function handleProvision(
   }
 
   let ws: WebSocket | undefined;
+  let cacheKey: string | undefined;
+  let lastError: Error | undefined;
   try {
     const gateway = await client.query(api.gateways.getWorkspaceById, {
       gatewayId: gatewayId as Id<'gateways'>,
@@ -432,12 +462,14 @@ async function handleProvision(
       );
     }
 
-    ws = await connect({
+    const connectConfig = {
       url: gateway.url,
       token: gateway.token,
       disableDevicePairing: gateway.disableDevicePairing,
       allowInsecureTls: gateway.allowInsecureTls,
-    });
+    };
+    cacheKey = gatewayPool.buildCacheKey(gatewayId, connectConfig);
+    ws = await gatewayPool.acquire(gatewayId, connectConfig);
 
     await provisionAgent(ws, {
       gatewayId,
@@ -460,13 +492,18 @@ async function handleProvision(
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
+    lastError = error;
     return new Response(
       JSON.stringify({ error: error?.message || 'Failed to provision agent' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {
-    if (ws) {
-      try { ws.close(); } catch { /* ignore */ }
+    if (ws && cacheKey) {
+      // Force-evict socket if RPC timed out (provisionAgent can run longer but may timeout internally)
+      if (lastError?.message?.includes('RPC call timeout')) {
+        try { ws.terminate(); } catch { /* ignore terminate errors */ }
+      }
+      gatewayPool.release(ws, cacheKey);
     }
   }
 }

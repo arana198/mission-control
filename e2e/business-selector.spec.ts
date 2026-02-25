@@ -47,11 +47,11 @@ test.describe('(Workspace) Selector', () => {
     await selector.click();
     
     // If multiple businesses exist, try to select another
-    const other(Workspace) = page.locator('div[class*="popover"] button').nth(1);
-    const isVisible = await other(Workspace).isVisible();
-    
+    const otherWorkspaceBtn = page.locator('div[class*="popover"] button').nth(1);
+    const isVisible = await otherWorkspaceBtn.isVisible();
+
     if (isVisible) {
-      await other(Workspace).click();
+      await otherWorkspaceBtn.click();
       
       // Should still be on same tab type (overview)
       await page.waitForURL('**/overview');

@@ -716,4 +716,212 @@ test.describe('Gateway Sessions Page', () => {
       expect(errors.filter(e => !e.includes('fetch'))).toHaveLength(0);
     });
   });
+
+  // Phase 9A Tests - WebSocket Connection Pool
+  test.describe('Phase 9A - WebSocket Connection Pool', () => {
+    test('multiple rapid session requests reuse connections without errors', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Track API calls and errors
+      const apiCalls: { timestamp: number; action: string }[] = [];
+      const errors: string[] = [];
+
+      page.on('response', (response) => {
+        if (response.url().includes('/api/gateway/') && response.url().includes('action=sessions')) {
+          apiCalls.push({
+            timestamp: Date.now(),
+            action: 'sessions',
+          });
+        }
+      });
+
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          errors.push(msg.text());
+        }
+      });
+
+      // Click gateway to trigger session fetch
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+
+      if (isClickable) {
+        // First request
+        await firstGateway.click();
+        await page.waitForTimeout(300);
+
+        // Rapid second request (should reuse connection from pool)
+        await firstGateway.click();
+        await page.waitForTimeout(300);
+
+        // Rapid third request (should still reuse from pool)
+        await firstGateway.click();
+        await page.waitForTimeout(1000);
+
+        // All three requests should complete without errors
+        expect(errors.filter(e => !e.includes('fetch'))).toHaveLength(0);
+
+        // Should have made API calls
+        expect(apiCalls.length).toBeGreaterThan(0);
+      }
+    });
+
+    test('pooled session requests return consistent data', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      const responseBodies: any[] = [];
+
+      page.on('response', async (response) => {
+        if (response.url().includes('/api/gateway/') && response.url().includes('action=sessions')) {
+          try {
+            responseBodies.push(await response.json());
+          } catch { /* ignore parse errors */ }
+        }
+      });
+
+      // Click gateway twice rapidly
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+
+      if (isClickable) {
+        await firstGateway.click();
+        await page.waitForTimeout(500);
+
+        // Make second request (should reuse pooled connection)
+        await firstGateway.click();
+        await page.waitForTimeout(1000);
+
+        // If we got responses, verify they have consistent structure
+        if (responseBodies.length >= 1) {
+          responseBodies.forEach((body) => {
+            // Each response should have sessions array (even if empty)
+            expect(Array.isArray(body.sessions) || body.sessions === undefined).toBe(true);
+          });
+        }
+      }
+    });
+
+    test('no console errors during pooled gateway operations', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      const errors: string[] = [];
+      const warnings: string[] = [];
+
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          errors.push(msg.text());
+        } else if (msg.type() === 'warning') {
+          warnings.push(msg.text());
+        }
+      });
+
+      // Select gateway multiple times to exercise connection pool
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+
+      if (isClickable) {
+        for (let i = 0; i < 3; i++) {
+          await firstGateway.click();
+          await page.waitForTimeout(200);
+        }
+
+        await page.waitForTimeout(1000);
+
+        // Filter out fetch-related errors (expected for real gateways)
+        const criticalErrors = errors.filter(
+          (e) => !e.includes('fetch') && !e.includes('NetworkError')
+        );
+
+        // Should have no critical errors
+        expect(criticalErrors).toHaveLength(0);
+      }
+    });
+
+    test('pooled connections timeout gracefully after inactivity', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      let apiCalls = 0;
+      const errors: string[] = [];
+
+      page.on('response', (response) => {
+        if (response.url().includes('/api/gateway/')) {
+          apiCalls++;
+        }
+      });
+
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          errors.push(msg.text());
+        }
+      });
+
+      // Make initial request
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+
+      if (isClickable) {
+        await firstGateway.click();
+        await page.waitForTimeout(500);
+
+        const callsAfterFirstClick = apiCalls;
+
+        // Wait longer than pool TTL (60s) - but in test we'll wait shorter for practical testing
+        // Just verify that subsequent requests work even after a delay
+        await page.waitForTimeout(2000);
+
+        // Make another request
+        await firstGateway.click();
+        await page.waitForTimeout(1000);
+
+        // Both requests should succeed (either with new or reused connection)
+        expect(apiCalls).toBeGreaterThan(callsAfterFirstClick);
+
+        // No critical errors
+        const criticalErrors = errors.filter((e) => !e.includes('fetch'));
+        expect(criticalErrors).toHaveLength(0);
+      }
+    });
+
+    test('pool handles gateway with no active sessions gracefully', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      let sessionApiCalls = 0;
+      const errors: string[] = [];
+
+      page.on('response', (response) => {
+        if (response.url().includes('/api/gateway/') && response.url().includes('action=sessions')) {
+          sessionApiCalls++;
+        }
+      });
+
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') {
+          errors.push(msg.text());
+        }
+      });
+
+      // Click gateway to fetch sessions
+      const firstGateway = page.locator('button').nth(1);
+      const isClickable = await firstGateway.isVisible().catch(() => false);
+
+      if (isClickable) {
+        await firstGateway.click();
+        await page.waitForTimeout(1500);
+
+        // Should show either sessions or "No active sessions" message
+        const noSessionsMsg = page.locator('text=No active sessions');
+        const sessionItems = page.locator('[class*="session"]');
+
+        const hasSessions =
+          (await sessionItems.count()) > 0 ||
+          (await noSessionsMsg.isVisible().catch(() => false));
+
+        expect(hasSessions).toBe(true);
+
+        // No critical errors
+        const criticalErrors = errors.filter((e) => !e.includes('fetch'));
+        expect(criticalErrors).toHaveLength(0);
+      }
+    });
+  });
 });

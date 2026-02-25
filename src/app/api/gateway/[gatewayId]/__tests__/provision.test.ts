@@ -11,6 +11,15 @@ jest.mock('@/services/gatewayRpc', () => ({
   call: jest.fn(),
   ping: jest.fn(),
 }));
+jest.mock('@/services/gatewayConnectionPool', () => ({
+  gatewayPool: {
+    acquire: jest.fn(),
+    release: jest.fn(),
+    buildCacheKey: jest.fn((gatewayId, config) =>
+      `${gatewayId}:${config.url}:${config.token ?? ''}:${config.disableDevicePairing}:${config.allowInsecureTls}`
+    ),
+  },
+}));
 jest.mock('@/services/agentProvisioning', () => ({
   provisionAgent: jest.fn(),
   getSessionKey: jest.fn(),
@@ -26,14 +35,18 @@ jest.mock('@/convex/_generated/api', () => ({
 
 import { ConvexHttpClient } from 'convex/browser';
 import { connect } from '@/services/gatewayRpc';
+import { gatewayPool } from '@/services/gatewayConnectionPool';
 import { provisionAgent, getSessionKey } from '@/services/agentProvisioning';
 
 const mockConnect = connect as jest.Mock;
+const mockAcquire = (gatewayPool.acquire as jest.Mock);
+const mockRelease = (gatewayPool.release as jest.Mock);
+const mockBuildCacheKey = (gatewayPool.buildCacheKey as jest.Mock);
 const mockProvisionAgent = provisionAgent as jest.Mock;
 const mockGetSessionKey = getSessionKey as jest.Mock;
 const MockConvexHttpClient = ConvexHttpClient as jest.MockedClass<typeof ConvexHttpClient>;
 const mockQuery = jest.fn();
-const mockWs = { close: jest.fn() };
+const mockWs = { close: jest.fn(), terminate: jest.fn() };
 
 const GATEWAY_CONFIG = {
   _id: 'gateway_123',
@@ -54,8 +67,8 @@ const VALID_PROVISION_BODY = {
     isBoardLead: false,
     isGatewayMain: false,
   },
-  business: {
-    _id: 'biz_xyz',
+  workspace: {
+    _id: 'workspace_xyz',
     name: 'Acme Corp',
     slug: 'acme-corp',
   },
@@ -74,6 +87,7 @@ beforeEach(() => {
     mutation: jest.fn(),
   }) as any);
   mockConnect.mockResolvedValue(mockWs);
+  mockAcquire.mockResolvedValue(mockWs);
   mockQuery.mockResolvedValue(GATEWAY_CONFIG);
   mockProvisionAgent.mockResolvedValue(undefined);
   mockGetSessionKey.mockReturnValue('board-agent-agent_abc');
@@ -91,7 +105,7 @@ function makeProvisionRequest(gatewayId: string, body: object): Request {
 }
 
 describe('POST ?action=provision', () => {
-  it('calls connect() with gateway config', async () => {
+  it('calls pool.acquire() with gateway config', async () => {
     const { POST } = await import('../route');
 
     await POST(
@@ -99,7 +113,7 @@ describe('POST ?action=provision', () => {
       { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
     );
 
-    expect(mockConnect).toHaveBeenCalledWith({
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
       url: GATEWAY_CONFIG.url,
       token: GATEWAY_CONFIG.token,
       disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
@@ -118,7 +132,7 @@ describe('POST ?action=provision', () => {
     expect(mockProvisionAgent).toHaveBeenCalledWith(mockWs, {
       gatewayId: 'gateway_123',
       agent: VALID_PROVISION_BODY.agent,
-      business: VALID_PROVISION_BODY.business,
+      workspace: VALID_PROVISION_BODY.workspace,
       otherAgents: VALID_PROVISION_BODY.otherAgents,
       baseUrl: VALID_PROVISION_BODY.baseUrl,
       authToken: VALID_PROVISION_BODY.authToken,
@@ -141,7 +155,7 @@ describe('POST ?action=provision', () => {
     expect(typeof data.sessionKey).toBe('string');
   });
 
-  it('closes ws after successful provision', async () => {
+  it('calls pool.release() after successful provision', async () => {
     const { POST } = await import('../route');
 
     await POST(
@@ -149,10 +163,10 @@ describe('POST ?action=provision', () => {
       { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
     );
 
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
-  it('closes ws even when provisionAgent() throws', async () => {
+  it('calls pool.release() even when provisionAgent() throws', async () => {
     const { POST } = await import('../route');
     mockProvisionAgent.mockRejectedValue(
       new Error('Failed to provision agent jarvis-agent_abc: RPC error')
@@ -164,7 +178,55 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(500);
-    expect(mockWs.close).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls gatewayPool.acquire() instead of connect()', async () => {
+    const { POST } = await import('../route');
+
+    await POST(
+      makeProvisionRequest('gateway_123', VALID_PROVISION_BODY),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(mockAcquire).toHaveBeenCalledWith('gateway_123', {
+      url: GATEWAY_CONFIG.url,
+      token: GATEWAY_CONFIG.token,
+      disableDevicePairing: GATEWAY_CONFIG.disableDevicePairing,
+      allowInsecureTls: GATEWAY_CONFIG.allowInsecureTls,
+    });
+  });
+
+  it('calls gatewayPool.release() in finally block after successful provision', async () => {
+    const { POST } = await import('../route');
+
+    await POST(
+      makeProvisionRequest('gateway_123', VALID_PROVISION_BODY),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
+  });
+
+  it('calls gatewayPool.release() in finally block even when provisionAgent() throws', async () => {
+    const { POST } = await import('../route');
+    mockProvisionAgent.mockRejectedValue(
+      new Error('Failed to provision agent jarvis-agent_abc: RPC error')
+    );
+
+    const res = await POST(
+      makeProvisionRequest('gateway_123', VALID_PROVISION_BODY),
+      { params: Promise.resolve({ gatewayId: 'gateway_123' }) }
+    );
+
+    expect(res.status).toBe(500);
+    expect(mockRelease).toHaveBeenCalledWith(
+      mockWs,
+      expect.stringContaining('gateway_123')
+    );
   });
 
   it('returns 400 when agent is missing from body', async () => {
@@ -177,7 +239,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when agent._id is missing', async () => {
@@ -190,7 +252,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when agent.name is missing', async () => {
@@ -203,7 +265,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when agent.role is missing', async () => {
@@ -216,7 +278,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when workspace is missing from body', async () => {
@@ -229,12 +291,12 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when workspace._id is missing', async () => {
     const { POST } = await import('../route');
-    const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, _id: undefined } };
+    const body = { ...VALID_PROVISION_BODY, workspace: { ...VALID_PROVISION_BODY.workspace, _id: undefined } };
 
     const res = await POST(
       makeProvisionRequest('gateway_123', body),
@@ -242,12 +304,12 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when  workspace.name is missing', async () => {
     const { POST } = await import('../route');
-    const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, name: undefined } };
+    const body = { ...VALID_PROVISION_BODY, workspace: { ...VALID_PROVISION_BODY.workspace, name: undefined } };
 
     const res = await POST(
       makeProvisionRequest('gateway_123', body),
@@ -255,12 +317,12 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when workspace.slug is missing', async () => {
     const { POST } = await import('../route');
-    const body = { ...VALID_PROVISION_BODY, business: { ...VALID_PROVISION_BODY.business, slug: undefined } };
+    const body = { ...VALID_PROVISION_BODY, workspace: { ...VALID_PROVISION_BODY.workspace, slug: undefined } };
 
     const res = await POST(
       makeProvisionRequest('gateway_123', body),
@@ -268,7 +330,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 400 when baseUrl is missing from body', async () => {
@@ -281,7 +343,7 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(400);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
   it('returns 404 when gateway not found in Convex', async () => {
@@ -294,12 +356,12 @@ describe('POST ?action=provision', () => {
     );
 
     expect(res.status).toBe(404);
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
   });
 
-  it('returns 500 when connect() throws (gateway offline)', async () => {
+  it('returns 500 when acquire() throws (gateway offline)', async () => {
     const { POST } = await import('../route');
-    mockConnect.mockRejectedValue(new Error('Gateway connection timeout'));
+    mockAcquire.mockRejectedValue(new Error('Gateway connection timeout'));
 
     const res = await POST(
       makeProvisionRequest('gateway_123', VALID_PROVISION_BODY),
@@ -309,7 +371,7 @@ describe('POST ?action=provision', () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toContain('Gateway connection timeout');
-    expect(mockWs.close).not.toHaveBeenCalled();
+    expect(mockRelease).not.toHaveBeenCalled();
   });
 
   it('returns 500 on provisioning failure with error message', async () => {
