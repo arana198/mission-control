@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { MessageSquare, ChevronDown, ChevronUp, Send, RefreshCw } from "lucide-react";
 import { GatewaySession } from "@/hooks/useGatewaySessions";
 

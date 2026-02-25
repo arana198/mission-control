@@ -24,15 +24,18 @@ interface UseGatewaySessionsReturn {
   fetchHistory: (sessionKey: string) => Promise<any[]>;
 }
 
-export function useGatewaySessions(gatewayId: string | null): UseGatewaySessionsReturn {
+export function useGatewaySessions(
+  gatewayId: string | null,
+  isActive: boolean = true
+): UseGatewaySessionsReturn {
   const [sessions, setSessions] = useState<GatewaySession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch sessions from API
   const fetchSessions = useCallback(async () => {
-    // Skip if no gatewayId
-    if (!gatewayId) {
+    // Skip if no gatewayId or not active
+    if (!gatewayId || !isActive) {
       setIsLoading(false);
       setSessions([]);
       return;
@@ -59,11 +62,11 @@ export function useGatewaySessions(gatewayId: string | null): UseGatewaySessions
       setSessions([]);
       setIsLoading(false);
     }
-  }, [gatewayId]);
+  }, [gatewayId, isActive]);
 
   // Polling effect
   useEffect(() => {
-    if (!gatewayId) {
+    if (!gatewayId || !isActive) {
       setIsLoading(false);
       return;
     }
@@ -71,7 +74,7 @@ export function useGatewaySessions(gatewayId: string | null): UseGatewaySessions
     // Initial fetch
     fetchSessions();
 
-    // Set up polling interval (30 seconds)
+    // Set up polling interval (30 seconds) - only when active
     const interval = setInterval(() => {
       fetchSessions();
     }, 30000);
@@ -80,7 +83,7 @@ export function useGatewaySessions(gatewayId: string | null): UseGatewaySessions
     return () => {
       clearInterval(interval);
     };
-  }, [gatewayId, fetchSessions]);
+  }, [gatewayId, isActive, fetchSessions]);
 
   // Send message to session
   const sendMessage = useCallback(

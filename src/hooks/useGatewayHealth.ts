@@ -17,7 +17,10 @@ interface UseGatewayHealthReturn {
   lastChecked: number | null;
 }
 
-export function useGatewayHealth(gatewayId: string | null): UseGatewayHealthReturn {
+export function useGatewayHealth(
+  gatewayId: string | null,
+  isActive: boolean = true
+): UseGatewayHealthReturn {
   const [isHealthy, setIsHealthy] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +28,8 @@ export function useGatewayHealth(gatewayId: string | null): UseGatewayHealthRetu
 
   // Fetch health status from API
   const fetchHealth = useCallback(async () => {
-    // Skip if no gatewayId
-    if (!gatewayId) {
+    // Skip if no gatewayId or not active
+    if (!gatewayId || !isActive) {
       setIsLoading(false);
       setIsHealthy(undefined);
       return;
@@ -54,11 +57,11 @@ export function useGatewayHealth(gatewayId: string | null): UseGatewayHealthRetu
       setIsHealthy(undefined);
       setIsLoading(false);
     }
-  }, [gatewayId]);
+  }, [gatewayId, isActive]);
 
   // Polling effect (60-second interval for health checks)
   useEffect(() => {
-    if (!gatewayId) {
+    if (!gatewayId || !isActive) {
       setIsLoading(false);
       return;
     }
@@ -66,7 +69,7 @@ export function useGatewayHealth(gatewayId: string | null): UseGatewayHealthRetu
     // Initial fetch
     fetchHealth();
 
-    // Set up polling interval (60 seconds for health checks)
+    // Set up polling interval (60 seconds for health checks) - only when active
     const interval = setInterval(() => {
       fetchHealth();
     }, 60000);
@@ -75,7 +78,7 @@ export function useGatewayHealth(gatewayId: string | null): UseGatewayHealthRetu
     return () => {
       clearInterval(interval);
     };
-  }, [gatewayId, fetchHealth]);
+  }, [gatewayId, isActive, fetchHealth]);
 
   // Manual refresh
   const refresh = useCallback(async () => {
