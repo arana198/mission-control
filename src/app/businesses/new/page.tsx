@@ -26,7 +26,7 @@ export default function NewPage() {
   const router = useRouter();
   const createWorkspace = useMutation(api.workspaces.create);
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<WorkspaceFormData>({
     name: "",
     slug: "",
     emoji: "🚀",

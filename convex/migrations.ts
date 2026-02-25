@@ -29,22 +29,22 @@ import { api } from "./_generated/api";
  */
 export const migrationMultiSupport = mutation({
   args: {
-    businessName: convexVal.optional(convexVal.string()),
-    businessSlug: convexVal.optional(convexVal.string()),
+    workspaceName: convexVal.optional(convexVal.string()),
+    workspaceSlug: convexVal.optional(convexVal.string()),
     batchSize: convexVal.optional(convexVal.number()),
   },
-  handler: async (ctx, { businessName = "Mission Control Default", businessSlug = "default", batchSize = 100 }) => {
-    // Check if businesses exist
-    const existinges = await ctx.db.query("workspaces").collect();
+  handler: async (ctx, { workspaceName = "Mission Control Default", workspaceSlug = "default", batchSize = 100 }) => {
+    // Check if workspaces exist
+    const existingWorkspaces = await ctx.db.query("workspaces").collect();
 
-    if (existinges.length === 0) {
-      // Create default business
-      const default = await ctx.db.insert("workspaces", {
-        name: businessName,
-        slug: businessSlug,
+    if (existingWorkspaces.length === 0) {
+      // Create default workspace
+      const defaultWorkspace = await ctx.db.insert("workspaces", {
+        name: workspaceName,
+        slug: workspaceSlug,
         color: "#6366f1",
         emoji: "🚀",
-        description: "Default workspace migration from single-business setup",
+        description: "Default workspace migration from single-workspace setup",
         isDefault: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -57,7 +57,7 @@ export const migrationMultiSupport = mutation({
       for (const task of tasksBatch) {
         if (!task.workspaceId) {
           await ctx.db.patch(task._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -69,7 +69,7 @@ export const migrationMultiSupport = mutation({
       for (const epic of epicsBatch) {
         if (!epic.workspaceId) {
           await ctx.db.patch(epic._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -81,7 +81,7 @@ export const migrationMultiSupport = mutation({
       for (const goal of goalsBatch) {
         if (!goal.workspaceId) {
           await ctx.db.patch(goal._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -93,7 +93,7 @@ export const migrationMultiSupport = mutation({
       for (const activity of activitiesBatch) {
         if (!activity.workspaceId) {
           await ctx.db.patch(activity._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -105,7 +105,7 @@ export const migrationMultiSupport = mutation({
       for (const document of documentsBatch) {
         if (!document.workspaceId) {
           await ctx.db.patch(document._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -117,7 +117,7 @@ export const migrationMultiSupport = mutation({
       for (const report of reportsBatch) {
         if (!report.workspaceId) {
           await ctx.db.patch(report._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -129,7 +129,7 @@ export const migrationMultiSupport = mutation({
       for (const message of messagesBatch) {
         if (!message.workspaceId) {
           await ctx.db.patch(message._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -141,7 +141,7 @@ export const migrationMultiSupport = mutation({
       for (const sub of subscriptionsBatch) {
         if (!sub.workspaceId) {
           await ctx.db.patch(sub._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -153,7 +153,7 @@ export const migrationMultiSupport = mutation({
       for (const log of logsBatch) {
         if (!log.workspaceId) {
           await ctx.db.patch(log._id, {
-            workspaceId: default,
+            workspaceId: defaultWorkspace,
           });
         }
       }
@@ -167,13 +167,13 @@ export const migrationMultiSupport = mutation({
       if (globalCounter && !globalCounter.workspaceId) {
         // Update existing to add workspaceId
         await ctx.db.patch(globalCounter._id, {
-          workspaceId: default,
+          workspaceId: defaultWorkspace,
         });
       } else if (!globalCounter) {
         // Create new per-workspace counter
         await ctx.db.insert("settings", {
           key: "taskCounter",
-          workspaceId: default,
+          workspaceId: defaultWorkspace,
           value: "0",
           updatedAt: Date.now(),
         });
@@ -181,7 +181,7 @@ export const migrationMultiSupport = mutation({
 
       return {
         success: true,
-        defaultId: default,
+        defaultId: defaultWorkspace,
         migratedTasks: Math.min(tasks.length, batchSize),
         migratedEpics: Math.min(epics.length, batchSize),
         migratedGoals: Math.min(goals.length, batchSize),
@@ -347,14 +347,14 @@ export const migrateTasksToEpic = mutation({
       if (generalEpic) {
         targetEpicId = generalEpic._id;
       } else {
-        // Create a default epic - get workspaceId from default business
+        // Create a default epic - get workspaceId from default workspace
         const lead = await ctx.db.query("agents").first();
-        const default = await ctx.db
+        const defaultWorkspace = await ctx.db
           .query("workspaces")
           .withIndex("by_default", (q: any) => q.eq("isDefault", true))
           .first();
 
-        const workspaceId = default?._id;
+        const workspaceId = defaultWorkspace?._id;
         if (!workspaceId) {
           throw new Error("No default workspace found. Cannot create epic.");
         }

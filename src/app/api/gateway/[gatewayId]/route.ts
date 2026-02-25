@@ -391,9 +391,9 @@ async function handleProvision(
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
-  if (!business || !workspace._id || ! workspace.name || !workspace.slug) {
+  if (!workspace || !workspace._id || !workspace.name || !workspace.slug) {
     return new Response(
-      JSON.stringify({ error: 'business with _id, name, and slug is required' }),
+      JSON.stringify({ error: 'workspace with _id, name, and slug is required' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }

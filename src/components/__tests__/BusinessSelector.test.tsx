@@ -625,26 +625,26 @@ describe("WorkspaceSelector Component", () => {
   describe("Default  Handling", () => {
     it("should highlight isDefault workspace visually", async () => {
       // Expected: default workspace marked specially in list
-      const default = mockes.find((b) => b.isDefault);
-      expect(default).toBeDefined();
-      expect(default?.isDefault).toBe(true);
+      const defaultWorkspace = mockes.find((b) => b.isDefault);
+      expect(defaultWorkspace).toBeDefined();
+      expect(defaultWorkspace?.isDefault).toBe(true);
     });
 
     it("should show default indicator (badge/star)", async () => {
       // Expected: visual indicator that this is default
-      const default = mockes.find((b) => b.isDefault);
-      expect(default?.name).toBe("Mission Control HQ");
+      const defaultWorkspace = mockes.find((b) => b.isDefault);
+      expect(defaultWorkspace?.name).toBe("Mission Control HQ");
     });
 
     it("should use default workspace on first load", async () => {
       // Expected: defaults to isDefault: true business
-      const default = mockes.find((b) => b.isDefault);
+      const defaultWorkspace = mockes.find((b) => b.isDefault);
       const defaultSelector = new WorkspaceSelectorMock(
         default || null,
         mockes
       );
       expect(defaultSelector.getDisplayText()).toContain(
-        default?.emoji || ""
+        defaultWorkspace?.emoji || ""
       );
     });
   });

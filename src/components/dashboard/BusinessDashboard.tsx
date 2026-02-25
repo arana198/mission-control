@@ -8,13 +8,12 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { Suspense, lazy } from "react";
 import { CardGridSkeleton, LoadingSkeleton, KanbanSkeleton } from "../LoadingSkeletons";
 import { DocumentPanel } from "../DocumentPanel";
-import { SettingsPanel } from "../SettingsPanel";
-import { WorkspaceSettingsPanel } from "../SettingsPanel";
+import { SettingsPanel } from "../BusinessSettingsPanel";
 import { AutomationsPanel } from "../AutomationsPanel";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
-const AnalyticsDashboard = lazy(() => import("../analytics/AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const AnalyticsDashboard = lazy(() => import("../analytics/BusinessAnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
 
 type TabType = "overview" | "board" | "epics" | "wiki" | "analytics" | "settings";
 
@@ -38,7 +37,7 @@ export function Dashboard({
   setIsCreatingTask,
   autoAssigning,
   setAutoAssigning,
-}: DashboardProps) {
+}: WorkspaceDashboardProps) {
   // -specific data fetching
   const agents = useQuery(api.agents.getAllAgents);
   const tasks = useQuery(api.tasks.getAllTasks, { workspaceId: workspaceId as any });
@@ -50,7 +49,7 @@ export function Dashboard({
   const renderContent = (): ReactNode => {
     switch (tab) {
       case "overview":
-        if (!agents || !tasks || !business) {
+        if (!agents || !tasks || !workspace) {
           return (
             <ErrorBoundary>
               <LoadingSkeleton />
@@ -66,8 +65,8 @@ export function Dashboard({
         return (
           <ErrorBoundary>
             <div className="space-y-6">
-              {business?.missionStatement && (
-                <div className="card p-6 border-l-4" style={{ borderLeftColor: (business as any).color || '#6366f1' }}>
+              {workspace?.missionStatement && (
+                <div className="card p-6 border-l-4" style={{ borderLeftColor: (workspace as any).color || '#6366f1' }}>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mission Statement</p>
                   <p className="text-lg font-medium text-foreground">{ workspace.missionStatement}</p>
                 </div>
@@ -165,7 +164,7 @@ export function Dashboard({
   return (
     <div
       className="border-l-4 transition-colors"
-      style={{ borderLeftColor: (business as any)?.color || '#6366f1' }}
+      style={{ borderLeftColor: (workspace as any)?.color || '#6366f1' }}
     >
       {renderContent()}
     </div>

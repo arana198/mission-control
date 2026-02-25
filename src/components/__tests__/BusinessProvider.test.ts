@@ -10,7 +10,7 @@ describe("WorkspaceProvider - Loading State", () => {
     it("should have isLoading=true when businesses query is undefined (loading)", () => {
       // Simulate: useQuery(api.workspaces.getAll) returns undefined
       const businesses = undefined;
-      const default = undefined;
+      const defaultWorkspace = undefined;
 
       // Loading state determination logic
       const businessesData = businesses ?? [];
@@ -23,7 +23,7 @@ describe("WorkspaceProvider - Loading State", () => {
     it("should have isLoading=false when businesses array is empty (empty state is valid)", () => {
       // Simulate: useQuery(api.workspaces.getAll) returns []
       const businesses: any[] = [];
-      const default = null;
+      const defaultWorkspace = null;
 
       // Loading state determination logic (after fix)
       const businessesData = businesses ?? [];
@@ -42,7 +42,7 @@ describe("WorkspaceProvider - Loading State", () => {
         { _id: "b1", name: " 1", slug: "business-1", isDefault: true },
         { _id: "b2", name: " 2", slug: "business-2", isDefault: false },
       ];
-      const default = workspaces[0];
+      const defaultWorkspace = workspaces[0];
 
       // Loading state determination logic
       const businessesData = businesses ?? [];

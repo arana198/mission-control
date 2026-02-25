@@ -19,65 +19,65 @@ export interface Workspace {
 }
 
 interface WorkspaceContextType {
-  currentWorkspace:  | null;
-  businesses: [];
-  setCurrentWorkspace: (business: ) => void;
+  currentWorkspace: Workspace | null;
+  workspaces: Workspace[];
+  setCurrentWorkspace: (workspace: Workspace) => void;
   isLoading: boolean;
 }
 
-const Context = createContext<ContextType | undefined>(undefined);
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
-  const [currentWorkspace, setCurrentWorkspaceState] = useState< | null>(null);
+  const [currentWorkspace, setCurrentWorkspaceState] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Query all businesses with fallback to empty array
-  const businesses = useQuery(api.workspaces.getAll);
-  const default = useQuery(api.workspaces.getDefaultWorkspace);
+  // Query all workspaces with fallback to empty array
+  const workspaces = useQuery(api.workspaces.getAll);
+  const defaultWorkspace = useQuery(api.workspaces.getDefaultWorkspace);
 
   // Provide default empty arrays if queries are still loading
-  const businessesData = businesses ?? [];
-  const defaultData = default ?? null;
+  const workspacesData = workspaces ?? [];
+  const defaultWorkspaceData = defaultWorkspace ?? null;
 
   // Determine current workspace from URL or fallback
   useEffect(() => {
     // If data is still loading (null), don't proceed
-    if (businesses === undefined || default === undefined) {
+    if (workspaces === undefined || defaultWorkspace === undefined) {
       return;
     }
 
-    // If we have no businesses data, clear loading (empty state is valid)
-    if (businessesData.length === 0) {
+    // If we have no workspaces data, clear loading (empty state is valid)
+    if (workspacesData.length === 0) {
       setIsLoading(false);
       return;
     }
 
-    let business:  | null = null;
+    let workspace: Workspace | null = null;
 
-    // 1. Try to get businessSlug from URL params
-    const businessSlug = params?.businessSlug as string;
-    if (businessSlug) {
-      workspace = businessesData.find((b) => b.slug === businessSlug) || null;
+    // 1. Try to get workspaceSlug from URL params
+    const workspaceSlug = params?.workspaceSlug as string;
+    if (workspaceSlug) {
+      workspace = workspacesData.find((w) => w.slug === workspaceSlug) || null;
     }
 
     // 2. Fall back to localStorage
     if (!workspace) {
-      const savedSlug = localStorage.getItem("mission-control:businessSlug");
+      const savedSlug = localStorage.getItem("mission-control:workspaceSlug");
       if (savedSlug) {
-        workspace = businessesData.find((b) => b.slug === savedSlug) || null;
+        workspace = workspacesData.find((w) => w.slug === savedSlug) || null;
       }
     }
 
-    // 3. Fall back to default business
-    if (!business && defaultData) {
-      workspace = defaultData;
+    // 3. Fall back to default workspace
+    if (!workspace && defaultWorkspaceData) {
+      workspace = defaultWorkspaceData;
     }
 
-    // 4. Fall back to first business
-    if (!business && businessesData.length > 0) {
-      workspace = businessesData[0];
+    // 4. Fall back to first workspace
+    if (!workspace && workspacesData.length > 0) {
+      workspace = workspacesData[0];
     }
 
     setCurrentWorkspaceState(workspace);
@@ -85,14 +85,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     // Save to localStorage for persistence
     if (workspace) {
-      localStorage.setItem("mission-control:businessSlug", workspace.slug);
+      localStorage.setItem("mission-control:workspaceSlug", workspace.slug);
     }
-  }, [workspacees, default, businessesData, defaultData, params?.businessSlug]);
+  }, [workspaces, defaultWorkspace, workspacesData, defaultWorkspaceData, params?.workspaceSlug]);
 
-  // Handle switching to a different business
-  const setCurrentWorkspace = (business: ) => {
+  // Handle switching to a different workspace
+  const setCurrentWorkspace = (workspace: Workspace) => {
     setCurrentWorkspaceState(workspace);
-    localStorage.setItem("mission-control:businessSlug", workspace.slug);
+    localStorage.setItem("mission-control:workspaceSlug", workspace.slug);
 
     // Determine current tab from URL
     const currentTab = (params?.tab as string) || "overview";
@@ -102,21 +102,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <Context.Provider
+    <WorkspaceContext.Provider
       value={{
         currentWorkspace,
-        businesses: businessesData,
+        workspaces: workspacesData,
         setCurrentWorkspace,
         isLoading,
       }}
     >
       {children}
-    </Context.Provider>
+    </WorkspaceContext.Provider>
   );
 }
 
 export function useWorkspace() {
-  const context = useContext(Context);
+  const context = useContext(WorkspaceContext);
   if (context === undefined) {
     throw new Error("useWorkspace must be used within a WorkspaceProvider");
   }

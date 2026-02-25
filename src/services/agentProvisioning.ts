@@ -28,7 +28,7 @@ export interface AgentProvisioningParams {
     isBoardLead?: boolean;
     isGatewayMain?: boolean;
   };
-  business: {
+  workspace: {
     _id: string;
     name: string;
     slug: string;

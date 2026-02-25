@@ -18,7 +18,6 @@ import type * as agents from "../agents.js";
 import type * as alertRules from "../alertRules.js";
 import type * as anomalyDetection from "../anomalyDetection.js";
 import type * as approvals from "../approvals.js";
-import type * as businesses from "../businesses.js";
 import type * as calendarEvents from "../calendarEvents.js";
 import type * as cron from "../cron.js";
 import type * as dashboard from "../dashboard.js";
@@ -41,7 +40,6 @@ import type * as opsMetrics from "../opsMetrics.js";
 import type * as organizationMembers from "../organizationMembers.js";
 import type * as patternLearning from "../patternLearning.js";
 import type * as presence from "../presence.js";
-import type * as seed from "../seed.js";
 import type * as skillInference from "../skillInference.js";
 import type * as strategicReports from "../strategicReports.js";
 import type * as taskComments from "../taskComments.js";
@@ -57,6 +55,7 @@ import type * as utils_roleKeywords from "../utils/roleKeywords.js";
 import type * as utils_ticketId from "../utils/ticketId.js";
 import type * as wake from "../wake.js";
 import type * as wiki from "../wiki.js";
+import type * as workspaces from "../workspaces.js";
 
 import type {
   ApiFromModules,
@@ -75,7 +74,6 @@ declare const fullApi: ApiFromModules<{
   alertRules: typeof alertRules;
   anomalyDetection: typeof anomalyDetection;
   approvals: typeof approvals;
-  businesses: typeof businesses;
   calendarEvents: typeof calendarEvents;
   cron: typeof cron;
   dashboard: typeof dashboard;
@@ -98,7 +96,6 @@ declare const fullApi: ApiFromModules<{
   organizationMembers: typeof organizationMembers;
   patternLearning: typeof patternLearning;
   presence: typeof presence;
-  seed: typeof seed;
   skillInference: typeof skillInference;
   strategicReports: typeof strategicReports;
   taskComments: typeof taskComments;
@@ -114,6 +111,7 @@ declare const fullApi: ApiFromModules<{
   "utils/ticketId": typeof utils_ticketId;
   wake: typeof wake;
   wiki: typeof wiki;
+  workspaces: typeof workspaces;
 }>;
 
 /**

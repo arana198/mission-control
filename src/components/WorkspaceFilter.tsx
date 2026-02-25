@@ -14,21 +14,21 @@ interface WorkspaceFilterProps {
  * Shows all businesses and "All es" option with real-time search
  */
 export function WorkspaceFilter({ onFilterChange }: WorkspaceFilterProps) {
-  const { businesses } = useWorkspace();
+  const { workspaces } = useWorkspace();
   const [selectedWorkspaceId, setSelectedId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter businesses based on search query
-  const filteredes = useMemo(() => {
-    if (!searchQuery.trim()) return workspacees;
+  // Filter workspaces based on search query
+  const filteredWorkspaces = useMemo(() => {
+    if (!searchQuery.trim()) return workspaces;
     const query = searchQuery.toLowerCase();
-    return workspacees.filter(
+    return workspaces.filter(
       (b) =>
         b.name.toLowerCase().includes(query) ||
         (b.emoji && query.includes(b.emoji))
     );
-  }, [workspacees, searchQuery]);
+  }, [workspaces, searchQuery]);
 
   const handleSelect = (workspaceId: string | null) => {
     setSelectedId(workspaceId);
@@ -39,8 +39,8 @@ export function WorkspaceFilter({ onFilterChange }: WorkspaceFilterProps) {
 
   const selectedLabel =
     selectedWorkspaceId === null
-      ? "All es"
-      : businesses.find((b) => b._id === selectedWorkspaceId)?.name || "All es";
+      ? "All workspaces"
+      : workspaces.find((b) => b._id === selectedWorkspaceId)?.name || "All workspaces";
 
   return (
     <div className="flex items-center gap-2 w-full md:w-auto">
@@ -93,8 +93,8 @@ export function WorkspaceFilter({ onFilterChange }: WorkspaceFilterProps) {
                 All es
               </button>
 
-              {filteredes.length > 0 ? (
-                filteredes.map((workspace) => (
+              {filteredWorkspaces.length > 0 ? (
+                filteredWorkspaces.map((workspace) => (
                   <button
                     key={workspace._id}
                     onClick={() => handleSelect(workspace._id)}

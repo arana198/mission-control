@@ -10,7 +10,7 @@ interface WorkspaceSettingsPanelProps {
   workspaceId: string;
 }
 
-export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
+export function SettingsPanel({ workspaceId }: WorkspaceSettingsPanelProps) {
   const router = useRouter();
   const [missionStatement, setMissionStatement] = useState("");
   const [ticketPrefix, setTicketPrefix] = useState("");
@@ -32,13 +32,13 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
 
   const update = useMutation(api.workspaces.update);
   const setDefaultWorkspace = useMutation(api.workspaces.setDefault);
-  const delete = useMutation(api.workspaces.remove);
+  const removeWorkspace = useMutation(api.workspaces.remove);
   const setSettingMutation = useMutation((api as any).github.setSetting);
 
   // Load current mission statement and GitHub settings
   useEffect(() => {
-    if (business?.missionStatement) {
-      setMissionStatement( workspace.missionStatement);
+    if (workspace?.missionStatement) {
+      setMissionStatement(workspace.missionStatement);
     }
   }, [workspace]);
 
@@ -95,13 +95,13 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
   };
 
   const hasChanges =
-    missionStatement !== (business?.missionStatement || "") ||
+    missionStatement !== (workspace?.missionStatement || "") ||
     ticketPrefix !== (ticketPrefixSetting || "") ||
     customTicketPattern !== (ticketPatternSetting || "") ||
     githubRepo !== (githubRepoSetting || "");
 
   const handleSetDefault = async () => {
-    if (business?.isDefault) {
+    if (workspace?.isDefault) {
       setSaveMessage({
         type: "error",
         text: "This workspace is already the default"
@@ -116,7 +116,7 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
       });
       setSaveMessage({
         type: "success",
-        text: `${business?.name} is now the default business`
+        text: `${workspace?.name} is now the default business`
       });
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error: any) {
@@ -131,12 +131,12 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await delete({
+      await removeWorkspace({
         workspaceId: workspaceId as any,
       });
       setSaveMessage({
         type: "success",
-        text: " deleted successfully. Redirecting..."
+        text: "Workspace deleted successfully. Redirecting..."
       });
       setTimeout(() => {
         router.push("/");
@@ -161,7 +161,7 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
         </div>
         <div>
           <h2 className="text-xl font-semibold"> Settings</h2>
-          <p className="text-sm text-muted-foreground">Configure {business?.name}</p>
+          <p className="text-sm text-muted-foreground">Configure {workspace?.name}</p>
         </div>
       </div>
 
@@ -332,7 +332,7 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
             <div>
               <h3 className="font-semibold">Default </h3>
               <p className="text-sm text-muted-foreground">
-                {business?.isDefault
+                {workspace?.isDefault
                   ? "This is your default business"
                   : "Set this as your default workspace"}
               </p>
@@ -340,15 +340,15 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
           </div>
           <button
             onClick={handleSetDefault}
-            disabled={business?.isDefault}
+            disabled={workspace?.isDefault}
             className="btn flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: business?.isDefault ? '#d1d5db' : '#fbbf24',
-              color: business?.isDefault ? '#6b7280' : '#000',
+              backgroundColor: workspace?.isDefault ? '#d1d5db' : '#fbbf24',
+              color: workspace?.isDefault ? '#6b7280' : '#000',
             }}
           >
             <Star className="w-4 h-4" fill="currentColor" />
-            {business?.isDefault ? "Current Default" : "Set as Default"}
+            {workspace?.isDefault ? "Current Default" : "Set as Default"}
           </button>
         </div>
       </div>
@@ -372,11 +372,11 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
         {showDeleteConfirm ? (
           <div className="bg-destructive/10 p-4 rounded-lg mb-4">
             <p className="text-sm font-medium mb-3">
-              Are you sure? Type <code className="bg-card px-2 py-1 rounded">{business?.name}</code> to confirm:
+              Are you sure? Type <code className="bg-card px-2 py-1 rounded">{workspace?.name}</code> to confirm:
             </p>
             <input
               type="text"
-              placeholder={business?.name || " name"}
+              placeholder={workspace?.name || " name"}
               className="input w-full mb-3"
               id="confirm-business-name"
             />
@@ -384,7 +384,7 @@ export function SettingsPanel({ workspaceId }: SettingsPanelProps) {
               <button
                 onClick={() => {
                   const input = document.getElementById("confirm-business-name") as HTMLInputElement;
-                  if (input?.value === business?.name) {
+                  if (input?.value === workspace?.name) {
                     handleDelete();
                   } else {
                     setSaveMessage({

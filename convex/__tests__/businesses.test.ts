@@ -348,11 +348,11 @@ describe("es Module", () => {
 
       // Act: call getDefaultWorkspace()
       const businesses = db.getes();
-      const default = businesses.find((b: any) => b.isDefault === true);
+      const defaultWorkspace = businesses.find((b: any) => b.isDefault === true);
 
       // Expected: the default workspace returned
-      expect(default).toBeDefined();
-      expect(default?.name).toBe(" A");
+      expect(defaultWorkspace).toBeDefined();
+      expect(defaultWorkspace?.name).toBe(" A");
     });
 
     it("should return exactly one default business", async () => {

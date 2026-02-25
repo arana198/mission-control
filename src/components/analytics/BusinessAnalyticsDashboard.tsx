@@ -25,7 +25,7 @@ interface WorkspaceAnalyticsDashboardProps {
 
 export function AnalyticsDashboard({
   workspaceId,
-}: AnalyticsDashboardProps) {
+}: WorkspaceAnalyticsDashboardProps) {
   // Fetch analytics data
   const cycleTimeMetrics = useQuery(api.tasks.getCycleTimeMetrics, {
     workspaceId,

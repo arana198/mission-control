@@ -138,7 +138,7 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], workspaceId }: D
   // Build efficient lookup map: agentId -> status
   const presenceMap = useMemo(
     () => new Map((businessPresence ?? []).map((p) => [p.agentId as string, p.status as string])),
-    [workspacePresence]
+    [businessPresence]
   );
 
   const handleEscalateStale = async () => {

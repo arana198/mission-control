@@ -27,12 +27,12 @@ function WorkspaceSelectorContent() {
   const router = useRouter();
   const pathname = usePathname();
 
-  let currentWorkspace, businesses, setCurrentWorkspace, isLoading;
+  let currentWorkspace, workspaces, setCurrentWorkspace, isLoading;
 
   try {
     const context = useWorkspace();
     currentWorkspace = context.currentWorkspace;
-    businesses = context.businesses;
+    workspaces = context.workspaces;
     setCurrentWorkspace = context.setCurrentWorkspace;
     isLoading = context.isLoading;
   } catch (error) {
@@ -57,12 +57,12 @@ function WorkspaceSelectorContent() {
   // Reset highlighted index when opening
   useEffect(() => {
     if (isOpen) {
-      const currentIndex = businesses?.findIndex(
+      const currentIndex = workspaces?.findIndex(
         (b: any) => b._id === currentWorkspace?._id
       ) ?? 0;
       setHighlightedIndex(Math.max(0, currentIndex));
     }
-  }, [isOpen, businesses, currentWorkspace]);
+  }, [isOpen, workspaces, currentWorkspace]);
 
   // Handle Escape key globally
   useEffect(() => {
@@ -82,7 +82,7 @@ function WorkspaceSelectorContent() {
 
   // Keyboard navigation handler
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (!businesses || workspaces.length === 0) return;
+    if (!workspaces || workspaces.length === 0) return;
 
     if (!isOpen && (e.key === " " || e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
       e.preventDefault();
@@ -116,7 +116,7 @@ function WorkspaceSelectorContent() {
       case "Enter":
       case " ":
         e.preventDefault();
-        handleSelectWorkspace(workspaces[highlightedIndex]);
+        if (workspaces) handleSelectWorkspace(workspaces[highlightedIndex]);
         break;
 
       case "Escape":
@@ -130,9 +130,9 @@ function WorkspaceSelectorContent() {
     }
   };
 
-  const handleSelectWorkspace = (business: any) => {
+  const handleSelectWorkspace = (workspace: any) => {
     if (workspace._id === currentWorkspace?._id) {
-      // No-op if selecting same business
+      // No-op if selecting same workspace
       setIsOpen(false);
       return;
     }
@@ -198,8 +198,8 @@ function WorkspaceSelectorContent() {
           aria-label=" options"
         >
           <div className="max-h-60 overflow-y-auto">
-            {businesses && workspaces.length > 0 ? (
-              businesses.map((business: any, index: number) => (
+            {workspaces && workspaces.length > 0 ? (
+              workspaces.map((workspace: any, index: number) => (
                 <button
                   key={workspace._id}
                   onClick={() => handleSelectWorkspace(workspace)}
@@ -216,15 +216,15 @@ function WorkspaceSelectorContent() {
                   style={
                     workspace._id === currentWorkspace?._id
                       ? {}
-                      : { borderLeftColor:  workspace.color }
+                      : { borderLeftColor: workspace.color }
                   }
                   role="option"
                   aria-selected={workspace._id === currentWorkspace?._id}
                   tabIndex={highlightedIndex === index ? 0 : -1}
                 >
-                  <span className="text-lg">{ workspace.emoji}</span>
+                  <span className="text-lg">{workspace.emoji}</span>
                   <div className="flex-1 text-left">
-                    <div className="font-medium">{ workspace.name}</div>
+                    <div className="font-medium">{workspace.name}</div>
                     {workspace.isDefault && (
                       <div className="text-xs opacity-70">Default</div>
                     )}

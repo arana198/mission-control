@@ -14,7 +14,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import { log } from "../lib/logger";
 import { metrics } from "../lib/monitoring";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
-import { WorkspaceDashboard } from "./dashboard/Dashboard";
+import { Dashboard } from "./dashboard/BusinessDashboard";
 import { GlobalDashboard } from "./dashboard/GlobalDashboard";
 import { LoadingSkeleton } from "./LoadingSkeletons";
 

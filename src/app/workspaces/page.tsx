@@ -31,7 +31,7 @@ export default function esPage() {
   const clearAllDataMutation = useMutation(api.admin.clearAllData);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<WorkspaceFormData>({
     name: "",
     slug: "",
     emoji: "🚀",
@@ -99,9 +99,9 @@ export default function esPage() {
         missionStatement: "",
       });
       setShowCreateForm(false);
-      // Redirect to first business
-      if (businesses && workspaces.length > 0) {
-        router.push(`/${workspaces[0].slug}/overview`);
+      // Redirect to first workspace
+      if (businesses && businesses.length > 0) {
+        router.push(`/${businesses[0].slug}/overview`);
       }
     } catch (err: any) {
       setError(err?.message || "Failed to create business");
@@ -267,50 +267,50 @@ export default function esPage() {
         </div>
       )}
 
-      {/* es List */}
+      {/* Workspaces List */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">es ({workspaces.length})</h2>
-        {workspaces.length === 0 ? (
-          <p className="text-muted-foreground">No businesses yet. Create one to get started.</p>
+        <h2 className="text-xl font-semibold mb-4">Workspaces ({businesses?.length || 0})</h2>
+        {!businesses || businesses.length === 0 ? (
+          <p className="text-muted-foreground">No workspaces yet. Create one to get started.</p>
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {businesses.map((business: any) => (
               <div
-                key={workspace._id}
+                key={business._id}
                 className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-12 h-12 rounded-lg flex items-center justify-center text-xl"
-                      style={{ backgroundColor:  workspace.color || "#6366f1" }}
+                      style={{ backgroundColor: business.color || "#6366f1" }}
                     >
-                      { workspace.emoji || "🚀"}
+                      {business.emoji || "🚀"}
                     </div>
                     <div>
-                      <h3 className="font-semibold">{ workspace.name}</h3>
-                      <p className="text-sm text-muted-foreground font-mono">{workspace.slug}</p>
+                      <h3 className="font-semibold">{business.name}</h3>
+                      <p className="text-sm text-muted-foreground font-mono">{business.slug}</p>
                     </div>
                   </div>
-                  {workspace.isDefault && (
+                  {business.isDefault && (
                     <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
                       Default
                     </span>
                   )}
                 </div>
 
-                { workspace.description && (
-                  <p className="text-sm text-muted-foreground mb-3">{ workspace.description}</p>
+                {business.description && (
+                  <p className="text-sm text-muted-foreground mb-3">{business.description}</p>
                 )}
 
                 <p className="text-xs text-muted-foreground mb-4">
-                  Last updated: {new Date( workspace.updatedAt).toLocaleDateString()}
+                  Last updated: {new Date(business.updatedAt).toLocaleDateString()}
                 </p>
 
                 <div className="flex gap-2">
-                  {!workspace.isDefault && (
+                  {!business.isDefault && (
                     <button
-                      onClick={() => handleSetDefault(workspace._id)}
+                      onClick={() => handleSetDefault(business._id)}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
                     >
                       <Star size={16} />
@@ -318,8 +318,8 @@ export default function esPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => setDeleteConfirmId(workspace._id)}
-                    disabled={workspace.isDefault}
+                    onClick={() => setDeleteConfirmId(business._id)}
+                    disabled={business.isDefault}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Trash2 size={16} />
@@ -328,9 +328,9 @@ export default function esPage() {
                 </div>
 
                 {/* Delete Confirmation */}
-                {deleteConfirmId === workspace._id && (
+                {deleteConfirmId === business._id && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm">
-                    <p className="font-medium text-red-900 mb-2">Delete "{ workspace.name}"?</p>
+                    <p className="font-medium text-red-900 mb-2">Delete "{business.name}"?</p>
                     <p className="text-red-700 mb-3">This action cannot be undone.</p>
                     <div className="flex gap-2">
                       <button
@@ -340,7 +340,7 @@ export default function esPage() {
                         Cancel
                       </button>
                       <button
-                        onClick={() => handleDelete(workspace._id)}
+                        onClick={() => handleDelete(business._id)}
                         className="flex-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                       >
                         Delete

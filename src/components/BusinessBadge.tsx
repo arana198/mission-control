@@ -10,7 +10,7 @@ interface Workspace {
 }
 
 interface WorkspaceBadgeProps {
-  business:  | null;
+  workspace: Workspace | null;
   variant?: "inline" | "small" | "large" | "emoji-only";
   onClick?: () => void;
 }
