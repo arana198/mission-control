@@ -7,7 +7,7 @@ function StatCardComponent({
   label,
   value,
   icon: Icon,
-  color = "text-blue-600",
+  color = "text-primary",
   subtext,
 }: {
   label: string;

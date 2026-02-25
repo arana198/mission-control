@@ -24,10 +24,10 @@ function EpicCardComponent({ epic, tasks, agents, onClick }: EpicCardProps) {
   const progressPercent = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const statusColors: Record<string, string> = {
-    planning: "bg-gray-100 text-gray-700",
-    active: "bg-green-100 text-green-700",
-    on_hold: "bg-yellow-100 text-yellow-700",
-    completed: "bg-blue-100 text-blue-700",
+    planning: "bg-muted text-muted-foreground",
+    active: "bg-success/10 text-success",
+    on_hold: "bg-warning/10 text-warning",
+    completed: "bg-primary/10 text-primary",
   };
 
   const epicName = epic.name || epic.title || "Untitled Epic";
@@ -56,9 +56,9 @@ function EpicCardComponent({ epic, tasks, agents, onClick }: EpicCardProps) {
           <span>Progress</span>
           <span>{Math.round(progressPercent)}%</span>
         </div>
-        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 transition-all"
+            className="h-full bg-primary transition-all"
             style={{ width: `${progressPercent}%` }}
           />
         </div>

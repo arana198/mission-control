@@ -106,7 +106,7 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
         const name = part.slice(1);
         const isValidMention = agents.some(a => a.name.toLowerCase() === name.toLowerCase()) || name === "all";
         return isValidMention ? (
-          <span key={i} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
+          <span key={i} className="text-primary font-medium bg-primary/10 px-1 rounded">
             {part}
           </span>
         ) : (
@@ -137,7 +137,7 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
             const canDelete = msg.fromId === "user";
             return (
             <div key={msg._id} className="flex gap-3 p-3 bg-muted/30 rounded-lg group">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-sm font-medium flex-shrink-0">
                 {msg.fromName[0]}
               </div>
               <div className="flex-1 min-w-0">
@@ -153,7 +153,7 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
                   </span>
                   <button
                     onClick={() => setReplyTo({ id: msg._id, name: msg.fromName })}
-                    className="opacity-0 group-hover:opacity-100 ml-auto p-1 text-blue-600 hover:bg-blue-50 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 ml-auto p-1 text-primary hover:bg-primary/10 rounded transition-all"
                     title="Reply to this message"
                   >
                     <MessageSquare className="w-3 h-3" />
@@ -165,7 +165,7 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
                         if (!confirm("Delete this comment?")) return;
                         await deleteMessageMutation({ messageId: msg._id, senderId: "user" });
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 rounded transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-destructive hover:bg-destructive/10 rounded transition-all"
                       title="Delete comment"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -184,15 +184,15 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
       <form onSubmit={handleSubmit} className="relative">
         {/* Reply banner */}
         {replyTo && (
-          <div className="flex items-center gap-2 p-2 mb-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <MessageSquare className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-blue-700">Replying to <strong>{replyTo.name}</strong></span>
+          <div className="flex items-center gap-2 p-2 mb-2 bg-primary/10 border border-primary/30 rounded-lg">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary/90">Replying to <strong>{replyTo.name}</strong></span>
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              className="ml-auto p-1 hover:bg-blue-100 rounded"
+              className="ml-auto p-1 hover:bg-primary/20 rounded"
             >
-              <X className="w-3 h-3 text-blue-600" />
+              <X className="w-3 h-3 text-primary" />
             </button>
           </div>
         )}
@@ -229,7 +229,7 @@ export function TaskComments({ taskId, agents }: { taskId: string; agents: Agent
                   onClick={() => insertMention(agent.name)}
                   className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2"
                 >
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-xs text-white">
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground">
                     {agent.name[0]}
                   </div>
                   <div>
