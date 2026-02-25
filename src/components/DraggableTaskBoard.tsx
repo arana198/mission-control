@@ -374,15 +374,15 @@ export function DraggableTaskBoard({ tasks, agents, epics = [], businessId }: Dr
 
       {/* Unassigned Tasks Auto-assign Banner (Phase 3C) */}
       {unassignedCount > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-          <div className="flex items-center gap-2 text-blue-700">
+        <div className="flex items-center justify-between px-4 py-2 mb-2 bg-primary/10 border border-primary/30 rounded-lg text-sm">
+          <div className="flex items-center gap-2 text-primary">
             <Users className="w-4 h-4" />
             <span>{unassignedCount} unassigned task{unassignedCount > 1 ? "s" : ""} in backlog</span>
           </div>
           <button
             onClick={handleAutoAssign}
             disabled={autoAssigning}
-            className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-900 underline disabled:opacity-50"
+            className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 underline disabled:opacity-50"
           >
             {autoAssigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
             Auto-assign

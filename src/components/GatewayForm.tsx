@@ -144,7 +144,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-900/30 border border-red-700 rounded p-3 text-red-300 text-sm">
+        <div className="bg-destructive/20 border border-destructive/70 rounded p-3 text-destructive/70 text-sm">
           {error}
         </div>
       )}
@@ -171,7 +171,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
           value={formData.url}
           onChange={handleChange}
           placeholder="wss://gateway.example.com:443"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary font-mono text-sm"
         />
         <p className="text-xs text-gray-500 mt-1">Must start with ws:// or wss://</p>
       </div>
@@ -186,7 +186,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
             value={isEditMode && gateway?.token && !formData.token ? "••••••••" : formData.token}
             onChange={handleChange}
             placeholder="Leave empty if no auth required"
-            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary"
           />
           <button
             type="button"
@@ -208,7 +208,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
           value={formData.workspaceRoot}
           onChange={handleChange}
           placeholder="/workspace"
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+          className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-primary font-mono text-sm"
         />
       </div>
 
@@ -241,8 +241,8 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
       {testConnectionResult && (
         <div className={`p-3 rounded border flex items-center gap-2 ${
           testConnectionResult.success
-            ? "bg-green-900/20 border-green-700 text-green-300"
-            : "bg-red-900/20 border-red-700 text-red-300"
+            ? "bg-success/20 border-success/70 text-success/70"
+            : "bg-destructive/20 border-destructive/70 text-destructive/70"
         }`}>
           {testConnectionResult.success ? (
             <>
@@ -282,7 +282,7 @@ export function GatewayForm({ businessId, gateway, onClose, onSuccess }: Gateway
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded px-4 py-2 font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 bg-success hover:bg-success/90 disabled:bg-success/80 disabled:opacity-50 text-success-foreground rounded px-4 py-2 font-medium transition-colors"
         >
           {isSubmitting ? (
             <>

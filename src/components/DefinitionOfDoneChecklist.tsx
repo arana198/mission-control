@@ -115,7 +115,7 @@ export function DefinitionOfDoneChecklist({
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-green-500 transition-all duration-300"
+                className="h-full bg-success transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -124,14 +124,14 @@ export function DefinitionOfDoneChecklist({
 
         {/* All Done Banner */}
         {isAllDone && (
-          <div className="mb-3 p-3 rounded-lg bg-green-500/10 border border-green-200">
+          <div className="mb-3 p-3 rounded-lg bg-success/10 border border-success/30">
             <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-green-700">
+                <p className="text-sm font-semibold text-success/90">
                   All done! Ready to close.
                 </p>
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-success/80 mt-1">
                   All criteria have been completed. You can mark this task as done.
                 </p>
               </div>
@@ -155,7 +155,7 @@ export function DefinitionOfDoneChecklist({
                 aria-label={`Toggle ${item.text}`}
               >
                 {item.completed && (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <CheckCircle2 className="w-4 h-4 text-success" />
                 )}
               </button>
 

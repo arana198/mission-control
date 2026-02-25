@@ -21,12 +21,12 @@ const DOC_TYPE_ICONS = {
 };
 
 const DOC_TYPE_COLORS = {
-  deliverable: "text-emerald-400 bg-emerald-500/10",
-  research: "text-blue-400 bg-blue-500/10",
-  protocol: "text-amber-400 bg-amber-500/10",
-  spec: "text-violet-400 bg-violet-500/10",
-  draft: "text-slate-400 bg-slate-500/10",
-  receipt: "text-rose-400 bg-rose-500/10",
+  deliverable: "text-success bg-success/10",
+  research: "text-primary bg-primary/10",
+  protocol: "text-warning bg-warning/10",
+  spec: "text-accent bg-accent/10",
+  draft: "text-muted-foreground bg-muted/10",
+  receipt: "text-destructive bg-destructive/10",
 };
 
 export function DocumentPanel() {
