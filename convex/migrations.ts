@@ -1349,6 +1349,77 @@ export const migrationDenormalizeAgentMetrics = mutation({
  */
 
 /**
+ * MIG-05: RBAC/Multi-tenant Support (2026-02-24)
+ *
+ * Schema changes:
+ * - NEW TABLES: organizationMembers, boardAccess, invites, inviteBoardAccess, approvals, approvalTaskLinks, gateways
+ * - EXTENDED: agents table with gatewayId, isBoardLead, isGatewayMain, gatewayStatus, openclawSessionId, identityProfile
+ *
+ * Reason: Enable role-based access control (owner/admin/member), approval workflows, and gateway provisioning.
+ *
+ * Migration action:
+ * 1. Get all businesses
+ * 2. For each business, check if organizationMembers entry exists for userId="local-user"
+ * 3. If not, create one with role="owner", allBoardsRead=true, allBoardsWrite=true
+ * 4. Log created entries
+ *
+ * Idempotent: Only inserts if not already present (checked via query).
+ */
+export const migrateAddRBACSupport = mutation({
+  args: {},
+  async handler(ctx) {
+    try {
+      // Get all businesses
+      const businesses = await ctx.db.query("businesses").collect();
+
+      if (businesses.length === 0) {
+        console.log("migrateAddRBACSupport: No businesses found, skipping");
+        return { message: "No businesses to migrate", count: 0 };
+      }
+
+      let createdCount = 0;
+
+      // For each business, ensure there's an owner member
+      for (const business of businesses) {
+        // Check if organizationMembers entry already exists for this business + local-user
+        const existing = await ctx.db
+          .query("organizationMembers")
+          .withIndex("by_business_user", (q) =>
+            q.eq("businessId", business._id).eq("userId", "local-user")
+          )
+          .first();
+
+        if (!existing) {
+          // Create owner member
+          await ctx.db.insert("organizationMembers", {
+            businessId: business._id,
+            userId: "local-user",
+            userEmail: undefined,
+            userName: undefined,
+            role: "owner",
+            allBoardsRead: true,
+            allBoardsWrite: true,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+          createdCount++;
+          console.log(`migrateAddRBACSupport: Created owner member for business ${business._id}`);
+        }
+      }
+
+      return {
+        message: "RBAC migration completed",
+        businessCount: businesses.length,
+        membersCreated: createdCount,
+      };
+    } catch (error) {
+      console.error("migrateAddRBACSupport failed:", error);
+      throw error;
+    }
+  },
+});
+
+/**
  * Implementation notes for Phase 6A migration:
  *
  * 1. Execute schema upgrade (schema.ts already updated)

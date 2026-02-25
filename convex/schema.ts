@@ -69,6 +69,20 @@ export default defineSchema({
       convexVal.literal("error")
     )),
     scale: convexVal.optional(convexVal.number()),              // horizontal workers
+
+    // Phase 7: Gateway/Distributed Runtime Support
+    gatewayId: convexVal.optional(convexVal.id("gateways")),
+    isBoardLead: convexVal.optional(convexVal.boolean()),
+    isGatewayMain: convexVal.optional(convexVal.boolean()),
+    gatewayStatus: convexVal.optional(convexVal.union(
+      convexVal.literal("provisioning"),
+      convexVal.literal("online"),
+      convexVal.literal("updating"),
+      convexVal.literal("deleting"),
+      convexVal.literal("error")
+    )),
+    openclawSessionId: convexVal.optional(convexVal.string()),
+    identityProfile: convexVal.optional(convexVal.any()),
   })
     .index("by_name", ["name"])
     .index("by_status", ["status"])
@@ -327,7 +341,9 @@ export default defineSchema({
       convexVal.literal("tags_updated"),
       convexVal.literal("tasks_queried"),
       convexVal.literal("anomaly_detected"),
-      convexVal.literal("anomaly_resolved")
+      convexVal.literal("anomaly_resolved"),
+      convexVal.literal("approval_requested"),
+      convexVal.literal("approval_resolved")
     ),
 
     // Actor (denormalized for speed)
@@ -1291,5 +1307,122 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_active", ["isActive"])
     .index("by_workflow", ["workflowId"]),
+
+  /**
+   * RBAC - Organization Members & Board Access
+   * Enables role-based access control (owner/admin/member) with per-board permissions
+   */
+  organizationMembers: defineTable({
+    businessId: convexVal.id("businesses"),
+    userId: convexVal.string(),
+    userEmail: convexVal.optional(convexVal.string()),
+    userName: convexVal.optional(convexVal.string()),
+    role: convexVal.union(
+      convexVal.literal("owner"),
+      convexVal.literal("admin"),
+      convexVal.literal("member")
+    ),
+    allBoardsRead: convexVal.boolean(),
+    allBoardsWrite: convexVal.boolean(),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_user", ["userId"])
+    .index("by_business_user", ["businessId", "userId"]),
+
+  boardAccess: defineTable({
+    businessId: convexVal.id("businesses"),
+    memberId: convexVal.id("organizationMembers"),
+    canRead: convexVal.boolean(),
+    canWrite: convexVal.boolean(),
+    createdAt: convexVal.number(),
+  })
+    .index("by_member", ["memberId"])
+    .index("by_business", ["businessId"])
+    .index("by_member_business", ["memberId", "businessId"]),
+
+  invites: defineTable({
+    businessId: convexVal.id("businesses"),
+    token: convexVal.string(),
+    email: convexVal.string(),
+    role: convexVal.union(
+      convexVal.literal("owner"),
+      convexVal.literal("admin"),
+      convexVal.literal("member")
+    ),
+    allBoardsRead: convexVal.boolean(),
+    allBoardsWrite: convexVal.boolean(),
+    invitedBy: convexVal.string(),
+    acceptedBy: convexVal.optional(convexVal.string()),
+    acceptedAt: convexVal.optional(convexVal.number()),
+    createdAt: convexVal.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_business", ["businessId"])
+    .index("by_email", ["email"]),
+
+  inviteBoardAccess: defineTable({
+    inviteId: convexVal.id("invites"),
+    businessId: convexVal.id("businesses"),
+    canRead: convexVal.boolean(),
+    canWrite: convexVal.boolean(),
+  }).index("by_invite", ["inviteId"]),
+
+  /**
+   * APPROVALS - Human-in-the-Loop Governance
+   * Confidence-based action approval requests with rubric scoring
+   */
+  approvals: defineTable({
+    businessId: convexVal.id("businesses"),
+    agentId: convexVal.optional(convexVal.id("agents")),
+    taskId: convexVal.optional(convexVal.id("tasks")),
+    actionType: convexVal.string(),
+    payload: convexVal.optional(convexVal.any()),
+    confidence: convexVal.number(),
+    rubricScores: convexVal.optional(convexVal.any()),
+    leadReasoning: convexVal.string(),
+    isExternal: convexVal.optional(convexVal.boolean()),
+    isRisky: convexVal.optional(convexVal.boolean()),
+    status: convexVal.union(
+      convexVal.literal("pending"),
+      convexVal.literal("approved"),
+      convexVal.literal("rejected")
+    ),
+    resolvedBy: convexVal.optional(convexVal.string()),
+    resolvedAt: convexVal.optional(convexVal.number()),
+    createdAt: convexVal.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_business_status", ["businessId", "status"])
+    .index("by_agent", ["agentId"])
+    .index("by_task", ["taskId"])
+    .index("by_status", ["status"]),
+
+  approvalTaskLinks: defineTable({
+    approvalId: convexVal.id("approvals"),
+    taskId: convexVal.id("tasks"),
+    createdAt: convexVal.number(),
+  })
+    .index("by_approval", ["approvalId"])
+    .index("by_task", ["taskId"]),
+
+  /**
+   * GATEWAYS - Distributed Runtime Control
+   * WebSocket gateway configurations for Claude Code agent provisioning
+   */
+  gateways: defineTable({
+    businessId: convexVal.id("businesses"),
+    name: convexVal.string(),
+    url: convexVal.string(),
+    token: convexVal.optional(convexVal.string()),
+    workspaceRoot: convexVal.string(),
+    disableDevicePairing: convexVal.boolean(),
+    allowInsecureTls: convexVal.boolean(),
+    lastHealthCheck: convexVal.optional(convexVal.number()),
+    isHealthy: convexVal.optional(convexVal.boolean()),
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  }).index("by_business", ["businessId"]),
 
 });

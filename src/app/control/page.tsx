@@ -4,15 +4,23 @@ import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
+// Skip prerendering for dynamic page
+export const dynamic = "force-dynamic";
+
 /**
  * Mission Control V2 - Agent Control Panel
  * Phase 6B: Observability Dashboard using Phase 5 queries
  */
 export default function ControlPage() {
+  // Get first available business to satisfy query requirement
+  const businesses = useQuery(api.businesses.getAll);
+  const businessId = businesses?.[0]?._id;
+
   // Phase 5 Observability Queries
-  const systemHealth = useQuery(api.agentLifecycle.getSystemHealthFixed, {
-    businessId: "default-business" as any,
-  });
+  const systemHealth = useQuery(
+    api.agentLifecycle.getSystemHealthFixed,
+    businessId ? { businessId } : "skip"
+  );
   const recentExecutions = useQuery(api.executions.getRecentExecutions, {
     limit: 20,
   });

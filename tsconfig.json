@@ -31,6 +31,9 @@
       "@/components/*": [
         "./src/components/*"
       ],
+      "@/contexts/*": [
+        "./src/contexts/*"
+      ],
       "@/hooks/*": [
         "./src/hooks/*"
       ],
@@ -42,6 +45,9 @@
       ],
       "@/lib/*": [
         "./lib/*"
+      ],
+      "@/services/*": [
+        "./src/services/*"
       ]
     },
     "target": "ES2017"
