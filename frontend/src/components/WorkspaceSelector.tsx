@@ -142,7 +142,7 @@ function WorkspaceSelectorContent() {
     // Navigate based on whether we're on a global or workspace-scoped tab
     if (isGlobalPath || isCurrentTabGlobal) {
       // Stay in global tabs (they're not workspace-scoped)
-      router.push(`/global/${currentTab}`);
+      router.push(`/${currentTab}`);
     } else {
       // Navigate to the selected workspace with current workspace tab
       router.push(`/${workspace.slug}/${currentTab}`);

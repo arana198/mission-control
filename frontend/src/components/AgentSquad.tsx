@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
 import { Task } from "@/types/task";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import {
   Shield, Search, Flame, Eye, Feather, PenTool,
   Sparkles, Mail, Cpu, FileText, Zap, Cog,
@@ -109,13 +109,13 @@ export function AgentSquad({ agents, tasks = [] }: { agents: Agent[]; tasks?: Ta
   // PERF: Phase 5C - Memoize handlers to prevent recreation on every render
   const handleSelectAgent = useCallback((agent: Agent) => {
     setSelectedAgent(agent);
-    router.push(`/global/agents?agent=${agent._id}`);
+    router.push(`/agents?agent=${agent._id}`);
   }, [router]);
 
   // Handle closing agent detail and clearing URL
   const handleCloseAgent = useCallback(() => {
     setSelectedAgent(null);
-    router.push('/global/agents');
+    router.push('/agents');
   }, [router]);
 
   // Handle agent deletion

@@ -18,9 +18,25 @@ export default function Home() {
   const allWorkspaces = useQuery(api.workspaces.getAll);
 
   useEffect(() => {
-    // Simply redirect to overview - workspace context is handled by WorkspaceProvider
-    router.push("/overview");
-  }, [router]);
+    // Redirect to workspace-scoped overview
+    // Priority: saved slug → default workspace → first workspace
+    let targetSlug = savedSlug;
+
+    if (!targetSlug && defaultWorkspace) {
+      targetSlug = defaultWorkspace.slug;
+    }
+
+    if (!targetSlug && allWorkspaces?.length) {
+      targetSlug = allWorkspaces[0].slug;
+    }
+
+    if (targetSlug) {
+      router.push(`/${targetSlug}`);
+    } else {
+      // No workspaces exist, redirect to workspace creation
+      router.push("/workspaces/new");
+    }
+  }, [router, defaultWorkspace, savedSlug, allWorkspaces]);
 
   return <LoadingSkeleton />;
 }

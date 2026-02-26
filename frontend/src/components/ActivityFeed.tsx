@@ -19,6 +19,7 @@ interface ActivityItem {
   ticketNumber?: string;
   taskId?: string;
   workspaceId?: string;
+  workspaceSlug?: string;
   createdAt: number;
 }
 
@@ -275,10 +276,10 @@ function ActivityRow({ activity }: { activity: ActivityItem }) {
               <p className="text-sm leading-relaxed text-foreground">
                 {activity.message}
               </p>
-              {activity.ticketNumber && activity.taskId && activity.workspaceId ? (
+              {activity.ticketNumber && activity.taskId && activity.workspaceSlug ? (
                 <div className="flex items-center gap-2 mt-2">
                   <Link
-                    href={`/${activity.workspaceId}/board?task=${activity.taskId}`}
+                    href={`/${activity.workspaceSlug}/board?task=${activity.taskId}`}
                     className="text-xs px-2 py-1 rounded font-mono font-semibold transition-colors hover:opacity-80 bg-primary/20 text-accent cursor-pointer"
                   >
                     {activity.ticketNumber}

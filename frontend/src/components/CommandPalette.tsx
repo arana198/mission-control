@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "./WorkspaceProvider";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
@@ -148,7 +148,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
             relevance: `${(m.relevance * 100).toFixed(0)}%`,
           },
           action: () => {
-            router.push(`/global/brain`);
+            router.push(`/brain`);
           },
         }));
         results.push(...memoryFormatted);
@@ -170,7 +170,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
               status: a.status,
             },
             action: () => {
-              router.push(`/global/agents?agent=${a._id}`);
+              router.push(`/agents?agent=${a._id}`);
             },
           }));
         results.push(...matchedAgents);
