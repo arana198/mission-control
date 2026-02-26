@@ -422,7 +422,7 @@ curl http://localhost:3000/api/openapi | jq '.paths | keys[] | select(contains("
 
 ---
 
-### Task 3.2: Batch 2 — Task Routes (3 routes)
+### Task 3.2: Batch 2 — Task Routes (4 routes)
 
 **Requirement:** API-01, API-02, API-03, API-04, API-07, API-08, API-09
 
@@ -846,18 +846,23 @@ test.describe('API Standardization', () => {
   });
 
   test('should enforce rate limits', async ({ request }) => {
-    // Make 1000 requests
-    for (let i = 0; i < 1000; i++) {
+    // Note: This test runs with a dedicated test API key provisioned with quota=5 req/test
+    // to verify 429 behavior without making 1000 real requests (which would exceed CI timeout)
+
+    // Make 5 requests (consuming the test quota)
+    for (let i = 0; i < 5; i++) {
       const response = await request.get('/api/v1/workspaces/ws-123/agents');
       expect(response.status()).toBe(200);
     }
 
-    // 1001st request should fail
+    // 6th request should hit the rate limit
     const response = await request.get('/api/v1/workspaces/ws-123/agents');
     expect(response.status()).toBe(429);
     const data = await response.json();
     expect(data.retryAfter).toBeDefined();
     expect(data.resetAt).toBeDefined();
+
+    // Note: Full load testing (1000 req/hr quota) should be done separately with load testing tools
   });
 
   // ... 10+ more tests
@@ -1123,7 +1128,7 @@ Estimated rollback time: < 30 minutes (git revert + redeploy)
 ```typescript
 // In route handler
 const { workspaceId } = req.params;
-const workspace = await convex.query(api.workspaces.getById, {id: workspaceId});
+const workspace = await convex.query(api.workspaces.getWorkspaceById, {id: workspaceId});
 if (!workspace) {
   return errorResponse(404, 'NOT_FOUND', 'Workspace not found', 'Workspace does not exist');
 }
