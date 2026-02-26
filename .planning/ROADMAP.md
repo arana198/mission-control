@@ -12,6 +12,7 @@ Mission Control adds a governance and observability layer on top of an existing 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+- [ ] **Phase 1.1 (INSERTED): REST API Analysis & Standardization** - Analyze current REST API endpoints, evaluate against RESTful best practices, identify standardization gaps, create OpenAPI spec
 - [ ] **Phase 1: Data Foundation** - Establish schema tables, event sourcing fields, model pricing, and immutable audit log infrastructure
 - [ ] **Phase 2: Workflow Definition + Budget Enforcement** - Define reusable workflow DAGs, validate structure, set and enforce budget caps
 - [ ] **Phase 3: Execution Engine + Approvals** - Execute workflows end-to-end via the state machine, wire gateway dispatch, enforce approval gates
@@ -19,6 +20,22 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Audit & Replay** - Enable search, filter, and full replay of any past execution from the immutable event log
 
 ## Phase Details
+
+### Phase 1.1: REST API Analysis & Standardization
+**Goal**: Evaluate the existing REST API against RESTful best practices, identify architectural issues and standardization gaps, create an OpenAPI 3.0 specification, and provide a detailed report with recommendations for Phase 1+ implementation.
+**Depends on**: Nothing (preparatory analysis)
+**Requirements**: None (planning phase)
+**Success Criteria** (what must be TRUE):
+  1. A comprehensive API audit report exists documenting all current endpoints (25+ identified), their HTTP methods, paths, request/response patterns, and compliance with REST principles
+  2. RESTful compliance matrix created assessing each endpoint against: correct HTTP verb usage, resource-based naming, statelessness, consistent response codes, hypermedia, versioning strategy
+  3. OpenAPI 3.0 specification created documenting the current API surface (all 25+ endpoints with schemas, required params, response types)
+  4. Standardization recommendations document provided identifying: naming convention gaps, error response standardization, pagination/filtering patterns, authentication boundaries
+  5. Actionable roadmap created for API refactoring (breaking changes vs. additive improvements) that informs Phase 1+ schema and API design decisions
+**Plans**: 2 plans in 2 waves
+
+Plans:
+- [ ] 01.1-01: Endpoint audit, REST compliance matrix, and standardization recommendations (Wave 1)
+- [ ] 01.1-02: OpenAPI spec generation from Zod validators and refactoring roadmap (Wave 2, depends on 01.1-01)
 
 ### Phase 1: Data Foundation
 **Goal**: The data infrastructure required by all subsequent phases exists: three new Convex tables (`workflow_executions`, `workflow_steps`, `workflow_events`), event sourcing fields on the existing `executions` table, a model pricing table, and the schema-level immutability guarantee for the audit log.
@@ -113,6 +130,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
+| 1.1 (INSERTED) REST API Analysis | 0/2 | Planned (2 plans, 2 waves) | - |
 | 1. Data Foundation | 0/2 | Not started | - |
 | 2. Workflow Definition + Budget Enforcement | 0/3 | Not started | - |
 | 3. Execution Engine + Approvals | 0/3 | Not started | - |
