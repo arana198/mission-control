@@ -1677,6 +1677,293 @@ export function generateOpenAPISpec(): OpenAPISpec {
         },
       },
     },
+
+    // ============= V1 API - REST Foundation =============
+    '/api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks/{taskId}': {
+      get: {
+        tags: ['V1 Agent Tasks'],
+        summary: 'Get task detail',
+        description: 'Retrieve specific task assigned to agent',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Agent identifier',
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Task identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Task details retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        status: { type: 'string' },
+                        priority: { type: 'string' },
+                        progress: { type: 'number' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Task not found',
+          },
+        },
+      },
+      put: {
+        tags: ['V1 Agent Tasks'],
+        summary: 'Update task',
+        description: 'Update task properties (title, description, status, priority, progress, dueDate)',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'in_progress', 'completed'],
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'normal', 'high'],
+                  },
+                  progress: {
+                    type: 'number',
+                    minimum: 0,
+                    maximum: 100,
+                  },
+                  dueDate: { type: 'string', format: 'date' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Task updated successfully',
+          },
+          '400': {
+            description: 'Validation error - Invalid field values',
+          },
+          '404': {
+            description: 'Task not found',
+          },
+        },
+      },
+    },
+
+    '/api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks/{taskId}/comments': {
+      get: {
+        tags: ['V1 Agent Task Comments'],
+        summary: 'List task comments',
+        description: 'Retrieve paginated list of comments for a task',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 20, minimum: 1, maximum: 100 },
+            description: 'Number of items to return',
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Pagination cursor',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Comments retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          content: { type: 'string' },
+                          authorId: { type: 'string' },
+                          createdAt: { type: 'string', format: 'date-time' },
+                        },
+                      },
+                    },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'number' },
+                        cursor: { type: ['string', 'null'] },
+                        hasMore: { type: 'boolean' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Task not found',
+          },
+        },
+      },
+      post: {
+        tags: ['V1 Agent Task Comments'],
+        summary: 'Create task comment',
+        description: 'Add a new comment to a task',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  content: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 5000,
+                    description: 'Comment content',
+                  },
+                },
+                required: ['content'],
+                example: { content: 'This is a task comment' },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Comment created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        content: { type: 'string' },
+                        authorId: { type: 'string' },
+                        createdAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Validation error - Invalid comment content',
+          },
+          '404': {
+            description: 'Task not found',
+          },
+        },
+      },
+    },
   };
 
   // Merge all path builders
