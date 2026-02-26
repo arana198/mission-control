@@ -14,12 +14,10 @@
 waves: 4
 depends_on: []
 files_modified:
+  - backend/convex/** (schema, types, rate limiting)
   - frontend/src/app/api/** (all 32 routes)
-  - frontend/src/middleware.ts (new/updated)
-  - frontend/src/lib/api/** (new utilities)
-  - convex/schema.ts (new apiKeyQuota table)
-  - convex/types.ts (rate limit types)
-  - convex/** (new rate limiting mutations)
+  - frontend/middleware.ts (new/updated)
+  - frontend/lib/api/** (new utilities)
   - frontend/package.json (if zod-openapi needs version bump)
 autonomous: false (testing gates at Waves 2, 3, 4)
 prerequisites:
@@ -96,8 +94,8 @@ Build the underlying schema, middleware, and utility layer. No routes modified y
   - Returns current quota state (for observability/debugging)
 
 **Success Criteria:**
-- [ ] `convex/schema.ts` updated with `apiKeyQuota` table definition
-- [ ] `convex/types.ts` exports `RateLimitState`, `RateLimitCheckResult` types
+- [ ] `backend/convex/schema.ts` updated with `apiKeyQuota` table definition
+- [ ] `backend/convex/types.ts` exports `RateLimitState`, `RateLimitCheckResult` types
 - [ ] Mutation `rateLimit.checkAndDecrement()` implemented and tested (unit tests pass)
 - [ ] Mutation handles edge cases:
   - New API key (auto-initialize quota)
@@ -106,10 +104,10 @@ Build the underlying schema, middleware, and utility layer. No routes modified y
 - [ ] Build passes: `npm run build` (TypeScript clean)
 
 **Files:**
-- `convex/schema.ts` (update)
-- `convex/types.ts` (update)
-- `convex/rateLimit.ts` (create)
-- `convex/__tests__/rateLimit.test.ts` (create, unit tests)
+- `backend/convex/schema.ts` (update)
+- `backend/convex/types.ts` (update)
+- `backend/convex/rateLimit.ts` (create)
+- `backend/convex/__tests__/rateLimit.test.ts` (create, unit tests)
 
 **Verification:**
 ```bash
@@ -132,7 +130,7 @@ npx tsc --noEmit
 **Objective:** Create unified error/success response wrappers that implement RFC 9457 format.
 
 **Scope:**
-- Create `frontend/src/lib/api/responses.ts`:
+- Create `frontend/lib/api/responses.ts`:
   - `generateRequestId()`: UUID-based or `req-{timestamp}-{hex}` format
   - `errorResponse(status, code, title, detail, instance?)`: RFC 9457 format
     - Includes: `type`, `title`, `detail`, `instance` (request path), `status`, `requestId`, `timestamp`
@@ -167,9 +165,9 @@ npx tsc --noEmit
 - [ ] Timestamps are ISO8601 format
 
 **Files:**
-- `frontend/src/lib/api/responses.ts` (create)
-- `frontend/src/lib/api/errors.ts` (create, error type definitions)
-- `frontend/src/middleware.ts` (update to add request ID generation)
+- `frontend/lib/api/responses.ts` (create)
+- `frontend/lib/api/errors.ts` (create, error type definitions)
+- `frontend/middleware.ts` (update to add request ID generation)
 
 **Verification:**
 ```bash
@@ -188,7 +186,7 @@ npm test -- lib/api/responses.test.ts
 **Objective:** Implement base64-encoded cursor pagination with expiration.
 
 **Scope:**
-- Create `frontend/src/lib/api/pagination.ts`:
+- Create `frontend/lib/api/pagination.ts`:
   - `encodeCursor(offset: number, createdAt?: Date)`: Encodes offset + timestamp to base64
     - Format: `base64("offset:{offset}:createdAt:{timestamp}")`
     - Returns: Base64 string like `"b2Zmc2V0OjIwOmNyZWF0ZWRBdDoxMjM0NTY3ODkw"`
@@ -226,8 +224,8 @@ npm test -- lib/api/responses.test.ts
   - Max limit enforced (limit > 100 capped to 100)
 
 **Files:**
-- `frontend/src/lib/api/pagination.ts` (create)
-- `frontend/src/lib/api/__tests__/pagination.test.ts` (create, unit tests)
+- `frontend/lib/api/pagination.ts` (create)
+- `frontend/lib/api/__tests__/pagination.test.ts` (create, unit tests)
 
 **Verification:**
 ```bash
@@ -251,7 +249,7 @@ Add middleware to all routes, then prepare routes for standardization.
 **Objective:** Create centralized middleware that extracts workspace context, validates auth, checks rate limits, generates request IDs.
 
 **Scope:**
-- Create `frontend/src/middleware.ts` (or enhance existing):
+- Create `frontend/middleware.ts` (or enhance existing):
   - `extractWorkspaceId(pathname)`: Parses `/api/v1/workspaces/{id}/...`
     - Returns: `{workspaceId: string, rest: string}` or throws 400
     - Example: `/api/v1/workspaces/ws-123/agents` → `{workspaceId: "ws-123", rest: "/agents"}`
@@ -286,9 +284,9 @@ Add middleware to all routes, then prepare routes for standardization.
 - [ ] Rate limit check executed before handler logic
 
 **Files:**
-- `frontend/src/middleware.ts` (create or enhance)
-- `frontend/src/lib/api/auth.ts` (create, auth validation functions)
-- `frontend/src/lib/api/__tests__/auth.test.ts` (create, unit tests)
+- `frontend/middleware.ts` (create or enhance)
+- `frontend/lib/api/auth.ts` (create, auth validation functions)
+- `frontend/lib/api/__tests__/auth.test.ts` (create, unit tests)
 
 **Verification:**
 ```bash
@@ -357,7 +355,7 @@ cat .planning/routes-audit.md
 
 Migrate all 32 routes to new standards in batches.
 
-### Task 3.1: Batch 1 — Agent Routes (8 routes)
+### Task 3.1: Batch 1 — Agent Routes (13 routes)
 
 **Requirement:** API-01, API-02, API-03, API-04, API-07, API-08, API-09
 
@@ -368,10 +366,15 @@ Migrate all 32 routes to new standards in batches.
 2. `POST /api/agents` — Register agent
 3. `GET /api/agents/{agentId}` — Get agent details
 4. `PATCH /api/agents/{agentId}` — Update agent
-5. `GET /api/agents/{agentId}/tasks` — List agent's tasks
-6. `POST /api/agents/{agentId}/rotate-key` — Rotate API key
-7. `GET /api/agents/{agentId}/metrics` — Get agent metrics
-8. `POST /api/agents/{agentId}/heartbeat` — Heartbeat (keep-alive)
+5. `GET /api/agents/{agentId}/poll` — Poll for tasks
+6. `POST /api/agents/{agentId}/heartbeat` — Heartbeat (keep-alive)
+7. `POST /api/agents/{agentId}/rotate-key` — Rotate API key
+8. `GET /api/agents/{agentId}/tasks` — List agent's tasks
+9. `GET /api/agents/{agentId}/tasks/{taskId}` — Get task details
+10. `POST /api/agents/{agentId}/tasks/{taskId}/comments` — Add task comment
+11. `GET /api/agents/{agentId}/wiki/pages` — List wiki pages
+12. `GET /api/agents/{agentId}/wiki/pages/{pageId}` — Get wiki page
+13. `GET /api/agents/workspace/structure` — Get workspace structure
 
 **Per-Route Changes:**
 - Update response format: use `successResponse()` and `errorResponse()`
@@ -382,25 +385,30 @@ Migrate all 32 routes to new standards in batches.
 - Update/add pagination (for list endpoints):
   - `GET /api/agents` → support `?limit=20&cursor=...&status=active&sort=-createdAt`
   - `GET /api/agents/{agentId}/tasks` → support `?limit=50&cursor=...&status=pending`
+  - `GET /api/agents/{agentId}/wiki/pages` → support `?limit=20&cursor=...`
 - Update tests to validate RFC 9457 error format
 
 **Success Criteria:**
-- [ ] All 8 routes respond with RFC 9457 errors
+- [ ] All 13 routes respond with RFC 9457 errors
 - [ ] All list endpoints support cursor pagination
 - [ ] All endpoints accept `Authorization: Bearer` header
 - [ ] Rate limits checked on every request
 - [ ] All routes have exported Zod schemas
-- [ ] Unit tests pass (8/8)
-- [ ] Integration tests pass (8/8)
+- [ ] Unit tests pass (13/13)
+- [ ] Integration tests pass (13/13)
 
 **Files:**
 - `frontend/src/app/api/agents/route.ts` (update)
 - `frontend/src/app/api/agents/[agentId]/route.ts` (update)
-- `frontend/src/app/api/agents/[agentId]/tasks/route.ts` (update)
-- `frontend/src/app/api/agents/[agentId]/rotate-key/route.ts` (update)
-- `frontend/src/app/api/agents/[agentId]/metrics/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/poll/route.ts` (update)
 - `frontend/src/app/api/agents/[agentId]/heartbeat/route.ts` (update)
-- Plus any child routes
+- `frontend/src/app/api/agents/[agentId]/rotate-key/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/tasks/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/tasks/[taskId]/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/tasks/[taskId]/comments/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/wiki/pages/route.ts` (update)
+- `frontend/src/app/api/agents/[agentId]/wiki/pages/[pageId]/route.ts` (update)
+- `frontend/src/app/api/agents/workspace/structure/route.ts` (update)
 - Update corresponding test files
 
 **Verification:**
@@ -414,33 +422,31 @@ curl http://localhost:3000/api/openapi | jq '.paths | keys[] | select(contains("
 
 ---
 
-### Task 3.2: Batch 2 — Task Routes (5 routes)
+### Task 3.2: Batch 2 — Task Routes (3 routes)
 
 **Requirement:** API-01, API-02, API-03, API-04, API-07, API-08, API-09
 
 **Objective:** Standardize all task-related routes.
 
 **Routes in Batch 2:**
-1. `GET /api/tasks` — List tasks
-2. `POST /api/tasks` — Create task
-3. `GET /api/tasks/{taskId}` — Get task details
-4. `PATCH /api/tasks/{taskId}` — Update task
-5. `DELETE /api/tasks/{taskId}` — Delete task
-
-(+ child routes for calendar events, comments, etc., handled in Task 3.3)
+1. `GET /api/tasks/{taskId}` — Get task details
+2. `POST /api/tasks/execute` — Execute task
+3. `POST /api/tasks/generate-daily` — Generate daily tasks
+4. `GET /api/tasks/{taskId}/calendar-events` — Get task calendar events
 
 **Per-Route Changes:**
 - Same as Batch 1: RFC 9457 errors, success format, pagination, workspace context, rate limits, Zod schemas
 
 **Success Criteria:**
-- [ ] All 5 routes pass tests
-- [ ] Pagination works with filtering and sorting
+- [ ] All 4 routes pass tests
+- [ ] Pagination works with filtering and sorting (where applicable)
 - [ ] Error responses include request ID
 
 **Files:**
-- `frontend/src/app/api/tasks/route.ts` (update)
 - `frontend/src/app/api/tasks/[taskId]/route.ts` (update)
-- Plus related child routes
+- `frontend/src/app/api/tasks/execute/route.ts` (update)
+- `frontend/src/app/api/tasks/generate-daily/route.ts` (update)
+- `frontend/src/app/api/tasks/[taskId]/calendar-events/route.ts` (update)
 - Update corresponding test files
 
 **Verification:**
@@ -450,19 +456,35 @@ npm test -- frontend/src/app/api/tasks/__tests__/
 
 ---
 
-### Task 3.3: Batch 3 — Remaining Routes (19 routes)
+### Task 3.3: Batch 3 — Remaining Routes (16 routes)
 
 **Requirement:** API-01, API-02, API-03, API-04, API-07, API-08, API-09
 
-**Objective:** Standardize all remaining routes (calendar, memory, gateway, admin, state-engine, business, health, openapi).
+**Objective:** Standardize all remaining routes (calendar, memory, gateway, admin, state-engine, business, epics, reports, health, openapi).
 
 **Routes in Batch 3:**
-- Calendar: 5 routes (events, slots, create, schedule, mark-executed)
-- Memory: 3 routes (context, files, base)
-- Gateway: 1 route (status check)
-- Admin: 2 routes (health, openapi)
-- State-engine: 3 routes (list, get, execute)
-- Business/Epics/Reports: 5 routes (various CRUD)
+- Calendar: 3 routes
+  - `GET /api/calendar/events` — List events
+  - `GET /api/calendar/events/{eventId}` — Get event details
+  - `GET /api/calendar/slots` — List available slots
+- Memory: 3 routes
+  - `GET /api/memory` — Get memory base
+  - `GET /api/memory/context` — Get memory context
+  - `GET /api/memory/files` — List memory files
+- Gateway: 1 route
+  - `GET /api/gateway/{gatewayId}` — Get gateway status
+- Admin: 2 routes
+  - `GET /api/admin/agents/setup-workspace` — Setup workspace
+  - `GET /api/admin/migrations/agent-workspace-paths` — Migration helper
+- State-engine: 3 routes
+  - `GET /api/state-engine/alerts` — List state alerts
+  - `GET /api/state-engine/decisions` — List decisions
+  - `GET /api/state-engine/metrics` — Get state metrics
+- Business/Epics/Reports: 4 routes
+  - `GET /api/businesses` — List businesses
+  - `GET /api/epics` — List epics
+  - `GET /api/reports` — List reports
+  - `GET /api/health` — Health check
 
 **Per-Route Changes:**
 - Same as Batches 1 & 2
@@ -472,72 +494,82 @@ npm test -- frontend/src/app/api/tasks/__tests__/
 - `/api/openapi`: Stays as-is (returns OpenAPI spec JSON), no RFC 9457 wrapper needed
 
 **Success Criteria:**
-- [ ] All 19 routes updated
-- [ ] All tests pass (19+ test suites)
+- [ ] All 16 routes updated
+- [ ] All tests pass (16+ test suites)
 - [ ] Both `/api/` and `/api/v1/` paths work (verify in Task 3.4)
 
 **Files:**
-- All remaining route files in `frontend/src/app/api/`
+- `frontend/src/app/api/calendar/events/route.ts` (update)
+- `frontend/src/app/api/calendar/events/[eventId]/route.ts` (update)
+- `frontend/src/app/api/calendar/slots/route.ts` (update)
+- `frontend/src/app/api/memory/route.ts` (update)
+- `frontend/src/app/api/memory/context/route.ts` (update)
+- `frontend/src/app/api/memory/files/route.ts` (update)
+- `frontend/src/app/api/gateway/[gatewayId]/route.ts` (update)
+- `frontend/src/app/api/admin/agents/setup-workspace/route.ts` (update)
+- `frontend/src/app/api/admin/migrations/agent-workspace-paths/route.ts` (update)
+- `frontend/src/app/api/state-engine/alerts/route.ts` (update)
+- `frontend/src/app/api/state-engine/decisions/route.ts` (update)
+- `frontend/src/app/api/state-engine/metrics/route.ts` (update)
+- `frontend/src/app/api/businesses/route.ts` (update)
+- `frontend/src/app/api/epics/route.ts` (update)
+- `frontend/src/app/api/reports/route.ts` (update)
+- `frontend/src/app/api/health/route.ts` (update)
 - Update corresponding test files
 
 ---
 
-### Task 3.4: Dual-Path Support (Backwards Compatibility)
+### Task 3.4: Dual-Path Support (/api/ → /api/v1/) — REVISED
 
 **Requirement:** API-12
 
-**Objective:** Ensure both `/api/` and `/api/v1/` paths work identically during transition.
+**Objective:** Support both `/api/` and `/api/v1/` paths identically during transition.
 
-**Scope:**
-- Implement route aliasing or redirect:
-  - Option A: Next.js rewrites (in `next.config.js`): `/api/*` → `/api/v1/workspaces/{default}/*`
-  - Option B: Route proxying (single handler for both paths)
-  - Option C: Duplicate routes (manual, least elegant)
+**Scope (REVISED APPROACH - Option B):**
 
-  **Recommended: Option A (rewrites)** — cleanest, no code duplication
-  ```js
-  // next.config.js
-  const nextConfig = {
-    async rewrites() {
-      return {
-        beforeFiles: [
-          {
-            source: '/api/:path*',
-            destination: '/api/v1/workspaces/:workspace/:path*',
-            // Extract workspace ID from auth context (requires middleware)
-          },
-        ],
-      };
-    },
-  };
-  ```
+Create a Next.js middleware layer (`frontend/middleware.ts`) that:
+1. Detects requests to `/api/*` (but NOT `/api/v1/*` to avoid loops)
+2. Extracts Bearer token from Authorization header
+3. Looks up agent's default workspace ID from Convex
+4. Internally rewrites request to `/api/v1/workspaces/{workspaceId}/{endpoint}`
+5. Passes through to canonical handler
+6. Returns response with deprecation warning header
 
-- Alternatively, create a wrapper that:
-  1. Detects `/api/` prefix (not `/api/v1/`)
-  2. Injects default workspace ID
-  3. Forwards to `/api/v1/` equivalent
+Implementation details:
+- Middleware function that:
+  - Checks if path matches `/api/` but not `/api/v1/`
+  - Extracts Bearer token or legacy headers from request
+  - Queries Convex to find agent's default workspace (or uses config default)
+  - Rewrites `req.nextUrl` to point to `/api/v1/workspaces/{id}/{rest}`
+  - Continues request chain to route handler
 
-- Add deprecation headers to `/api/` responses:
-  - `Deprecation: true`
-  - `Sunset: Wed, 26 Aug 2026 00:00:00 GMT` (6 months from now)
-  - `Link: <https://docs.mission-control.dev/api-migration>; rel="deprecation"`
+- Add deprecation response headers:
+  - `X-API-Deprecated: true`
+  - `X-Sunset: Wed, 26 Aug 2026 00:00:00 GMT` (6 months from now)
+  - `X-API-Migration: https://docs.mission-control.dev/api-migration`
+
+- Critical: Do NOT use static rewrites in next.config.js (they bypass middleware logic)
 
 **Success Criteria:**
-- [ ] Both `/api/agents` and `/api/v1/workspaces/{id}/agents` return same response
-- [ ] Deprecation headers on `/api/` responses
+- [ ] Both `/api/agents` and `/api/v1/workspaces/{id}/agents` return identical response data
+- [ ] Deprecation headers present on `/api/` responses
 - [ ] Old routes still work (no breaking changes)
+- [ ] No infinite loops (strict path checking prevents `/api/v1/` from matching)
+- [ ] Agent default workspace lookup works (Convex query)
 - [ ] E2E tests verify both paths (Task 4.3)
 
 **Files:**
-- `next.config.js` (update rewrites or middleware config)
-- `frontend/src/middleware.ts` (if handling rewriting)
+- `frontend/middleware.ts` (update/enhance for path rewriting)
+- `backend/convex/agents.ts` (may need query: `getDefaultWorkspace(agentId)`)
 
 **Verification:**
 ```bash
 # Test both paths return same response
-curl http://localhost:3000/api/agents -H "agentId: abc" -H "agentKey: xyz" | jq .
-curl http://localhost:3000/api/v1/workspaces/ws-123/agents -H "Authorization: Bearer xyz" | jq .
-# Compare output (minus version indicators)
+curl http://localhost:3000/api/agents \
+  -H "agentId: abc" -H "agentKey: xyz" | jq .
+curl http://localhost:3000/api/v1/workspaces/ws-123/agents \
+  -H "Authorization: Bearer xyz" | jq .
+# Compare output (minus headers)
 ```
 
 ---
@@ -576,7 +608,7 @@ Generate documentation and comprehensive test suite.
   });
   ```
 
-- Enhance `frontend/src/lib/openapi-generator.ts`:
+- Enhance `frontend/lib/openapi-generator.ts`:
   - Scan all route files for exported schemas
   - Use `zod-openapi` to convert Zod → OpenAPI definitions
   - Build complete OpenAPI 3.0 spec
@@ -621,7 +653,7 @@ Generate documentation and comprehensive test suite.
 - [ ] Build task validates spec
 
 **Files:**
-- `frontend/src/lib/openapi-generator.ts` (enhance)
+- `frontend/lib/openapi-generator.ts` (enhance)
 - All 32 route files (add Zod schema exports)
 - `package.json` (add `validate:openapi` script)
 
@@ -724,7 +756,7 @@ open http://localhost:3000/api/docs
 **Objective:** Create E2E tests that verify all API requirements and prevent regressions.
 
 **Scope:**
-- Create `frontend/e2e/api-standardization.spec.ts` with 11+ test scenarios:
+- Create `frontend/e2e/api-standardization.spec.ts` with 12+ test scenarios:
 
 1. **REST Compliance (API-01):**
    - [ ] GET returns 200
@@ -789,7 +821,7 @@ open http://localhost:3000/api/docs
 
 11. **API Versioning (API-12):**
     - [ ] GET /api/agents and GET /api/v1/workspaces/{id}/agents return same data
-    - [ ] Deprecation headers on `/api/` routes: `Deprecation: true`, `Sunset: ...`
+    - [ ] Deprecation headers on `/api/` routes: `X-API-Deprecated: true`, `X-Sunset: ...`
     - [ ] Both paths return identical responses
 
 12. **No Breaking Changes:**
@@ -803,32 +835,32 @@ import { test, expect } from '@playwright/test';
 test.describe('API Standardization', () => {
   test('should support cursor pagination', async ({ request }) => {
     // Fetch first page
-    const page1 = await request.get('/api/v1/agents?limit=10');
+    const page1 = await request.get('/api/v1/workspaces/ws-123/agents?limit=10');
     expect(page1.status()).toBe(200);
     const data1 = await page1.json();
     expect(data1.pagination.nextCursor).toBeDefined();
 
     // Fetch second page
-    const page2 = await request.get(`/api/v1/agents?limit=10&cursor=${data1.pagination.nextCursor}`);
+    const page2 = await request.get(`/api/v1/workspaces/ws-123/agents?limit=10&cursor=${data1.pagination.nextCursor}`);
     expect(page2.status()).toBe(200);
   });
 
   test('should enforce rate limits', async ({ request }) => {
     // Make 1000 requests
     for (let i = 0; i < 1000; i++) {
-      const response = await request.get('/api/v1/agents');
+      const response = await request.get('/api/v1/workspaces/ws-123/agents');
       expect(response.status()).toBe(200);
     }
 
     // 1001st request should fail
-    const response = await request.get('/api/v1/agents');
+    const response = await request.get('/api/v1/workspaces/ws-123/agents');
     expect(response.status()).toBe(429);
     const data = await response.json();
     expect(data.retryAfter).toBeDefined();
     expect(data.resetAt).toBeDefined();
   });
 
-  // ... 9 more tests
+  // ... 10+ more tests
 });
 ```
 
@@ -911,16 +943,16 @@ Before marking Phase 1 complete, verify all must-haves:
 
 - [ ] All 32 routes accessible via `/api/v1/`
   - [ ] Count routes: `find frontend/src/app/api -name "route.ts" | wc -l` == 32
-  - [ ] Sample routes: `/api/v1/agents`, `/api/v1/tasks`, `/api/v1/calendar/events`
+  - [ ] Sample routes: `/api/v1/workspaces/{id}/agents`, `/api/v1/workspaces/{id}/tasks`, `/api/v1/workspaces/{id}/calendar/events`
 
 - [ ] Error responses in RFC 9457 format
-  - [ ] Test invalid request: `curl -X GET http://localhost:3000/api/v1/agents (no auth)`
+  - [ ] Test invalid request: `curl -X GET http://localhost:3000/api/v1/workspaces/{id}/agents (no auth)`
   - [ ] Response includes: `type`, `title`, `detail`, `instance`, `status`, `requestId`
   - [ ] Request ID is unique
 
 - [ ] Cursor pagination working
-  - [ ] `/api/v1/agents?limit=5` returns max 5 items + nextCursor
-  - [ ] `/api/v1/agents?cursor={nextCursor}` returns next page
+  - [ ] `/api/v1/workspaces/{id}/agents?limit=5` returns max 5 items + nextCursor
+  - [ ] `/api/v1/workspaces/{id}/agents?cursor={nextCursor}` returns next page
   - [ ] Expired cursor (> 5 min) rejected
 
 - [ ] Rate limiting enforced
@@ -939,7 +971,7 @@ Before marking Phase 1 complete, verify all must-haves:
   - [ ] Try-It-Out works (can send test request)
 
 - [ ] Bearer token auth working
-  - [ ] `curl -H "Authorization: Bearer {key}" http://localhost:3000/api/v1/agents` works
+  - [ ] `curl -H "Authorization: Bearer {key}" http://localhost:3000/api/v1/workspaces/{id}/agents` works
   - [ ] Missing token returns 401
   - [ ] Invalid token returns 401
 
@@ -956,7 +988,7 @@ npm test
 
 # Expected results:
 # - All 32 route test suites pass
-# - All 11 E2E scenarios pass
+# - All 12 E2E scenarios pass
 # - No regressions
 # - Coverage > 80%
 
@@ -980,15 +1012,16 @@ npm run validate:openapi
 
 2. **Test agent registration:**
    ```bash
-   curl -X POST http://localhost:3000/api/v1/agents \
+   curl -X POST http://localhost:3000/api/v1/workspaces/ws-123/agents \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer {apiKey}" \
      -d '{"name": "test-agent", "endpoint": "http://localhost:8000"}'
    ```
    Expected: 201 response with agent ID and API key
 
 3. **Test with API key:**
    ```bash
-   curl http://localhost:3000/api/v1/agents \
+   curl http://localhost:3000/api/v1/workspaces/ws-123/agents \
      -H "Authorization: Bearer {api-key-from-step-2}"
    ```
    Expected: 200 response with agent list
@@ -997,7 +1030,7 @@ npm run validate:openapi
    ```bash
    # Run 1001 requests (script)
    for i in {1..1001}; do
-     curl http://localhost:3000/api/v1/agents \
+     curl http://localhost:3000/api/v1/workspaces/ws-123/agents \
        -H "Authorization: Bearer {api-key}" \
        -s -o /dev/null -w "%{http_code}\n"
    done
@@ -1027,7 +1060,7 @@ Phase 1 is **COMPLETE** when:
 ✅ Swagger UI operational with Try-It-Out
 ✅ Bearer token auth working
 ✅ Both `/api/` and `/api/v1/` paths functional
-✅ E2E test suite passing (11+ scenarios)
+✅ E2E test suite passing (12+ scenarios)
 ✅ Zero breaking changes to agents
 ✅ Code review approved
 ✅ All tests passing (`npm test`)
@@ -1194,5 +1227,6 @@ Phase 1 establishes REST API foundation through:
 ---
 
 *Plan created: 2026-02-26*
+*Plan revised: 2026-02-26*
 *Phase: 01-rest-api-foundation*
 *Status: Ready for execution*
