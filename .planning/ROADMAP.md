@@ -49,6 +49,13 @@ The v1 roadmap breaks 47 requirements into 6 phases, each building a foundationa
 
 **Duration:** ~1.5 sprints
 **Requirements Addressed:** WS-01 through WS-06, foundational for governance
+**Plans:** 4 plans in 3 waves
+
+Plans:
+- [ ] 02-01-PLAN.md — RBAC pure logic + workspace-scoped Convex function builders (TDD)
+- [ ] 02-02-PLAN.md — Schema extension with budget fields + RBAC-guarded admin ops
+- [ ] 02-03-PLAN.md — Migrate all workspace-scoped Convex functions to builders
+- [ ] 02-04-PLAN.md — Frontend workspace filtering + API route workspace context propagation
 
 **What it builds:**
 - Workspace creation (name, slug, mission statement, emoji, color)
