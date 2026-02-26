@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { ERROR_CODES } from "@/lib/constants/business";
+import { ERROR_CODES } from "../constants/business";
 
 /**
  * Standard success response format
