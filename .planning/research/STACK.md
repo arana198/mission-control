@@ -1,426 +1,533 @@
-# Technology Stack Research: Multi-Agent Orchestration Control Planes (2025)
+# Technology Stack & Patterns Research
 
-**Research Date:** 2025-02-25
-**Context:** Mission Control is a TypeScript-first, Next.js + Convex control plane for orchestrating multiple autonomous specialist agents. This research evaluates the 2025 landscape for each layer of the stack.
-
----
-
-## 1. Orchestration Frameworks
-
-Multi-agent orchestration in 2025 has bifurcated into two distinct archetypes: **agent runtimes** (low-level graph/actor primitives) and **application frameworks** (opinionated, full-featured toolkits). A third category — **custom DAG engines** — remains viable when control plane requirements diverge from what frameworks offer.
-
-### Comparison Table
-
-| Framework | Language | License | Maturity | Paradigm | TypeScript Quality | Best For |
-|---|---|---|---|---|---|---|
-| **LangGraph** | Python + JS/TS | MIT | High (v0.2+) | Graph / State Machine | Official TS SDK, feature-parity with Python | Production-grade agent runtimes needing fine-grained control |
-| **Mastra** | TypeScript-first | Elastic v2 | Medium (v1 beta) | Application framework | First-class native | Full-stack TS teams shipping AI features fast |
-| **AutoGen v0.4** | Python (TS extensions) | MIT | High (v0.4) | Actor model / Event-driven | Limited, Python-primary | Research / enterprise Python stacks |
-| **CrewAI** | Python | MIT (core) | High (v0.80+) | Role-based crews | No official TS SDK | Python shops, role-based task decomposition |
-| **Inngest** | TypeScript-first | Apache 2 | High (v3+) | Event-driven / Durable functions | First-class native | Serverless TypeScript, Next.js-native workflows |
-| **Temporal** | Multi-language | MIT | Very High | Workflow engine / Actor | Official TS SDK | Long-running workflows, enterprise, distributed systems |
-| **Hatchet** | TypeScript + Go + Python | MIT | Medium | Task queue / DAG / Durable exec | Official TS SDK | DAG orchestration on Postgres, self-hosted control |
-| **Convex Workflow** | TypeScript (Convex-native) | Apache 2 | Medium (beta) | Durable function chains | Native (Convex schema) | Mission Control's existing Convex stack |
-| **AWS Step Functions** | JSON DSL + multi-lang | Commercial | Very High | State machine / Visual | SDK wrappers | AWS-locked enterprises, visual workflow design |
-| **Custom DAG** | Any | Internal | N/A | Pure code graph | Fully controlled | When framework abstractions are a liability |
-
-### Framework Deep Dives
-
-#### LangGraph
-- **Current version:** v0.2.x (Python), LangGraph.js v0.2.x
-- **Architecture:** Directed graph of nodes; each node is an agent or function; edges carry typed state. Supports cyclic graphs (unlike simple DAGs), enabling agent loops and retries.
-- **Key capabilities:** Stateful checkpointing, time-travel debugging, human-in-the-loop interrupt/resume, parallel fan-out, sub-graphs, streaming token output.
-- **Integration:** LangSmith for observability; LangChain ecosystem for LLM wrappers and tools.
-- **Confidence:** HIGH — largest production adoption; LangSmith+LangGraph is the most mature observability+execution stack in the market.
-- **Limitation for Mission Control:** Python-primary despite TS SDK; tightly coupled to LangChain ecosystem; harder to drop into an existing Convex/Next.js stack without additional adaptation work.
-
-#### Mastra (v1 Beta)
-- **Current version:** v1 beta (January 2025); stable release imminent as of research date.
-- **Architecture:** TypeScript application framework. Agents have tools, memory (persistent via adapters), and workflows. Workflows are graph-based state machines supporting branches, loops, waiting, and parallel execution.
-- **Key capabilities:** Model routing to 40+ providers via one interface (built on Vercel AI SDK v5), MCP integration, agent networks via `.network()`, evals built in, tracing, and Inngest-backed durable workflows.
-- **Integration:** Pluggable memory adapters, OpenTelemetry tracing, and a `@convex-dev/mastra` npm package exists (experimental) that runs Mastra workflows on Convex.
-- **Confidence:** HIGH for greenfield TypeScript stacks; MEDIUM for Mission Control specifically due to the `@convex-dev/mastra` package being experimental and the Elastic v2 license having commercial use restrictions.
-- **Limitation:** Elastic v2 license means commercial restrictions at scale. Newer, smaller community vs. LangGraph.
-
-#### AutoGen v0.4
-- **Current version:** v0.4 (January 2025), major redesign.
-- **Architecture:** Actor model. Three layers: Core (async message exchange), AgentChat (high-level API), Extensions (integrations). Supports OpenTelemetry natively.
-- **Confidence:** LOW for Mission Control — Python-primary; no meaningful TypeScript path; best for research-grade Python multi-agent systems.
-
-#### CrewAI
-- **Current version:** v0.80+
-- **Architecture:** Role-based crews where agents have defined roles, goals, and tools. CrewAI Flows adds event-driven control for production.
-- **Confidence:** LOW for Mission Control — Python-only; enterprise features (AMP suite) are commercial.
-
-#### Inngest
-- **Current version:** v3.x; Checkpointing feature in developer preview (December 2025).
-- **Architecture:** Event-driven durable workflow engine. Works natively inside Next.js API routes with zero infrastructure. Steps are checkpointed; workflows survive restarts. `step.ai.infer` proxies LLM calls with telemetry.
-- **Key capabilities:** Near-zero inter-step latency via Checkpointing, AgentKit for agent orchestration, built-in token usage insights via SQL queries, AI workflow tracing, pause/resume.
-- **Integration:** First-class Next.js support; Mastra uses Inngest as its durable workflow backend.
-- **Confidence:** HIGH for Mission Control's Next.js deployment layer. Inngest can serve as the durable workflow engine while Convex owns state/data.
-
-#### Temporal
-- **Current version:** v1.x (very mature)
-- **Architecture:** Workflow engine with code-as-workflow model. Workflows are deterministic TypeScript functions. Activities are the side-effectful units. DAG execution via `Promise.all`.
-- **Confidence:** MEDIUM for Mission Control — Very mature but heavyweight; requires a separate Temporal server (or Temporal Cloud). Overkill for v1 scope; strong candidate for v2 if requirements grow significantly.
-
-#### Hatchet
-- **Current version:** v1.x
-- **Architecture:** Task queue + DAG orchestrator + durable execution built on Postgres. TypeScript SDK available. Fan-out workflows, conditional triggering, streaming. Self-hostable.
-- **Confidence:** MEDIUM — Interesting because it runs on Postgres (which Convex uses internally), but adds another service to manage. Better fit if Mission Control ever needs an independent scheduler.
-
-#### Convex Workflow Component
-- **Current version:** `@convex-dev/workflow` (out of beta 2025)
-- **Architecture:** Durable workflow execution living entirely within Convex. Workflows are sequences of Convex mutations/actions with retry semantics. Supports parallel steps, delays, and observability via Convex subscriptions.
-- **Confidence:** HIGH for Mission Control's architecture — Zero new infrastructure; survives server restarts; reactive observability already built into Convex's subscription model.
+**Project:** Mission Control - Agent Orchestration Platform
+**Researched:** 2026-02-26
+**Focus:** REST API Design, Agent Orchestration, Notifications, OpenAPI Documentation
 
 ---
 
-## 2. Workflow / DAG Libraries
+## 1. REST API Design Best Practices (2025/2026)
 
-Table stakes for a control plane DAG layer in 2025:
+### Versioning Strategy
 
-### Sequential Pipelines
-- Chain Convex actions where each step writes its result as an immutable record before the next step reads it.
-- The `@convex-dev/workflow` component provides exactly this semantics natively on the existing stack.
+**Recommendation: URL path versioning (`/api/v1/agents`)**
 
-### Parallel Execution
-- Convex Workflow supports parallel steps via concurrent action scheduling.
-- At the DAG level, implement topological sort + dependency tracking: steps with no pending dependencies are dispatched simultaneously.
-- Pattern: store a `WorkflowStep` table with `{ workflowId, stepId, dependsOn: string[], status, result }`. A scheduler mutation queries for `status = 'pending'` with all dependencies `status = 'completed'` and dispatches them.
+Use URL path versioning because it is explicit, cache-friendly, browser-testable, and the dominant convention in the industry. Header-based versioning (`Accept: application/vnd.mc.v1+json`) is purer REST theory but creates friction for agent consumers who need to debug requests manually. Mission Control's API consumers are AI agents, not browsers, but simplicity wins here.
 
-### DAG Representation
-- **Lightweight in-process option:** Store workflow definition as JSON in Convex (`{ nodes: Node[], edges: Edge[] }`). Validate for cycles at definition time using DFS (Kahn's algorithm).
-- **Library option:** `graphlib` (npm, MIT, stable) — well-maintained graph algorithm library for TypeScript. Handles cycle detection, topological sort, connected component analysis.
-- **Avoid:** Heavy frameworks (Apache Airflow, Prefect) that bring Python runtimes and separate servers.
+**Confidence:** HIGH (industry consensus, multiple authoritative sources agree)
 
-### Composition
-- Workflows compose by nesting: a `WorkflowStep` can be itself a sub-workflow ID (hierarchical execution).
-- Versioning: store `workflowDefinitionVersion` integer on the workflow record; schema migrations handle evolution.
+| Approach | Pros | Cons | Verdict |
+|----------|------|------|---------|
+| URL path (`/api/v1/`) | Explicit, cacheable, testable, easy routing | URL clutter | **Use this** |
+| Header (`Accept`) | Clean URLs, pure REST | Hard to test, invisible | Too clever |
+| Query param (`?v=1`) | Simple | Not cacheable, ugly | No |
 
-### Key Table-Stakes Capabilities
-
-| Capability | Implementation Path | Confidence |
-|---|---|---|
-| Sequential steps | `@convex-dev/workflow` chains | HIGH |
-| Parallel fan-out | Parallel Convex action dispatch | HIGH |
-| Cycle detection | Kahn's algorithm on JSON DAG at save time | HIGH |
-| Retry on failure | `@convex-dev/workflow` built-in retry config | HIGH |
-| Long-running (months) | Convex Workflow survives restarts | HIGH |
-| Human-in-the-loop | Convex mutation to set step status to `waiting_approval` | MEDIUM |
-| Sub-workflows | Hierarchical workflow step type | MEDIUM |
-
----
-
-## 3. Token Tracking and Cost Solutions
-
-Token economics is a first-class concern for control planes in 2025. The industry has converged on two layers: **instrumentation at the LLM call level** and **accounting in the data layer**.
-
-### 3.1 Instrumentation Layer: OpenTelemetry GenAI Semantic Conventions
-
-The OpenTelemetry GenAI Semantic Conventions (v1.37+, 2025) define a standard schema for all LLM telemetry:
+**Implementation for Next.js App Router:**
 
 ```
-gen_ai.system                    # "anthropic" | "openai" | etc.
-gen_ai.request.model             # "claude-opus-4-6"
-gen_ai.usage.input_tokens        # prompt tokens consumed
-gen_ai.usage.output_tokens       # completion tokens generated
-gen_ai.usage.reasoning_tokens    # OpenAI reasoning tokens
-gen_ai.response.finish_reason    # "stop" | "max_tokens" etc.
+frontend/src/app/api/v1/agents/route.ts       # New versioned routes
+frontend/src/app/api/v1/agents/[agentId]/route.ts
+frontend/src/app/api/agents/route.ts           # Keep as redirect to /v1/ during migration
 ```
 
-These conventions are now supported natively by Datadog (v1.37+), Grafana, Honeycomb, and New Relic.
+**When to bump version:** Removed fields, type changes, auth changes, renamed resources. Adding optional fields is NOT a breaking change and does not need a version bump.
 
-**OpenLLMetry-JS** (`@traceloop/node-server-sdk`, MIT) is the TypeScript implementation of these conventions. It auto-instruments OpenAI, Anthropic, LangChain, and vector DBs with zero code changes. 6,600+ GitHub stars; actively maintained.
+### Pagination
 
-### 3.2 Accounting Layer: Where Token Data Lives
+**Recommendation: Cursor-based pagination for all list endpoints**
 
-Options from lightest to most comprehensive:
+Mission Control manages agents, tasks, notifications, and workflow executions. These are append-heavy, real-time datasets where items are constantly created. Offset pagination breaks when items are added between page requests (agents see duplicates or miss items). Cursor-based pagination uses a stable marker (typically encoded ID + timestamp) so results remain consistent.
 
-| Solution | Type | Strengths | Weaknesses | Fit for Mission Control |
-|---|---|---|---|---|
-| **Convex `executions` table** (existing) | In-app accounting | Zero new infra; queryable via Convex; real-time | Not purpose-built for cost analytics at massive scale | HIGH — already exists, extend it |
-| **Langfuse** (self-hosted or cloud) | Dedicated LLM observability | Per-trace cost breakdown, model pricing registry 300+ models, open source | Separate service to run; PostgreSQL dependency | MEDIUM — overkill for v1, good for v2 |
-| **Helicone** | LLM Gateway + observability | Request-level cost tracking, caching, rate limiting, budget enforcement at gateway | Requires routing all LLM calls through proxy | MEDIUM — consider for multi-provider cost normalization |
-| **LiteLLM** | LLM proxy | Per-key/user/team budgets with hard enforcement; 100+ provider normalization | Another service; Python-primary | LOW for v1; consider for gateway layer if multi-provider |
+**Confidence:** HIGH (well-established pattern, Slack's engineering blog documents their migration from offset to cursor)
 
-### 3.3 Budget Enforcement Pattern
-
-The recommended pattern for Mission Control v1, using only Convex:
-
-1. **Budget definition:** Each `Workflow` record stores `{ tokenBudget: number, tokensConsumed: number }`.
-2. **Pre-execution check:** Before dispatching any agent step, a Convex mutation reads `tokensConsumed` against `tokenBudget`. If exceeded, halt the step and set workflow status to `budget_exceeded`.
-3. **Token reporting:** Each agent execution reports back `{ inputTokens, outputTokens, model }` via a Convex mutation. The `executions` table (already exists in schema) records this. A rollup mutation aggregates per workflow.
-4. **Real-time visibility:** Convex subscriptions on the `executions` table provide live token burn rate to the UI.
-
-This is a **pull model** (agents report after execution) vs. a **gateway model** (proxy intercepts before). The pull model is simpler for v1 and avoids routing all LLM traffic through a proxy service.
-
-For v2+, consider adding a LiteLLM or Helicone gateway layer that enforces hard stops before the model call completes.
-
-### 3.4 Cost Calculation
-
-Model pricing changes frequently. Best practice:
-
-- Store a `modelPricing` table in Convex: `{ model, inputCostPerMToken, outputCostPerMToken, updatedAt }`.
-- Reference: Helicone's open-source pricing repository (300+ models, regularly updated).
-- Compute `estimatedCost = (inputTokens / 1M) * inputCostPerMToken + (outputTokens / 1M) * outputCostPerMToken` at recording time.
-
----
-
-## 4. Audit Logging Infrastructure
-
-### 4.1 Requirements for Mission Control
-
-- **Immutability:** Once written, execution records cannot be altered.
-- **Completeness:** Every agent action, tool call, decision, input, output, token count, and cost is captured.
-- **Replay capability:** Any past execution can be reconstructed from the log alone.
-- **Retention:** 90 days minimum (per PROJECT.md constraints).
-- **Searchability:** Engineers and operators must be able to filter by workflow, agent, time range, status.
-
-### 4.2 Architectural Approach: Event Sourcing on Convex
-
-Mission Control already has an `executions` table (schema.ts) that functions as an append-only ledger. The recommended approach is to **treat every execution record as an immutable event** following event sourcing semantics:
-
-**Immutability enforcement:**
-- No `UPDATE` or `DELETE` on `executions` records — only `INSERT` (Convex `ctx.db.insert`).
-- Status changes are new records, not patches. A completed execution is a separate record linked to the initiating record via `correlationId`.
-- If a correction is needed (e.g., cost recalculation), write a new `correction` event referencing the original, never overwrite.
-
-**Event schema (extend existing `executions` table):**
+**Standard response envelope:**
 
 ```typescript
-executions: defineTable({
-  // Identity
-  workflowId: v.optional(v.id("workflows")),
-  workflowStepId: v.optional(v.string()),
-  agentId: v.id("agents"),
-  agentName: v.string(),
-  correlationId: v.string(),         // Traces a causal chain across events
-
-  // Action
-  eventType: v.union(
-    v.literal("step_started"),
-    v.literal("tool_called"),
-    v.literal("llm_request"),
-    v.literal("llm_response"),
-    v.literal("step_completed"),
-    v.literal("step_failed"),
-    v.literal("budget_exceeded"),
-    v.literal("workflow_halted"),
-  ),
-
-  // Payload (model-specific data)
-  inputPayload: v.optional(v.any()),    // Prompt, tool args, etc.
-  outputPayload: v.optional(v.any()),   // Response, tool result, etc.
-
-  // Economics
-  model: v.optional(v.string()),
-  inputTokens: v.optional(v.number()),
-  outputTokens: v.optional(v.number()),
-  estimatedCostUsd: v.optional(v.number()),
-
-  // Timing
-  startedAt: v.number(),               // Unix ms
-  completedAt: v.optional(v.number()),
-  durationMs: v.optional(v.number()),
-
-  // Provenance
-  triggeredBy: v.optional(v.string()), // "user:abc" | "cron" | "agent:xyz"
-  createdAt: v.number(),               // Immutable insert timestamp
-})
+interface PaginatedResponse<T> {
+  success: true;
+  data: {
+    items: T[];
+    cursor: string | null;  // null = no more pages
+    hasMore: boolean;
+  };
+  timestamp: number;
+}
 ```
 
-**Replay capability:** Because every state transition is a discrete event with full payload capture, any execution can be replayed by streaming its events in order by `createdAt`. A `replayWorkflow` function would read all events for a `workflowId` sorted by timestamp and return the ordered event stream.
-
-### 4.3 Scale Considerations
-
-At Mission Control v1 scale (10 agents, single operator), Convex is fully sufficient for audit log storage and query. The existing `executions` table with proper indexes (`by_workflowId`, `by_agentId`, `by_createdAt`) handles this easily.
-
-If the system scales to multi-tenant enterprise (v2+), consider a **dual-write pattern**:
-- Convex `executions`: Hot store for recent 7-day lookback and real-time UI.
-- **ClickHouse** (append-only, columnar, 6x compression vs. Postgres): Cold store for 90-day compliance retention and analytical queries. ClickHouse's MergeTree engine is designed for exactly this use case — high-volume, append-only telemetry with fast time-range queries.
-
-For v1, this complexity is not justified. Convex is the right choice.
-
-### 4.4 Audit Log Best Practices
-
-| Practice | Rationale |
-|---|---|
-| Append-only via code convention (no UPDATE/DELETE) | Immutability without needing DB-level enforcement |
-| `correlationId` ties causal chain | Enables full trace reconstruction from any event |
-| Store raw input/output payloads | Required for replay; compliance needs original prompts |
-| Capture `triggeredBy` provenance | Audit requires who initiated an action |
-| Separate `eventType` enum from `status` | Events describe what happened; status describes outcome |
-| Index by `(workflowId, createdAt)` | Primary access pattern for replay and timeline view |
-| Index by `(agentId, createdAt)` | Per-agent history view |
-
----
-
-## 5. Off-the-Shelf vs. Custom-Built Tradeoffs
-
-### Decision Framework
-
-| Criterion | Off-the-Shelf | Custom |
-|---|---|---|
-| Time to first working prototype | Fast (days) | Slow (weeks) |
-| Control plane semantics match | Often imperfect; requires adaptation | Exact fit by definition |
-| Lock-in risk | High (vendor API changes break you) | Low |
-| Integration depth with Convex | Varies; often requires adapters | Native |
-| Observability | Framework provides it, but may not match UI needs | Build exactly what's needed |
-| Maintenance burden | Upstream manages; you absorb breaking changes | You own it fully |
-| Community + ecosystem | Larger pool of solutions | Internal knowledge only |
-
-### Recommendation Matrix for Mission Control
-
-| Layer | Off-the-Shelf | Custom | Verdict |
-|---|---|---|---|
-| Workflow execution engine | `@convex-dev/workflow` | — | **Use off-the-shelf** — It runs on existing Convex infra, zero ops overhead |
-| DAG representation + validation | `graphlib` for cycle detection | Simple JSON schema | **Hybrid** — Use `graphlib` for validation logic; custom JSON schema for storage |
-| Agent orchestration (step dispatch) | `@convex-dev/workflow` | Custom Convex mutations | **Use off-the-shelf for durability; custom for business logic** |
-| Token instrumentation | `@traceloop/node-server-sdk` (OpenLLMetry-JS) | Manual span creation | **Use off-the-shelf** — Standard OTel conventions; minimal code |
-| Cost accounting | Custom Convex `executions` table extension | — | **Custom** — Existing schema fits; no new service needed |
-| Budget enforcement | — | Convex pre-execution check mutation | **Custom** — Simple enough; avoids gateway complexity |
-| Audit log storage | Convex (existing) | — | **Use existing** — Append-only semantics enforceable in code |
-| LLM observability dashboard | Langfuse (v2+) | Extend Mission Control UI | **Custom for v1; off-the-shelf for v2** |
-| LLM gateway / cost enforcement | LiteLLM or Helicone (v2+) | — | **Defer to v2** — Pull model sufficient for single-operator v1 |
-
----
-
-## 6. Recommended 2025 Tech Stack for Mission Control
-
-### Stack Summary
+**Request pattern:**
 
 ```
-Control Plane Layer          Technology                   Version        Confidence
-─────────────────────────────────────────────────────────────────────────────────
-Workflow execution engine   @convex-dev/workflow          stable 2025    HIGH
-DAG cycle validation        graphlib                      ^3.0.0         HIGH
-Token instrumentation       @traceloop/node-server-sdk    latest         HIGH
-Cost accounting             Convex executions table       (custom)       HIGH
-Budget enforcement          Convex pre-step mutation      (custom)       HIGH
-Audit log storage           Convex executions table       (custom)       HIGH
-Agent orchestration         Custom Convex mutations       (custom)       HIGH
-Workflow DSL/schema         TypeScript + Zod + Convex     (custom)       HIGH
-Observability UI            Mission Control Next.js UI    (custom)       HIGH
+GET /api/v1/agents/tasks?cursor=eyJpZCI6...&limit=25
 ```
 
-**Deferred to v2+:**
-- Langfuse (standalone LLM observability) — when multi-user or multi-model analytics needed
-- LiteLLM / Helicone (LLM gateway with hard budget enforcement) — when pre-call enforcement required
-- ClickHouse (cold audit log store) — when retention exceeds Convex cost/performance tradeoffs
-- Temporal or Hatchet (advanced workflow engine) — when workflow complexity exceeds Convex capabilities
+| Parameter | Type | Default | Max | Notes |
+|-----------|------|---------|-----|-------|
+| `cursor` | string | null | - | Opaque, base64-encoded. null = first page |
+| `limit` | number | 25 | 100 | Items per page |
 
-### 6.1 Core Rationale
+**Cursor encoding:** Base64 of `{id, createdAt}`. Convex IDs are sortable, making this natural for `_creationTime`-based ordering.
 
-**Why `@convex-dev/workflow` instead of Inngest/Temporal/Mastra:**
-- Zero new infrastructure. Mission Control already runs Convex. Adding a workflow engine means adding zero new servers, no separate deployment, no new auth tokens.
-- Reactive by default. Convex subscriptions already power the real-time UI; workflow state changes flow to the dashboard automatically.
-- Already typed and schema-safe. Convex's strong typing prevents the data corruption that plagues loosely typed workflow engines.
-- The constraint in PROJECT.md is explicit: "Must use existing Next.js + Convex architecture. No new languages or frameworks."
-- Risk: `@convex-dev/workflow` is newer and has a smaller community than Temporal. Mitigated by Convex's track record and the fact that this is a first-party Convex component.
+**Why not offset?** At the scale Mission Control targets (10+ agents, hundreds of tasks, thousands of notifications), offset pagination with SKIP is already degrading. More importantly, real-time data insertion causes items to shift between pages.
 
-**Why custom budget enforcement instead of LiteLLM:**
-- LiteLLM requires routing all LLM API calls through a proxy service. This adds network latency, a new deployment target, and a potential single point of failure.
-- For v1 (single operator, 10 agents), the risk profile doesn't justify the infrastructure addition.
-- A Convex pre-execution check is deterministic, observable, and testable with existing Jest infrastructure.
-- Tradeoff: No pre-call enforcement (agents can still initiate a call that slightly exceeds budget before the check is recorded). Acceptable for v1; mitigate with a small buffer (e.g., enforce at 90% of budget).
+### Filtering and Sorting
 
-**Why extend `executions` table instead of Langfuse:**
-- Langfuse is excellent but requires a separate PostgreSQL database, a separate server process, and a new auth context. This doubles operational complexity.
-- The existing `executions` table already captures agent actions. Extending it to capture `inputTokens`, `outputTokens`, `estimatedCostUsd`, `eventType`, and `correlationId` gives audit trail capability without new infrastructure.
-- Mission Control's own UI can render this data better than Langfuse's generic views for this specific use case.
-- Tradeoff: Less sophisticated analytics than Langfuse out of the box (no funnel analysis, no A/B prompt comparison). Acceptable for v1.
+**Recommendation: Query parameter conventions with Convex index alignment**
 
-**Why OpenLLMetry-JS for instrumentation:**
-- Zero-infrastructure token capture. Wraps Anthropic/OpenAI SDK calls and emits OTel spans with `gen_ai.usage.*` attributes.
-- Standard conventions: these spans are directly compatible with any OTel-native backend (Langfuse, Grafana, Datadog) if Mission Control upgrades its observability stack later.
-- The instrumentation data feeds directly into the custom cost accounting layer via span processors.
+```
+GET /api/v1/tasks?status=active&assignee=agent-123&sort=-createdAt&limit=25
+```
 
-**Why custom DAG representation + `graphlib` for validation:**
-- `graphlib` is a 15-year-old, MIT-licensed, battle-tested graph library (used in Webpack's build pipeline). Adding it for cycle detection and topological sort is 50 lines of code, not a framework dependency.
-- The workflow DAG itself should be a first-class Convex document (JSON structure), queryable and observable like any other Convex data. Third-party workflow DSLs (Mastra's workflow syntax, LangGraph's state graph API) embed logic that should live in Convex.
+| Convention | Pattern | Example |
+|------------|---------|---------|
+| Equality filter | `field=value` | `status=active` |
+| Multi-value | `field=val1,val2` | `status=active,blocked` |
+| Sort ascending | `sort=field` | `sort=createdAt` |
+| Sort descending | `sort=-field` | `sort=-createdAt` |
+| Date range | `field_after=` / `field_before=` | `createdAt_after=2026-01-01` |
 
----
+**Important:** Only expose filters that map to Convex indexes. Do NOT allow arbitrary field filtering -- it forces full table scans. Each filterable field must have a backing index in `schema.ts`.
 
-## 7. Risks and Tradeoffs
+### Error Handling
 
-### Risk Register
+**Recommendation: Adopt RFC 9457 (Problem Details for HTTP APIs)**
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| `@convex-dev/workflow` API changes (still relatively new) | MEDIUM | HIGH | Pin to specific version; write integration tests against the workflow component interface; monitor Convex changelog |
-| Custom budget enforcement has a race window (agent starts call before halt) | HIGH | LOW | Enforce at 90% of budget threshold to create a safety buffer; log enforcement decisions for audit |
-| Token reporting depends on agents self-reporting (pull model) | MEDIUM | MEDIUM | Make token reporting non-optional in the gateway protocol; validate in agent provisioning tests |
-| Convex `executions` table grows unbounded over 90-day retention window | MEDIUM | MEDIUM | Implement a scheduled `pruneOldExecutions` cron that deletes records older than 90 days; document retention policy |
-| `graphlib` not maintained for modern TypeScript (check in 2026) | LOW | LOW | Cycle detection is simple enough to inline if library becomes unmaintained; 50 lines of code |
-| OpenLLMetry-JS instrumentation misses token counts for streaming responses | MEDIUM | MEDIUM | Some providers don't emit token counts in streaming mode; implement a fallback estimator (chars/4 heuristic) as a floor |
-| Mastra license (Elastic v2) restricts commercial use if considered later | LOW | HIGH | Noted for awareness; Mission Control v1 does not use Mastra; if adopted in v2, legal review required |
-| LangGraph JS SDK lags Python in features | LOW | LOW | Not using LangGraph; noted for context if evaluation is revisited |
+The current codebase uses a custom `{ success: false, error: { code, message, details } }` envelope. This is fine but non-standard. RFC 9457 (supersedes RFC 7807) provides a machine-readable, standard format that agent consumers can parse programmatically without knowing Mission Control-specific conventions.
 
-### Fundamental Architecture Tradeoffs
+**Confidence:** HIGH (RFC 9457 is the current IETF standard, published June 2024)
 
-**Control plane as Convex-native vs. independent orchestration service:**
+**RFC 9457 response shape:**
 
-Keeping the workflow engine inside Convex (via `@convex-dev/workflow`) creates tight coupling between the data layer and the execution layer. The benefit is operational simplicity and reactive observability. The cost is that if Convex's pricing, reliability, or feature trajectory changes, migrating the workflow engine is a significant refactor.
+```typescript
+interface ProblemDetail {
+  type: string;       // URI identifying problem type (e.g., "/errors/validation")
+  title: string;      // Human-readable summary
+  status: number;     // HTTP status code
+  detail?: string;    // Specific occurrence explanation
+  instance?: string;  // URI of the specific occurrence
+  // Extension fields allowed:
+  errors?: Array<{ field: string; message: string }>;  // For validation errors
+  traceId?: string;   // For debugging
+}
+```
 
-For a single-operator v1 system, this coupling is a net positive. If Mission Control ever becomes multi-tenant or cloud-deployable by third parties, an independent orchestration service (Temporal Cloud, Inngest) provides better portability.
+**Content-Type:** `application/problem+json` for error responses.
 
-**Pull model for token accounting vs. gateway model:**
+**Migration path:** Keep existing `handleApiError()` but change its output shape to RFC 9457 format. The `AppError`, `ValidationError`, `NotFoundError`, `UnauthorizedError` class hierarchy is solid -- just change the serialization.
 
-The pull model (agents report tokens after execution) is simpler but cannot enforce hard stops before a model call completes. If an agent enters a runaway loop and makes thousands of calls before the halt mutation fires, significant overspend is possible.
+**Zod schema for Problem Details:**
 
-For v1 (human-triggered workflows, 10 agents, single operator), this is manageable. For fully autonomous scheduling (v2+), a gateway model that intercepts calls before they are sent to the model provider is strongly recommended.
+```typescript
+import { z } from "zod";
 
-**Custom audit log vs. event sourcing pattern:**
+const ProblemDetailSchema = z.object({
+  type: z.string().url().default("/errors/generic"),
+  title: z.string(),
+  status: z.number().int().min(100).max(599),
+  detail: z.string().optional(),
+  instance: z.string().optional(),
+  errors: z.array(z.object({
+    field: z.string(),
+    message: z.string(),
+  })).optional(),
+  traceId: z.string().optional(),
+});
+```
 
-Pure event sourcing (every state change is an immutable event; current state is derived by replaying events) provides the strongest audit and replay guarantees but adds query complexity. The recommended approach uses event sourcing semantics (append-only events) without a full CQRS/read-model separation, which is a pragmatic compromise.
+### HTTP Method Semantics
 
-If replay is exercised frequently in production, a materialized view (a snapshot table updated by Convex scheduled functions) will be needed to avoid replaying thousands of events on every query. Implement snapshotting when replay queries exceed 500ms.
+The current codebase largely follows correct method semantics. Reinforcing:
 
----
+| Method | Semantics | Idempotent | Safe |
+|--------|-----------|------------|------|
+| GET | Read resource(s) | Yes | Yes |
+| POST | Create resource / trigger action | No | No |
+| PUT | Full replace of resource | Yes | No |
+| PATCH | Partial update | No* | No |
+| DELETE | Remove resource | Yes | No |
 
-## 8. Sources
+**Current issue in codebase:** The agent poll endpoint (`POST /api/agents/{agentId}/poll`) uses POST for what is functionally a read operation with side effects (heartbeat update, mark notifications read). This is acceptable because the side effects make it non-safe, but consider splitting: `GET /api/v1/agents/{agentId}/inbox` (read-only) and let heartbeat/notification-read be separate explicit mutations.
 
-- [LangGraph Official Site](https://www.langchain.com/langgraph)
-- [Mastra TypeScript AI Framework](https://mastra.ai/)
-- [Mastra Improved Agent Orchestration with AI SDK v5](https://mastra.ai/blog/announcing-mastra-improved-agent-orchestration-ai-sdk-v5-support)
-- [AutoGen v0.4 Announcement](https://devblogs.microsoft.com/autogen/autogen-reimagined-launching-autogen-0-4/)
-- [AutoGen v0.4 Microsoft Research](https://www.microsoft.com/en-us/research/articles/autogen-v0-4-reimagining-the-foundation-of-agentic-ai-for-scale-extensibility-and-robustness/)
-- [CrewAI Framework 2025](https://latenode.com/blog/ai-frameworks-technical-infrastructure/crewai-framework/crewai-framework-2025-complete-review-of-the-open-source-multi-agent-ai-platform)
-- [CrewAI Enterprise Evolution](https://www.crewai.com/blog/how-crewai-is-evolving-beyond-orchestration-to-create-the-most-powerful-agentic-ai-platform)
-- [Inngest Checkpointing](https://www.inngest.com/changelog/2025-12-10-checkpointing)
-- [Inngest AgentKit and step.ai](https://www.inngest.com/blog/ai-orchestration-with-agentkit-step-ai)
-- [Temporal TypeScript Building Bulletproof AI Workflows](https://medium.com/@sylvesterranjithfrancis/temporal-typescript-building-bulletproof-ai-agent-workflows-4863317144ce)
-- [Hatchet Documentation](https://docs.hatchet.run/home)
-- [Convex Workflow Component](https://www.convex.dev/components/workflow)
-- [Convex Durable Agents Component](https://www.convex.dev/components/durable-agents)
-- [Convex Agents Need Durable Workflows](https://stack.convex.dev/durable-workflows-and-strong-guarantees)
-- [Convex + Mastra Component](https://github.com/get-convex/mastra)
-- [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
-- [OpenTelemetry GenAI Spans](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/)
-- [OpenLLMetry GitHub (Traceloop)](https://github.com/traceloop/openllmetry)
-- [OpenLLMetry-JS GitHub](https://github.com/traceloop/openllmetry-js)
-- [How to Track Token Usage with OpenTelemetry](https://oneuptime.com/blog/post/2026-02-06-track-token-usage-prompt-costs-model-latency-opentelemetry/view)
-- [Langfuse Token and Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking)
-- [Helicone Cost Tracking](https://docs.helicone.ai/guides/cookbooks/cost-tracking)
-- [LiteLLM Spend Tracking](https://docs.litellm.ai/docs/proxy/cost_tracking)
-- [Top LLM Gateways 2025](https://agenta.ai/blog/top-llm-gateways)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [MCP One Year Anniversary](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/)
-- [Mastra vs LangGraph Comparison](https://www.objectwire.org/mastre-ai-vs-langgraph-choosing-the-right-framework-for-building-ai-agents-in-2025)
-- [TypeScript Rising: Replacing Python in Multi-Agent AI Systems](https://visiononedge.com/typescript-replacing-python-in-multiagent-systems/)
-- [DAG-Based LLM Workflow Orchestration](https://dev.to/ivan_holovach_f2abf13a514/a-dag-based-approach-to-llm-workflow-orchestration-1i98)
-- [Postgres + ClickHouse for Agentic AI Scale](https://thenewstack.io/postgres-clickhouse-the-oss-stack-to-handle-agentic-ai-scale/)
-- [ClickHouse for Scalable Audit Logs](https://dev.to/epilot/building-a-scalable-audit-log-system-with-aws-and-clickhouse-jn5)
-- [Event Sourcing vs Audit Log](https://www.kurrent.io/blog/event-sourcing-audit)
-- [Cost Guardrails for Agent Fleets](https://medium.com/@Micheal-Lanham/cost-guardrails-for-agent-fleets-how-to-prevent-your-ai-agents-from-burning-through-your-budget-ea68722af3fe)
-- [Forrester Announces Evaluation of Agent Control Plane Market](https://www.forrester.com/blogs/announcing-our-evaluation-of-the-agent-control-plane-market/)
-- [The Agent Control Plane: Architecting Guardrails](https://www.cio.com/article/4130922/the-agent-control-plane-architecting-guardrails-for-a-new-digital-workforce.html)
-- [Audit Trails in CI/CD for AI Agents](https://prefactor.tech/blog/audit-trails-in-ci-cd-best-practices-for-ai-agents)
-- [Zero-Trust for Agents: Immutable Logs](https://www.breakthroughpursuit.com/zero-trust-for-agents/)
-- [Building Scalable Systems with CQRS and Event Sourcing](https://www.javacodegeeks.com/2025/10/cqrs-and-event-sourcing-in-practice-building-scalable-systems.html)
-- [AWS Multi-Agent Orchestration Guidance](https://aws.amazon.com/solutions/guidance/multi-agent-orchestration-on-aws/)
+### Rate Limiting
+
+**Recommendation: @upstash/ratelimit with Convex-backed storage**
+
+For agent-facing APIs, implement per-agent rate limiting. Agents authenticate with API keys, making per-key rate limiting natural.
+
+| Endpoint Category | Rate Limit | Window |
+|-------------------|-----------|---------|
+| Read endpoints (GET) | 100 req | 1 minute |
+| Write endpoints (POST/PUT) | 30 req | 1 minute |
+| Poll endpoint | 60 req | 1 minute |
+| Auth endpoints | 5 req | 15 minutes |
+
+**Implementation:** Use Next.js middleware for rate limit checks. Store rate limit counters in Convex (native to the stack) or use Upstash Redis if sub-millisecond checks are needed. For 10 agents, Convex is sufficient.
 
 ---
 
-*Research conducted 2025-02-25. Framework versions and feature claims should be verified against official documentation before implementation, as this space evolves rapidly.*
+## 2. Agent Orchestration & Workflow Patterns
+
+### Existing Architecture Assessment
+
+Mission Control already has solid foundations:
+- **DAG validation:** `workflowValidation.ts` implements cycle detection (DFS), topological sort (Kahn's), ready-step computation, and state machines
+- **State machines:** Workflow (`pending -> running -> success/failed/aborted`) and step (`pending -> running -> success/failed`, `pending -> skipped`) transitions are well-defined
+- **Schema:** Workflow definitions use `nodes` (Record<string, WorkflowNode>) and `edges` (Record<string, string[]>) for DAG representation
+
+### Recommendation: Use @convex-dev/workflow for Durable Execution
+
+**Do NOT build a custom workflow executor.** The `@convex-dev/workflow` component (beta, but maintained by Convex team) provides exactly what Mission Control needs:
+
+**Confidence:** MEDIUM (component is in beta, but Convex team actively maintains it; the alternative of building custom durable execution is far harder)
+
+| Feature | @convex-dev/workflow | Custom Build |
+|---------|---------------------|--------------|
+| Durable execution | Built-in | Must implement |
+| Step retry with backoff | Built-in | Must implement |
+| Parallel steps | Built-in | Must implement |
+| Sleep/delay | Built-in | ctx.scheduler |
+| Reactive status | Built-in (subscriptions) | Must implement |
+| Cancellation | Built-in | Must implement |
+| Time to production | Days | Weeks |
+
+**Integration pattern:**
+
+```typescript
+// Define workflow using @convex-dev/workflow
+const myWorkflow = workflow.define({
+  args: { workflowId: v.id("workflows") },
+  handler: async (step, args) => {
+    // Load workflow definition from DB
+    const def = await step.runQuery(internal.workflows.getDefinition, { id: args.workflowId });
+
+    // Execute steps based on DAG topology
+    const readySteps = getReadySteps(def.nodes, def.edges, []);
+
+    // Run ready steps in parallel
+    const results = await Promise.all(
+      readySteps.map(stepId =>
+        step.runAction(internal.workflows.executeStep, { stepId })
+      )
+    );
+
+    // Continue until all steps complete...
+  }
+});
+```
+
+**Convex execution guarantee:** Mutations are exactly-once. Actions are at-most-once (no auto-retry). Use the `@convex-dev/workflow` retry configuration for action steps.
+
+### DAG Execution Pattern
+
+The existing `getReadySteps()` function is the core scheduling primitive. The execution loop:
+
+1. **Start:** Mark workflow `running`, compute initial ready steps from `entryNodeId`
+2. **Dispatch:** For each ready step, create a task for the assigned agent
+3. **Wait:** Agent completes task (via poll -> execute -> complete cycle)
+4. **Advance:** On step completion, call `getReadySteps()` with updated completion set
+5. **Repeat:** Dispatch newly ready steps. If none ready and all complete, mark workflow `success`
+6. **Fail:** If step fails and no retry left, mark workflow `failed`
+
+**Data chaining between steps:** Step N's `outputData` is auto-merged into step N+1's `inputData`. This is already designed in the `WorkflowNode.inputMapping` / `outputMapping` fields.
+
+### Concurrent Workflow Executions
+
+**Allow multiple concurrent executions per workflow definition.** Each execution is an independent instance with its own state. The schema already supports this with separate `workflowExecutions` records.
+
+**Why:** An agent team might need to run the same workflow template for different contexts (different PRs, different bug reports). Serial execution would be a bottleneck.
+
+### External Orchestrators (Not Recommended)
+
+| Platform | Why Not |
+|----------|---------|
+| Temporal | Massive infrastructure overhead for 10-agent team. Designed for thousands of workflows. Overkill. |
+| Apache Airflow | Python-centric, batch-oriented. Wrong paradigm for real-time agent orchestration. |
+| Prefect | Python-centric. |
+| LangGraph | Focused on LLM agent chains, not task-agent orchestration. Different abstraction level. |
+
+**Rationale:** Mission Control already runs on Convex. Adding an external orchestrator means running another service, managing connections, syncing state. The `@convex-dev/workflow` component runs natively inside Convex -- same database, same reactivity, zero additional infrastructure.
+
+---
+
+## 3. Notification Patterns for Agent Teams
+
+### Current State
+
+The codebase uses **polling** (`POST /api/agents/{agentId}/poll`). Agents periodically call this endpoint to get assigned tasks and notifications. Heartbeat and notification-read are side effects of polling.
+
+### Recommendation: Keep Polling as Primary, Add Webhook Push for Priority Events
+
+**Confidence:** HIGH (polling is battle-tested and matches agent consumption patterns)
+
+| Pattern | Use Case in Mission Control | Recommendation |
+|---------|----------------------------|----------------|
+| **Polling** | Agent work queue, heartbeat, routine notifications | **Keep (primary)** |
+| **Webhooks** | Urgent task assignment, workflow step ready, abort signals | **Add (secondary)** |
+| **SSE** | Dashboard real-time updates (human operators) | **Already handled by Convex subscriptions** |
+| **WebSockets** | Bidirectional real-time | **Already handled by Convex** |
+
+### Why Polling Works for Agents
+
+1. **Agents are not browsers.** They run as CLI processes, cron jobs, or daemon loops. Polling fits their execution model.
+2. **Heartbeat is natural.** Each poll doubles as a heartbeat, proving the agent is alive.
+3. **Simplicity.** No webhook endpoint management, no callback URL registration, no retry logic for failed deliveries.
+4. **Current implementation is solid.** The poll endpoint already returns tasks + notifications + server time + agent profile.
+
+### Adding Webhook Push (Phase 2+)
+
+For time-sensitive events where polling latency (up to 30s) is unacceptable:
+
+```typescript
+// Agent registers callback URL during registration
+POST /api/v1/agents
+{
+  "name": "Jarvis",
+  "callbackUrl": "http://localhost:3001/webhook",  // Optional
+  ...
+}
+
+// Mission Control pushes to callback on urgent events
+POST http://localhost:3001/webhook
+{
+  "event": "task.assigned",
+  "data": { "taskId": "...", "priority": "critical" },
+  "timestamp": 1234567890,
+  "signature": "sha256=..."  // HMAC signature for verification
+}
+```
+
+**Webhook delivery guarantees:**
+- Retry 3 times with exponential backoff (1s, 5s, 25s)
+- After 3 failures, fall back to polling (agent picks up on next poll)
+- Include HMAC signature so agents can verify authenticity
+
+**Events to push via webhook:**
+- `task.assigned` (critical priority only)
+- `workflow.step_ready` (agent's step is now executable)
+- `workflow.aborted` (stop current work immediately)
+
+### Convex Real-Time for Dashboard
+
+The frontend dashboard already uses Convex's reactive `useQuery` hooks. This provides sub-second updates to human operators without any additional infrastructure. No SSE or custom WebSocket needed -- Convex handles this natively.
+
+---
+
+## 4. OpenAPI Documentation Strategy
+
+### Current State
+
+The codebase has:
+- `zod-openapi` (v5.4.6) in dependencies
+- `swagger-ui-react` (v5.31.1) for rendering docs
+- A hand-built `openapi-generator.ts` (900+ lines) that manually constructs an OpenAPI 3.0 spec
+- Zod schemas in `lib/validators/` for runtime validation
+
+**Problem:** The OpenAPI spec is manually maintained and will drift from actual route implementations. The Zod schemas used for validation are separate from the OpenAPI spec generation.
+
+### Recommendation: Schema-First with zod-openapi as Single Source of Truth
+
+**Use `zod-openapi` (samchungy) to generate OpenAPI specs directly from your existing Zod validation schemas.** This eliminates the hand-built generator and makes docs impossible to drift from validation.
+
+**Confidence:** HIGH (zod-openapi supports Zod v4, is actively maintained, and the project already has it as a dependency)
+
+### Architecture
+
+```
+Zod Schema (validation)
+    |
+    +-- .meta() annotations (OpenAPI metadata)
+    |
+    v
+zod-openapi createDocument()
+    |
+    v
+OpenAPI 3.1 JSON
+    |
+    v
+Swagger UI React (rendering)
+```
+
+### Implementation Pattern
+
+**Step 1: Annotate existing Zod schemas with `.meta()`**
+
+```typescript
+// lib/validators/agentValidators.ts
+import * as z from "zod/v4";
+
+export const RegisterAgentSchema = z.object({
+  name: z.string()
+    .min(2)
+    .max(50)
+    .meta({
+      description: "Unique agent name",
+      example: "Jarvis"
+    }),
+  role: z.string()
+    .min(2)
+    .max(100)
+    .meta({ description: "Agent role description" }),
+  level: z.enum(["lead", "specialist", "intern"])
+    .meta({ description: "Agent authority level" }),
+  // ... existing validations
+}).meta({
+  id: "RegisterAgent",
+  description: "Request body for agent registration",
+});
+```
+
+**Step 2: Define route specs alongside route handlers**
+
+```typescript
+// lib/openapi/routes/agents.ts
+import { RegisterAgentSchema } from "@/lib/validators/agentValidators";
+
+export const agentRoutes = {
+  "/api/v1/agents": {
+    post: {
+      operationId: "registerAgent",
+      tags: ["Agents"],
+      summary: "Register a new agent",
+      requestBody: { content: { "application/json": { schema: RegisterAgentSchema } } },
+      responses: {
+        201: { description: "Agent created", content: { ... } },
+        400: { description: "Validation error", content: { ... } },
+      },
+    },
+  },
+};
+```
+
+**Step 3: Generate spec at build time or on-demand**
+
+```typescript
+// lib/openapi/spec.ts
+import { createDocument } from "zod-openapi";
+
+export function generateSpec() {
+  return createDocument({
+    openapi: "3.1.0",
+    info: { title: "Mission Control API", version: "1.0.0" },
+    paths: { ...agentRoutes, ...taskRoutes, ...workflowRoutes },
+  });
+}
+```
+
+### Migration Path
+
+1. **Phase 1:** Add `.meta()` annotations to existing Zod schemas (non-breaking)
+2. **Phase 2:** Create route spec files alongside existing routes
+3. **Phase 3:** Replace hand-built `openapi-generator.ts` with `createDocument()` call
+4. **Phase 4:** Add CI check that validates OpenAPI spec is generated without errors
+
+### Alternatives Considered
+
+| Library | Verdict | Why |
+|---------|---------|-----|
+| `zod-openapi` (samchungy) | **Use this** | Already a dependency, supports Zod v4, .meta() based |
+| `@asteasolutions/zod-to-openapi` | Alternative | Uses registry pattern instead of .meta(), more ceremony |
+| Hono + Zod OpenAPI | Not applicable | Would require migrating from Next.js API routes to Hono |
+| Hand-built (current) | Replace | 900+ lines that will inevitably drift |
+
+---
+
+## Recommended Technology Stack (Complete)
+
+### Core Framework (Existing -- No Changes)
+
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| Next.js | ^15.1.6 | Frontend + API routes | Keep |
+| Convex | ^1.32.0 | Backend (DB, real-time, functions) | Keep |
+| React | ^19.0.0 | UI framework | Keep |
+| TypeScript | ^5.4.0 | Type safety | Keep |
+| Zod | ^4.3.6 | Runtime validation | Keep |
+
+### API Layer (Enhance)
+
+| Technology | Version | Purpose | Action |
+|------------|---------|---------|--------|
+| zod-openapi | ^5.4.6 | OpenAPI spec generation from Zod schemas | **Leverage (already installed)** |
+| swagger-ui-react | ^5.31.1 | API docs rendering | Keep |
+
+### Workflow Orchestration (Add)
+
+| Technology | Version | Purpose | Action |
+|------------|---------|---------|--------|
+| @convex-dev/workflow | latest | Durable workflow execution | **Add** |
+
+### Notification Layer (Keep + Extend)
+
+| Technology | Version | Purpose | Action |
+|------------|---------|---------|--------|
+| Convex subscriptions | built-in | Real-time dashboard updates | Keep |
+| Agent polling | custom | Agent work queue delivery | Keep |
+| Webhook push | custom | Priority event delivery | **Build (Phase 2+)** |
+
+### Supporting Libraries (Existing -- No Changes)
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| pino | ^10.3.1 | Structured logging |
+| ws | ^8.18.0 | Gateway WebSocket connections |
+| date-fns | ^3.6.0 | Date utilities |
+| tailwind-merge | ^3.4.0 | CSS utility merging |
+
+### Testing (Existing -- No Changes)
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Jest | ^30.2.0 | Unit/integration tests |
+| Playwright | ^1.58.2 | E2E tests |
+| Testing Library | ^16.3.2 | React component tests |
+
+### Rate Limiting (Add When Needed)
+
+| Technology | Version | Purpose | When |
+|------------|---------|---------|------|
+| @upstash/ratelimit | latest | Per-agent rate limiting | When opening API externally |
+
+---
+
+## Installation
+
+```bash
+# New dependency for workflow orchestration
+npm install @convex-dev/workflow
+
+# Already installed (verify in place)
+# zod-openapi, swagger-ui-react, zod
+```
+
+---
+
+## Sources
+
+### REST API Design
+- [OneUptime: REST API Design Best Practices (2026)](https://oneuptime.com/blog/post/2026-02-20-api-design-rest-best-practices/view) - MEDIUM confidence
+- [Postman: REST API Best Practices](https://blog.postman.com/rest-api-best-practices/) - HIGH confidence
+- [Microsoft: Web API Design Best Practices](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design) - HIGH confidence
+- [Devzery: Versioning REST API Strategies 2025](https://www.devzery.com/post/versioning-rest-api-strategies-best-practices-2025) - MEDIUM confidence
+- [Speakeasy: Pagination Best Practices](https://www.speakeasy.com/api-design/pagination) - HIGH confidence
+- [Slack Engineering: Evolving API Pagination](https://slack.engineering/evolving-api-pagination-at-slack/) - HIGH confidence
+- [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html) - HIGH confidence (IETF standard)
+
+### Agent Orchestration
+- [Convex Workflow Component](https://www.convex.dev/components/workflow) - HIGH confidence (official)
+- [Convex: Durable Workflows and Strong Guarantees](https://stack.convex.dev/durable-workflows-and-strong-guarantees) - HIGH confidence (official)
+- [@convex-dev/workflow npm](https://www.npmjs.com/package/@convex-dev/workflow) - HIGH confidence (official)
+- [PracData: State of Workflow Orchestration 2025](https://www.pracdata.io/p/state-of-workflow-orchestration-ecosystem-2025) - MEDIUM confidence
+- [Convex Scheduling Documentation](https://docs.convex.dev/scheduling) - HIGH confidence (official)
+
+### Notification Patterns
+- [AlgoMaster: Polling vs Long Polling vs SSE vs WebSockets vs Webhooks](https://blog.algomaster.io/p/polling-vs-long-polling-vs-sse-vs-websockets-webhooks) - MEDIUM confidence
+- [Svix: Webhooks vs SSE](https://www.svix.com/resources/faq/webhooks-vs-server-sent-events/) - MEDIUM confidence
+- [Convex Realtime Documentation](https://docs.convex.dev/realtime) - HIGH confidence (official)
+
+### OpenAPI Documentation
+- [samchungy/zod-openapi GitHub](https://github.com/samchungy/zod-openapi) - HIGH confidence (official)
+- [Speakeasy: Generate OpenAPI with Zod v4](https://www.speakeasy.com/openapi/frameworks/zod) - MEDIUM confidence
+- [Swagger: Problem Details RFC 9457](https://swagger.io/blog/problem-details-rfc9457-api-error-handling/) - HIGH confidence
+
+### Security
+- [Next.js CVE-2025-29927 Middleware Bypass](https://www.turbostarter.dev/blog/complete-nextjs-security-guide-2025-authentication-api-protection-and-best-practices) - HIGH confidence
+- [Next.js: Building APIs](https://nextjs.org/blog/building-apis-with-nextjs) - HIGH confidence (official)

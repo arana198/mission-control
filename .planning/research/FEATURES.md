@@ -1,504 +1,196 @@
-# Control Plane Features for Multi-Agent Systems
+# Feature Landscape
 
-Research Date: 2026-02-25
-Scope: Production-readiness feature analysis for Mission Control v1 (supervised execution)
-Reference Systems: Temporal, Dagster, Prefect, Airflow, LangChain, AutoGen, CrewAI, AWS Step Functions
+**Domain:** AI Agent Orchestration Platform with Multi-Workspace Governance
+**Researched:** 2026-02-26
+**Overall confidence:** MEDIUM-HIGH
 
----
+## Table Stakes
 
-## Context
+Features users expect. Missing = product feels incomplete.
 
-Mission Control is a control plane for orchestrating autonomous specialist agents. V1 focuses on supervised execution: humans trigger workflows, agents execute, Mission Control governs. The existing codebase already has foundations for agents, tasks, epics, executions, approvals, anomaly detection, decisions, alert rules, pattern learning, and WebSocket gateways.
+### 1. Workspace Isolation & Multi-Tenancy
 
----
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Workspace-scoped data boundaries | Every query MUST return only data belonging to the active workspace. Cross-workspace data leakage is a trust-destroyer. | Medium | Mission Control already has `workspaceId` on 25+ tables with indexes. The gap is **enforcement** -- no middleware/wrapper prevents a developer from forgetting the filter. |
+| Workspace switcher in UI | Users managing multiple projects need instant context switching without page reloads. | Low | Current schema supports this (workspaces table with slug routing). UI needs a persistent switcher component. |
+| Per-workspace settings | Each workspace needs independent configuration (task counter, notification preferences, alert thresholds). | Low | Already implemented via `settings` table with `by_workspace_key` index. |
+| Cascade delete on workspace removal | Deleting a workspace must remove all 25+ scoped tables atomically. | Medium | Already implemented in `workspaces.remove()` with `batchDelete()`. Solid. |
+| Workspace member management with RBAC | Users need owner/admin/member roles per workspace with clear permission boundaries. | Medium | Already implemented via `organizationMembers` table with `requireAdmin()`/`requireOwner()` helpers. Board-level access control exists too. |
 
-## 1. Table Stakes (Must-Haves)
+**Current state:** Mission Control has the data model for workspace isolation but lacks **systematic enforcement** -- the `workspaceId` filter is applied manually in each query/mutation rather than through a wrapper that makes forgetting impossible.
 
-These are the features users expect from any workflow orchestration or agent control system. Absence of any of these is a hard blocker for adoption.
+### 2. Cost Governance & Token Tracking
 
-### 1.1 Workflow Definition and Composition
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Per-execution token counting (input + output) | Without knowing how many tokens each execution consumed, cost attribution is impossible. This is the atomic unit of AI cost tracking. | Low | Already in schema: `executions` table has `inputTokens`, `outputTokens`, `costCents` fields. `calculateCost()` helper exists. |
+| Per-agent cost aggregation | Operators need to see which agents are expensive. "Agent X costs $47/day" is the baseline insight. | Low | `metrics` table aggregates hourly by agent with `totalCostCents`, `avgCostCentsPerExecution`. `getCostBreakdown()` query exists. |
+| Per-workspace budget limits | Without budget caps, a runaway agent can exhaust the entire AI budget. This is the #1 cost governance feature every platform needs. | Medium | **NOT YET IMPLEMENTED.** Schema has no `budgetCents` or `spendingLimitCents` field on workspaces. This is a critical gap. |
+| Budget alerts (soft limits) | Before hitting a hard cap, operators need warning at 50%, 75%, 90% thresholds. | Medium | Alert rules exist (`alertRules` table) but no budget-specific condition type. Need to add `budgetThresholdExceeded` condition. |
+| Cost attribution by model/provider | Different models have wildly different costs. Operators need to see "GPT-4 costs 10x more than GPT-3.5 for similar tasks." | Low | `executions` table has `model` and `modelProvider` fields. `metrics` aggregation does not break down by model -- needs extension. |
+| Spending dashboard with time-series | Visual cost trends over days/weeks. "Are we spending more this week than last?" | Medium | `getCostBreakdown()` exists for daily view. Missing: weekly/monthly rollups, trend comparison. |
 
-**What it is:** The ability to define sequences and graphs of agent work, not just individual tasks.
+**Current state:** Token counting and cost calculation exist at the execution level. The critical missing piece is **budget enforcement** -- there is no mechanism to set spending limits per workspace, per agent, or per time period, and no automatic throttling when limits are approached.
 
-**Why it's table stakes:** Without workflow primitives, every operator must manually sequence tasks. Operators adopt control planes specifically to express "do A, then B and C in parallel, then D." This is the foundational abstraction that all other features build on.
+### 3. Scheduled Execution (Cron)
 
-**Current MC state:** Epics partially serve this role (grouping tasks under a strategic initiative), but there is no workflow pipeline abstraction (ordered steps with branching, parallel lanes, conditional logic). The `graphValidation.ts` utility shows dependency-graph awareness exists but is not surfaced as a composable workflow primitive.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Reliable cron job execution | Background tasks (auto-claim, heartbeat monitoring, escalation checks) must run on schedule without manual intervention. | Medium | Cron handlers exist (`autoClaimCronHandler`, `heartbeatMonitorCronHandler`, etc.) but **cron scheduling is currently disabled** due to a type compatibility issue with Convex's `SchedulableFunctionReference`. This is a blocking bug. |
+| Circuit breaker pattern | Cron jobs that fail repeatedly should stop hammering the system. | Low | Already implemented with `CircuitBreaker` class (5 failures, 120s cooldown). |
+| Retry with exponential backoff | Transient failures should auto-recover without operator intervention. | Low | Already implemented with `withRetry()` and `RETRY_CONFIGS` (STANDARD, FAST, CRITICAL, CRON profiles). |
+| Per-workspace cron evaluation | Alert rules and cleanup tasks must iterate across all workspaces. | Low | Already implemented -- `alertEvaluatorCronHandler` and `presenceCleanupCronHandler` iterate over all workspaces. |
+| Cron execution cost tracking | Cron-triggered executions need the same cost tracking as manual ones. | Medium | `createExecution()` accepts `triggerType: "cron"` but no cron-specific cost rollup exists. Operators cannot answer "how much do cron jobs cost per day?" |
+| Idempotent cron handlers | Repeated execution of the same cron run must produce the same result. | Low | Current handlers are mostly idempotent (check-before-act pattern in auto-claim). Good. |
 
-**Comparable systems:**
-- Temporal: defines workflows as durable, resumable code functions. Each workflow step is a "activity" with independent retry logic.
-- Dagster: defines workflows as "jobs" composed of "ops" (operations). DAGs are first-class, visually rendered.
-- Prefect: defines workflows as Python-decorated functions with `@flow` and `@task`. Supports subflows.
-- Airflow: DAGs defined in code; every DAG is a directed acyclic graph of operators.
+**Current state:** The cron infrastructure is well-designed with resilience patterns (circuit breaker, retry, graceful degradation) but **non-functional** because scheduling is disabled. Re-enabling cron registration is a prerequisite for everything else.
 
-**Implementation complexity:** Medium. Core data model additions: `workflows` table (name, steps, version), `workflowRuns` table (execution instance). DAG validation already exists in `graphValidation.ts`. The main work is the workflow builder UI and the step-dispatch engine.
+### 4. Agent Collaboration & Approval Flows
 
-**Dependencies:** Agent registry, task execution engine (both already exist).
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Confidence-based approval gates | When an agent's confidence is below threshold, the action must pause for human review. This is THE governance feature for AI platforms. | Low | Already implemented: `approvalRequired()` checks confidence < 80.0, `isExternal`, `isRisky` flags. `createApproval()` creates pending approvals with `leadReasoning`. |
+| Approval resolution workflow | Humans must be able to approve/reject pending actions with audit trail. | Low | Already implemented: `resolveApproval()` with status tracking, activity logging, and timestamp recording. |
+| Conflict detection | A task should not have multiple pending approvals simultaneously. | Low | Already implemented: `createApproval()` checks for existing pending approvals per task via `approvalTaskLinks`. |
+| Audit trail for all decisions | Every agent action, approval, and state change must be logged immutably. | Low | Partially implemented across `activities`, `decisions`, `events`, and `executionLog` tables. Multiple overlapping audit systems exist (see Pitfalls). |
+| @mentions and notifications | Agents and humans need to tag each other for attention. Pending approvals need to surface as notifications. | Medium | `mentions` and `notifications` tables exist. `notifications.create()` is called by cron handlers. But no @mention resolution or notification routing based on workspace role exists. |
+| Escalation for stale approvals | Approvals sitting pending for too long need automatic escalation. | Medium | `escalationCheckCronHandler` exists for blocked tasks (24h threshold) but **no equivalent for stale approvals**. An approval pending for hours with no response is a governance failure. |
 
----
-
-### 1.2 Execution Triggering
-
-**What it is:** The ability for an operator to start a workflow run with specified inputs.
-
-**Why it's table stakes:** Control planes with no trigger mechanism cannot be invoked. V1 is supervised, so manual triggering from UI is the entire UX.
-
-**Current MC state:** Tasks can be created and assigned, but there is no "trigger this whole workflow from the UI in one action" capability. The `executions.ts` module exists for logging, not triggering.
-
-**Comparable systems:**
-- Prefect: UI has a "Run" button per flow deployment. API allows parameterized runs.
-- Dagster: "Launchpad" UI allows triggering jobs with configuration overrides.
-- Temporal: workflows are triggered by calling `client.start(workflowFunction, options)`.
-
-**Implementation complexity:** Low-Medium. Needs: a "trigger workflow" API endpoint, parameter input form in UI, and a dispatch function that creates a `workflowRun` record and begins spawning tasks in order.
-
-**Dependencies:** Workflow definition (1.1).
-
----
-
-### 1.3 Execution Status and Basic Monitoring
-
-**What it is:** Real-time visibility into whether a workflow is running, which step it's on, which agents are active, and whether any failures have occurred.
-
-**Why it's table stakes:** Without status visibility, operators cannot know if their trigger worked. Status monitoring is the minimum viable "cockpit."
-
-**Current MC state:** Agent status (`idle`/`active`/`blocked`), task status, and OpsMetrics snapshot queries exist. The `opsMetrics.ts` query calculates live queue depth, blocked task count, overdue tasks, and completion rate. The WebSocket gateway provides real-time updates. This is already largely built.
-
-**Comparable systems:**
-- Prefect: Flow run detail page shows each task's state (pending, running, completed, failed) with timestamps.
-- Dagster: Run timeline shows each op's execution with duration bars.
-- Temporal: Workflow history viewer shows all events in a run.
-
-**Implementation complexity:** Low. The data already exists; the gap is UI composition into a single "workflow run" view rather than scattered agent/task views.
-
-**Dependencies:** Execution triggering (1.2).
+**Current state:** The approval system is functional with confidence-based gating and conflict detection. The gap is in **lifecycle management** -- stale approvals are not escalated, and there is no dashboard showing approval velocity/bottlenecks.
 
 ---
 
-### 1.4 Error Visibility and Basic Failure Handling
+## Differentiators
 
-**What it is:** When an agent or step fails, the operator must be able to see what failed, why, and what the impact is.
+Features that set Mission Control apart from generic project management or basic agent frameworks.
 
-**Why it's table stakes:** Agents fail. Without error visibility, the operator is flying blind. A control plane that hides failures is worse than no control plane.
-
-**Current MC state:** `executions.ts` stores `status: failed` and an `error` field. `anomalyDetection.ts` detects duration deviations and error rate spikes. `alertRules.ts` defines conditions including `agentCrash`. The infrastructure exists; surfacing it clearly in a failure-focused UI view is the gap.
-
-**Comparable systems:**
-- Airflow: Task instance log viewer shows full stdout/stderr on failure.
-- Prefect: Failed flow runs are highlighted in red with expandable error messages and stack traces.
-- Temporal: Workflow history shows the exact event and error that caused a failure, with full stack trace.
-
-**Implementation complexity:** Low. Data model is already capturing errors. Needs: a "failures" filter view, error detail panel, and propagation logic to mark upstream workflow run as failed when a step fails.
-
-**Dependencies:** Execution logging (already exists).
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Hierarchical budget controls** | Budget caps at org > workspace > agent > model level. "Agent Jarvis can spend $50/day on GPT-4 but unlimited on GPT-3.5." Most platforms only track at one level. | High | Requires new schema (budgetPolicy table), enforcement in execution creation, and real-time spend tracking. Modeled after Portkey/liteLLM hierarchical budget patterns. |
+| **Workspace-scoped query wrapper** | A `withWorkspace(ctx, workspaceId)` wrapper that makes it impossible to query without workspace scoping. Eliminates an entire class of data leakage bugs. | Medium | Convex's function-level architecture makes this feasible. Wrap `ctx.db.query()` to auto-inject workspace filter. No equivalent exists in Convex ecosystem. |
+| **Cost-aware workflow routing** | Workflows automatically route steps to cheaper models when budget is tight. "80% budget consumed -> downgrade non-critical steps from GPT-4 to GPT-3.5." | High | Requires integration between budget tracking, workflow engine, and model selection. Novel for self-hosted platforms. |
+| **Approval velocity metrics** | Dashboard showing how fast approvals are resolved, bottleneck agents, and approval-to-action latency. "Average approval time: 23 minutes. Jarvis requests approval 3x more than other agents." | Medium | Data already exists in approvals table (createdAt, resolvedAt). Needs aggregation queries and UI. |
+| **Real-time execution cost ticker** | Live-updating cost display during execution. "This workflow has consumed $2.34 so far." | Medium | Convex's real-time subscriptions make this natural. Update `costCents` on execution record mid-flight, UI auto-updates via `useQuery()`. |
+| **Cross-workspace agent sharing** | Agents are shared across workspaces (current design) but with per-workspace performance metrics. "Agent X has 95% success in Workspace A but 72% in Workspace B." | Medium | Agents table is already workspace-agnostic. Needs per-workspace metric aggregation in `metrics` table (add workspaceId dimension). |
+| **Decision replay and audit** | Replay any past decision: see what data the agent had, what confidence it computed, what the approval outcome was, and what happened after. Full causal chain. | High | Requires linking `executions` -> `approvals` -> `decisions` -> `activities` into a coherent timeline. Data exists across tables but is not connected for replay. |
+| **Anomaly-triggered budget freeze** | If anomaly detection flags unusual spending patterns, automatically freeze the agent's budget until human review. | Medium | `anomalyDetection` module exists. Needs integration with budget enforcement layer. |
 
 ---
 
-### 1.5 Agent Registry and Capability Model
+## Anti-Features
 
-**What it is:** A catalog of available agents, their roles, capabilities, and current availability status.
+Features to explicitly NOT build.
 
-**Why it's table stakes:** The control plane must know what agents exist and what they can do before it can route work to them. Without this, workflow step → agent mapping is arbitrary.
-
-**Current MC state:** The `agents` table stores name, role, status, sessionKey, and lastHeartbeat. `skillInference.ts` infers agent skills from task history. This is well-developed.
-
-**Comparable systems:**
-- CrewAI: Agents are defined with explicit role, goal, and backstory. Crews (workflows) reference specific agents.
-- AutoGen: Agents are instantiated with defined capabilities. The orchestrator knows which agent handles which step.
-- LangChain: Agents are given tools; the tool registry defines what the agent can do.
-
-**Implementation complexity:** Already built. The gap is connecting skill inference results to workflow step routing.
-
-**Dependencies:** None. This is a prerequisite, not a dependent.
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| **Database-per-workspace isolation** | Mission Control targets 2-5 workspaces, not 10,000 tenants. Separate databases add operational complexity (migrations, backups, monitoring) for zero benefit at this scale. | Keep shared-schema with `workspaceId` column + application-level enforcement wrapper. |
+| **Token-level rate limiting (per-second)** | Mission Control is an orchestration layer, not an LLM gateway. Per-second token rate limiting belongs in the LLM proxy (Portkey, liteLLM, API gateway). | Implement budget-level limits (per-day, per-month) and delegate request-level throttling to the LLM gateway. |
+| **Real-time collaborative editing** | This is a governance platform, not Google Docs. Real-time co-editing of workflows or task descriptions adds enormous complexity. | Use optimistic locking (last-write-wins with conflict detection) which Convex handles naturally. |
+| **Custom approval workflow builder** | A visual workflow builder for approval chains is scope creep. Mission Control's approval flow is confidence-threshold-based, not arbitrary multi-step routing. | Keep the single-gate approval model (confidence < threshold -> human review). Add escalation timers, not more gates. |
+| **Multi-region data residency** | Data sovereignty requirements apply to enterprise SaaS with global customers. Mission Control is a team-internal tool. | Document which Convex region hosts data. Revisit only if enterprise customers explicitly require it. |
+| **Agent-to-agent direct messaging** | Agents should communicate through the task/workflow system, not arbitrary chat. Direct messaging between agents creates untraceable side channels that break audit trails. | All agent communication goes through tasks, approvals, or workflow step outputs. Every interaction is logged. |
 
 ---
 
-### 1.6 Audit Log and Execution History
-
-**What it is:** A queryable, immutable record of all actions taken by the system—what ran, when, why, what it decided, and what it produced.
-
-**Why it's table stakes:** For debugging and compliance, you must be able to answer "what happened and why." An audit log is foundational for trust. It cannot be retrofitted; it must be built from day one.
-
-**Current MC state:** `decisions.ts`, `executionLog.ts`, `activities.ts` all contribute to audit trails. The `executions` table captures per-execution records with model, tokens, cost, and status. The `decisions` table captures management decisions (escalations, reassignments). This is substantially complete as a data model.
-
-**Comparable systems:**
-- Temporal: The "workflow history" is immutable and is the source of truth for replays. Every event is recorded.
-- Dagster: "Run logs" include asset materializations, op outputs, and error traces. Searchable and filterable.
-- AWS Step Functions: Execution history records every state transition with full input/output.
-
-**Implementation complexity:** Low. Data exists. Needs: a unified audit log viewer in UI with search, filter by agent/workflow/time range, and export capability.
-
-**Dependencies:** None; data exists. UI work only.
-
----
-
-### 1.7 Human-in-the-Loop Approval Gates
-
-**What it is:** The ability to pause a workflow at a defined checkpoint and require human approval before proceeding.
-
-**Why it's table stakes for supervised execution:** V1 is explicitly "supervised execution." If the control plane cannot pause and wait for approval, it is not supervised—it's just automated. Approval gates are the core governance primitive of v1.
-
-**Current MC state:** `approvals.ts` already implements confidence-based approval gates. `CONFIDENCE_THRESHOLD = 80.0`; below that threshold (or if external/risky), approval is required. This is well-developed at the backend level.
-
-**Comparable systems:**
-- Temporal: "Human signals" pattern—workflow waits on an external signal before continuing.
-- Prefect: "Pausing" a flow run and waiting for a `resume()` call. Supports input injection on resume.
-- LangChain: `HumanApprovalCallbackHandler` intercepts tool calls and prompts for human approval.
-
-**Implementation complexity:** Low (backend exists). Medium (UI approval queue, notification on pending approvals, approve/reject actions).
-
-**Dependencies:** Audit log (for recording the approval decision), notification system.
-
----
-
-## 2. Differentiators (Advanced Capabilities)
-
-These features separate premium control planes from basic orchestrators. They create compounding value over time and are not expected on day one but become decisive for retention and enterprise adoption.
-
-### 2.1 Economic Awareness: Token and Cost Tracking
-
-**What it is:** Real-time tracking of token consumption and dollar cost per agent, per workflow run, per model, and cumulatively per workspace.
-
-**Why it's a differentiator:** Most workflow orchestrators (Airflow, Dagster, Prefect) are agnostic to compute cost. AI-native control planes must treat tokenomics as a first-class concern because model API calls are the primary operational cost driver. Visibility into cost per decision is how operators justify autonomy to finance teams.
-
-**Current MC state:** `executions.ts` has `calculateCost()` using model pricing from settings. Token fields (`inputTokens`, `outputTokens`, `totalTokens`, `costCents`) exist in the `executions` table. This is the right foundation; the gap is aggregated cost dashboards and cost-per-workflow breakdowns.
-
-**Comparable systems:**
-- Weights & Biases (Weave): tracks LLM call costs per trace and project.
-- LangSmith: cost per run, per dataset evaluation, with time-series trends.
-- Helicone: LLM observability with cost-per-token and user-level cost attribution.
-- No traditional workflow orchestrator (Airflow, Prefect) has this at all.
-
-**Implementation complexity:** Low-Medium. Backend calculation exists. Needs: aggregation queries (cost by agent, cost by workflow, cost by time period), a cost dashboard UI, and budget threshold checks during execution.
-
-**Dependencies:** Execution logging with cost fields (already exists).
-
----
-
-### 2.2 Budget Enforcement and Guardrails
-
-**What it is:** The ability to set spending limits per workflow, per agent, or per time period, and automatically halt execution when those limits are breached.
-
-**Why it's a differentiator:** This is the "circuit breaker" for runaway autonomy. Without budget enforcement, a misconfigured agent can incur unbounded spend. This is the governance lever that makes enterprises comfortable deploying autonomous agents.
-
-**Current MC state:** The `PROJECT.md` lists budget enforcement as a core active requirement. The schema and execution tracking provide the data needed. No enforcement logic exists yet.
-
-**Comparable systems:**
-- AWS Step Functions: supports Express Workflows with execution quotas.
-- Temporal: no built-in cost enforcement; developers implement it in application logic.
-- No standard workflow orchestrator has this; it is specific to AI-native control planes.
-- OpenAI API: has organization-level spend limits but no workflow-level granularity.
-
-**Implementation complexity:** Medium. Needs: a budget configuration model (per-workflow or per-workspace limits in cents), a check function called before each agent invocation, and a halt-and-notify mechanism when budget is exceeded.
-
-**Dependencies:** Cost tracking (2.1), Alert rules (already exists in `alertRules.ts`), approval gates (1.7 for budget-exceeded approval flows).
-
----
-
-### 2.3 Deep Observability: Live Agent I/O Streaming
-
-**What it is:** The ability to see what an agent is "thinking"—its input prompts, output responses, tool calls, and intermediate reasoning—as the execution unfolds, not just after completion.
-
-**Why it's a differentiator:** Basic monitoring tells you what happened. Deep observability tells you why. Operators debugging a failed workflow need to see the actual prompts and responses that led to a wrong decision. This is the difference between "the agent failed" and "the agent failed because it misinterpreted the task description."
-
-**Current MC state:** The WebSocket gateway (`gateways.ts`, gateway route handlers) provides real-time bidirectional communication. The session and message history system exists. The connection pool for live streaming exists. The gap is surfacing agent I/O in a dedicated "live trace" view during execution.
-
-**Comparable systems:**
-- LangSmith: full trace viewer with every LLM call, prompt, response, and tool use rendered as a tree.
-- Weave (W&B): "traces" show the call tree for multi-step agent execution.
-- Helicone: per-request logging of prompt + completion with latency and cost.
-- Langfuse: open-source LLM observability with trace UI.
-
-**Implementation complexity:** High. Requires: a structured trace format, a streaming event emitter from the agent runtime, a trace store in Convex, and a live trace viewer UI. The gateway infrastructure is in place; the agent-side instrumentation and MC-side trace rendering are the gaps.
-
-**Dependencies:** WebSocket gateway (exists), execution logging (exists), agent protocol agreement on trace event schema.
-
----
-
-### 2.4 Pattern Learning and Workflow Optimization Suggestions
-
-**What it is:** Analyzing historical execution data to identify which workflow patterns succeed, which agents perform best on which task types, and surfacing suggestions for workflow configuration.
-
-**Why it's a differentiator:** This turns the control plane into a continuously learning system. It shifts from "governance tool" to "strategic intelligence layer." Over time, MC can answer "based on 50 prior research epics, this workflow pattern has a 94% success rate."
-
-**Current MC state:** `patternLearning.ts` is already implemented. It detects recurring task sequences, tracks success rates per pattern, and stores `taskPatterns` with `occurrences`, `successRate`, and `avgDurationDays`. This is a genuine differentiator that is already built at the backend level.
-
-**Comparable systems:**
-- Dagster: "Asset health" and historical materialization graphs, but no pattern learning.
-- Prefect: No built-in pattern analysis.
-- This is rare even in mature workflow orchestrators; it is a distinct competitive capability.
-
-**Implementation complexity:** Low (backend done). Medium (UI to surface pattern suggestions in workflow builder).
-
-**Dependencies:** Pattern data accumulates with usage; minimum viable insight requires ~10 completed workflow runs of similar type.
-
----
-
-### 2.5 Anomaly Detection and Proactive Alerting
-
-**What it is:** Automatically detecting when agent behavior deviates from baseline (duration spikes, error rate increases, skill-task mismatches) and alerting operators before problems compound.
-
-**Why it's a differentiator:** Reactive monitoring requires operators to notice problems. Proactive anomaly detection surfaces problems before the operator is watching. This is the difference between a dashboard and an intelligent watchdog.
-
-**Current MC state:** `anomalyDetection.ts` implements statistical deviation detection (2-sigma and 3-sigma thresholds) for duration, error rates, skill mismatches, and status instability. `alertRules.ts` supports configurable alert conditions with Slack/email/in-app channels. This is substantively implemented.
-
-**Comparable systems:**
-- Datadog APM: baseline-relative anomaly detection for latency and error rates.
-- PagerDuty: threshold-based alerts with escalation policies.
-- No standard workflow orchestrator has AI-specific anomaly detection (skill mismatch, confidence drops).
-
-**Implementation complexity:** Low (mostly built). Needs: wire anomaly detections to alert rule evaluations, and complete the notification delivery pipeline.
-
-**Dependencies:** Alert rules (exists), notification system (`notifications.ts` exists), anomaly detection (exists).
-
----
-
-### 2.6 Workflow Versioning and Rollback
-
-**What it is:** Tracking multiple versions of a workflow definition, with the ability to run a specific version and roll back to a previous version if a new version causes regressions.
-
-**Why it's a differentiator:** Production systems evolve. When a workflow change causes failures, operators need to pin workflow runs to a known-good version. Without versioning, every workflow change is a risky, irreversible migration.
-
-**Current MC state:** No workflow versioning exists. The `PROJECT.md` lists this as a desired capability. Epics have no version field.
-
-**Comparable systems:**
-- Temporal: workflows are versioned using `workflow.getVersion()` API; old executions can continue on old versions while new executions use new versions.
-- Dagster: code locations are versioned; historical runs reference the code version they ran against.
-- Prefect: deployments are versioned; each deployment has a version tag.
-
-**Implementation complexity:** Medium-High. Requires: version field on workflow definitions, immutable "version snapshots" on workflow run creation, and UI to select version at trigger time.
-
-**Dependencies:** Workflow definition (1.1).
-
----
-
-## 3. Critical for Production (Governance, Auditability, Compliance)
-
-These features are not optional for enterprise adoption. They address the question: "Can we trust this system with real business operations?"
-
-### 3.1 Immutable Audit Trail
-
-**What it is:** A tamper-proof, append-only log of every action taken by every agent, every decision made, and every state transition, with full context (who triggered it, what parameters, what output, what cost).
-
-**Why it's critical:** Enterprises operating in regulated industries (finance, healthcare, legal) require demonstrable audit trails. Without immutability, audit logs can be altered or deleted, removing their compliance value. Trust in autonomous systems depends on the ability to reconstruct "what happened and why" for any historical execution.
-
-**Current MC state:** Convex's append-only database model provides natural immutability—records can be patched but not hard-deleted without explicit delete mutations. `decisions.ts` captures management decisions. `activities.ts` captures agent activity. `executions.ts` captures execution records. The gap is enforcing an explicit "no-delete" policy on audit records and providing a unified audit log query interface.
-
-**Implementation considerations:**
-- Explicitly mark audit tables as append-only in schema comments and code review policy.
-- Add a `retentionPolicy` marker: audit records should never be garbage-collected.
-- Export capability (JSON, CSV) for external compliance tools.
-- 90-day minimum retention (per `PROJECT.md` constraint).
-
-**Comparable systems:**
-- Temporal: workflow history is immutable by design; the event stream cannot be altered.
-- AWS Step Functions: execution history is stored for 90 days and cannot be modified.
-- Dagster: run log is append-only; you can archive but not alter.
-
-**Implementation complexity:** Low (data model mostly exists). Medium (export API, retention policy enforcement, UI audit log viewer with search/filter).
-
----
-
-### 3.2 Decision Traceability (Explainability)
-
-**What it is:** For every significant action the system takes (agent reassignment, task escalation, workflow halt), recording the specific rule or signal that triggered it and the confidence level at time of decision.
-
-**Why it's critical:** When an autonomous system makes a consequential decision—"I reassigned this task from Agent A to Agent B"—a human must be able to audit why. Explainability is not just a nice-to-have; it is the legal and operational basis for trusting autonomous decisions.
-
-**Current MC state:** `decisions.ts` is purpose-built for this. It records `action`, `reason`, `ruleId` (linking back to the alert rule that triggered it), `decidedBy`, and `result`. This is the right model.
-
-**Gap:** The decisions system needs to be linked to workflow run context so an operator can trace: "This workflow run triggered this task, which triggered this alert rule, which caused this decision."
-
-**Implementation complexity:** Low (data model exists). Medium (building the "decision trace" view that stitches workflow run → task → alert → decision into a single explanatory narrative).
-
----
-
-### 3.3 Access Control and Operator Identity
-
-**What it is:** Knowing who triggered what, enforcing that only authorized operators can trigger high-risk actions (budget increases, agent provisioning, workflow definition changes), and logging operator identity in all audit records.
-
-**Why it's critical:** Without identity, audit logs cannot assign accountability. "The system did X" is not the same as "Operator @ankit triggered X at 14:32 with parameters Y." Accountability requires identity.
-
-**Current MC state:** `organizationMembers.ts` and `invites.ts` exist, suggesting multi-user awareness. `workspaces.ts` supports multi-tenant workspaces. However, most mutations do not currently capture `operatorId` in their audit records.
-
-**V1 scope:** Single-user v1 defers full RBAC but should still capture the principle of operator identity in audit records from day one. Retrofitting identity into audit records after the fact is painful.
-
-**Implementation complexity:** Medium. Requires: adding `operatorId` or `triggeredBy` field to execution records, approval records, and decisions. Low enforcement overhead in single-user v1; critical infrastructure for multi-user v2.
-
----
-
-### 3.4 Graceful Halting and Rollback
-
-**What it is:** The ability to stop a running workflow at any point—immediately or after current steps complete—and to return the system to a known-good state after a failure.
-
-**Why it's critical:** Autonomous agents can cause real side effects (API calls, database mutations, external communications). When something goes wrong, operators must be able to stop the bleeding immediately. Without a halt mechanism, a runaway workflow can compound failures.
-
-**Current MC state:** Task status can be updated to `blocked`. The `aborted` status exists in the execution model. The gap is: no explicit "halt this workflow run" action that propagates cancellation to all in-flight agent tasks within the run.
-
-**Comparable systems:**
-- Temporal: `client.cancel(workflowId)` sends a cancellation signal that propagates to all activities.
-- Prefect: `flow_run.cancel()` transitions the run and all tasks to `CANCELLED` state.
-- Dagster: "Terminate" action in UI sends SIGTERM to the run process.
-
-**Implementation complexity:** Medium. Requires: a `workflowRuns` table with a `halt` mutation that cascades status updates to all associated in-flight tasks and notifies connected agents via gateway.
-
-**Dependencies:** Workflow definition (1.1), WebSocket gateway (exists).
-
----
-
-### 3.5 Rate Limiting and Abuse Prevention
-
-**What it is:** Preventing any single agent, workflow, or operator from consuming disproportionate resources or making API calls at dangerous rates.
-
-**Why it's critical:** Without rate limits, a misconfigured workflow can DDoS the system or incur runaway API costs. Rate limiting is the last line of defense before budget enforcement.
-
-**Current MC state:** `rateLimit.ts` implements token-bucket rate limiting. The heartbeat mutation is rate-limited (6/minute per agent). The infrastructure exists but is not applied to the higher-risk operations (workflow triggers, agent invocations).
-
-**Implementation complexity:** Low (infrastructure exists). Medium (applying rate limits to workflow trigger, agent task creation, and external API calls).
-
----
-
-## 4. Anti-Features (What NOT to Build)
-
-These are capabilities that sound valuable but will waste engineering time, create complexity, and distract from the core mission in v1.
-
-### 4.1 Do NOT Build: Autonomous Scheduling (v1)
-
-**What it is:** The system autonomously triggers workflows based on time, events, or AI-driven schedules without human initiation.
-
-**Why not:** V1 is explicitly supervised. Autonomous scheduling requires much higher confidence in the governance model. Build and prove supervision first; earn autonomy.
-
-**What to do instead:** Provide a clear trigger API that can be called by external schedulers (cron, webhooks) in v2. Keep the v1 trigger surface simple and human-initiated.
-
----
-
-### 4.2 Do NOT Build: Multi-Stage Conditional Approval Workflows (v1)
-
-**What it is:** Approval gates with branching logic ("if Team A approves, go to step 2; if Team B approves, go to step 3").
-
-**Why not:** Simple approve/reject is enough for v1. Conditional approval trees are complex to define, test, and reason about. They also require multi-user RBAC to be meaningful.
-
-**What to do instead:** Binary approve/reject with optional "reason" text. Multi-stage approvals are a v2 enterprise feature.
-
----
-
-### 4.3 Do NOT Build: ML-Driven Predictive Cost Forecasting (v1)
-
-**What it is:** Predicting future token spend based on historical trends using a machine learning model.
-
-**Why not:** The data required to train meaningful predictions does not exist in v1. Premature ML adds complexity without value. Historical averages and current-run projections are sufficient.
-
-**What to do instead:** Simple average-cost-per-run extrapolation based on historical execution records. Ship the data infrastructure; forecasting is a product layer on top.
-
----
-
-### 4.4 Do NOT Build: Custom Agent Types and Plugin Architecture (v1)
-
-**What it is:** An extensible plugin system allowing third parties to define new agent roles, capabilities, or execution backends.
-
-**Why not:** Premature abstraction. The existing agent model (10 specialist agents with defined roles) is the right scope for v1. A plugin architecture requires designing stable API contracts that Mission Control cannot yet know the right shape of.
-
-**What to do instead:** Integrate deeply with the existing 10-agent model. Document the integration contract. Design for extensibility in v2 once the v1 contracts are proven.
-
----
-
-### 4.5 Do NOT Build: Full Multi-Tenant RBAC (v1)
-
-**What it is:** Role-based access control with per-user permissions, team-based access policies, and resource-level authorization.
-
-**Why not:** V1 is single-user (per `PROJECT.md` constraints). Building RBAC before multi-user is needed adds complexity with no near-term value.
-
-**What to do instead:** Capture `operatorId` in audit records from day one (low cost, high future value). Defer permission enforcement until multi-user v2.
-
----
-
-### 4.6 Do NOT Build: Real-Time Push Notifications (v1)
-
-**What it is:** WebSocket or SSE push notifications to operator browsers/mobile devices when events occur.
-
-**Why not:** The in-app dashboard with polling or Convex's reactive queries already provides live updates. Push notifications require additional infrastructure (WebPush, APNs, FCM) and are out of scope per `PROJECT.md`.
-
-**What to do instead:** Leverage Convex's real-time reactive queries for in-app live updates. Slack/email channel notifications are already supported in `alertRules.ts` for critical alerts.
-
----
-
-## 5. V1 MVP Scope
-
-The minimum feature set that delivers genuine control plane value while remaining buildable in a single sprint cycle.
-
-### Priority Tier 1 (Launch Blockers — must have at launch)
-
-| Feature | Current State | Gap | Effort |
-|---------|--------------|-----|--------|
-| Workflow definition model (DAG + steps) | Partial (epics/tasks) | Explicit workflow table, step ordering, version field | Medium (1-2 sprints) |
-| Manual workflow trigger from UI | None | Trigger API + parameter form + workflow run record | Medium (1 sprint) |
-| Workflow run status view | Scattered (agents + tasks views) | Unified workflow run view showing all steps + agents | Low (1 sprint) |
-| Approval queue with approve/reject | Backend done | Approval queue UI, pending indicator, notification | Low (1 sprint) |
-| Audit log viewer | Data exists | Search/filter UI over decisions + activities + executions | Low (1 sprint) |
-| Cost tracking per run | Backend done | Aggregated cost query + cost summary in UI | Low (0.5 sprint) |
-
-### Priority Tier 2 (High Value, Ship Within First Month)
-
-| Feature | Current State | Gap | Effort |
-|---------|--------------|-----|--------|
-| Budget enforcement (halt on limit) | None | Budget config + pre-invocation check + halt mutation | Medium (1 sprint) |
-| Failure detail view | Basic error field | Failure-focused UI with error + context + affected steps | Low (0.5 sprint) |
-| Workflow halt (emergency stop) | None | Halt mutation cascading to tasks + agent notification | Medium (1 sprint) |
-| Alert rule evaluation wired to anomaly detection | Partially built | Connect anomaly detection → alert rule eval → notification | Low (1 sprint) |
-| Operator identity in audit records | None | Add triggeredBy field to key mutations | Low (0.5 sprint) |
-
-### Priority Tier 3 (Differentiators, Post-Launch)
-
-| Feature | Current State | Gap | Effort |
-|---------|--------------|-----|--------|
-| Live agent I/O trace viewer | Gateway exists | Trace event schema + trace store + live trace UI | High (2-3 sprints) |
-| Pattern learning UI | Backend done | Surface pattern suggestions in workflow builder | Medium (1 sprint) |
-| Workflow versioning | None | Version field + snapshot on run + version selector UI | Medium (1-2 sprints) |
-| Cost forecast (average-based) | None | Historical avg cost query + "estimated cost" on trigger | Low (0.5 sprint) |
-| Audit log export (CSV/JSON) | Data exists | Export API endpoint + download UI | Low (0.5 sprint) |
-
----
-
-## 6. Feature Dependencies Map
+## Feature Dependencies
 
 ```
-Agent Registry (exists)
-    └── Workflow Definition → Workflow Trigger → Workflow Run Status
-                                              └── Budget Enforcement
-                                              └── Workflow Halt
-                                              └── Approval Gates (exists)
+Workspace Enforcement Wrapper -> Per-Workspace Budget Limits
+  (must scope data correctly before tracking costs per workspace)
 
-Execution Logging (exists)
-    └── Cost Tracking → Cost Dashboard → Budget Enforcement
-    └── Audit Log Viewer
-    └── Decision Traceability
+Per-Execution Token Counting -> Per-Agent Cost Aggregation -> Per-Workspace Budget Limits
+  (can't enforce budgets without accurate cost data flowing up)
 
-Anomaly Detection (exists)
-    └── Alert Rules (exists) → Alert Notifications → Operator Identity in Alerts
+Cron Re-enablement -> Alert Rule Evaluation -> Budget Alert Notifications
+  (alerts don't fire if cron is broken)
 
-WebSocket Gateway (exists)
-    └── Real-time Status Updates
-    └── Live Agent I/O (post-v1)
+Cron Re-enablement -> Stale Approval Escalation
+  (escalation checks run on cron schedule)
 
-Pattern Learning (exists)
-    └── Pattern Suggestions UI (post-v1)
+Approval System -> Approval Velocity Metrics -> Approval Dashboard
+  (metrics require functional approval lifecycle)
+
+Workflow Engine (Phase 10) -> Cost-Aware Workflow Routing
+  (needs workflow step model before routing decisions)
+
+Anomaly Detection -> Anomaly-Triggered Budget Freeze
+  (anomaly module must be integrated with budget enforcement)
 ```
 
----
-
-## 7. What Successful Control Planes Do Differently
-
-Synthesis from Temporal, Dagster, Prefect, and AI-native orchestrators:
-
-**Temporal's key insight:** Treat workflow state as durable code. Failures are recoverable because the workflow history is the source of truth. Replay means re-running from the last good state, not from scratch. Mission Control analog: execution log as replay source, not just debugging data.
-
-**Dagster's key insight:** Assets (outputs) are first-class, not just tasks. The question is not "did the task run?" but "is the asset fresh?" Mission Control analog: decision outputs and agent artifacts could be tracked as versioned assets, not just logged events.
-
-**Prefect's key insight:** Make observability the product, not an afterthought. The Prefect UI is centered on "what's happening right now" before workflow definition. Mission Control analog: the execution dashboard should be the entry point, not the workflow builder.
-
-**LangSmith/Langfuse's key insight:** LLM-specific observability (traces, prompts, responses) requires a fundamentally different data model than traditional task orchestration. Token counts, model names, prompt versions, and inference latency are first-class fields. Mission Control already has these fields in `executions`—the gap is the UI.
-
-**The common pattern:** All successful control planes treat the audit trail as the product's foundational value proposition. Every other feature (monitoring, replays, optimization) is built on top of the audit log. Mission Control's `decisions.ts` + `executionLog.ts` + `activities.ts` is the right foundation; the investment must now go into making that data queryable and explorable.
+**Critical path:** Cron re-enablement unblocks alert evaluation, escalation, and budget enforcement. It should be the first thing fixed.
 
 ---
 
-*Last updated: 2026-02-25*
+## MVP Recommendation
+
+### Must build first (blocks everything else):
+
+1. **Re-enable cron scheduling** -- Fix the `SchedulableFunctionReference` type issue. Without working cron, alert evaluation, escalation, heartbeat monitoring, and presence cleanup are all dead. This is a P0 bug, not a feature.
+
+2. **Workspace-scoped query enforcement wrapper** -- Create `withWorkspace(ctx, workspaceId)` that wraps `ctx.db` to auto-filter by workspace. Apply to all existing queries/mutations. This eliminates the largest class of potential data isolation bugs.
+
+3. **Per-workspace budget limits** -- Add `budgetCents`, `budgetPeriod` (daily/weekly/monthly), and `currentSpendCents` fields to workspace or a new `budgetPolicy` table. Enforce in `createExecution()` -- reject execution if budget exceeded.
+
+4. **Budget threshold alerts** -- Add `budgetThresholdExceeded` condition to `alertRules`. Trigger at 50%, 75%, 90% of budget. Requires working cron (see #1).
+
+5. **Stale approval escalation** -- Add cron job checking for approvals pending > N hours. Notify workspace admins. Prevents governance deadlocks where an agent is blocked waiting for approval that nobody noticed.
+
+### Defer:
+
+- **Hierarchical budget controls (org > workspace > agent > model):** Build single-level workspace budgets first. Hierarchical budgets are a v2 feature after validating the basic model.
+- **Cost-aware workflow routing:** Requires completed workflow engine (Phase 10) plus budget system. This is a Phase 12+ feature.
+- **Decision replay:** High complexity, low urgency. The audit data is being captured already -- the replay UI can come later.
+- **Cross-workspace agent metrics:** Agents currently work across workspaces. Per-workspace breakdown is useful but not blocking. Add `workspaceId` to metrics aggregation when the dashboard is built.
+
+---
+
+## Patterns from the Industry
+
+### What leading platforms do that Mission Control should adopt:
+
+**1. Centralized AI Gateway Pattern (Portkey, liteLLM)**
+Every LLM request passes through a single gateway that logs tokens, cost, latency, and metadata. Mission Control's `createExecution()` / `updateExecutionStatus()` serve this role for the orchestration layer. The gap is connecting this to actual LLM API calls (the gateway integration in `src/app/api/gateway/`).
+
+**Confidence:** HIGH -- This pattern is universal across Portkey, TrueFoundry, Langfuse, and every serious AI observability platform.
+
+**2. Showback Before Chargeback**
+Start by showing teams their costs (showback) before enforcing limits (chargeback). This builds trust in the cost data before it becomes punitive. Mission Control should implement the cost dashboard and let users validate accuracy for 2-4 weeks before enabling hard budget enforcement.
+
+**Confidence:** HIGH -- Recommended by Drivetrain, Mavvrik, and every FinOps practitioner.
+
+**3. Confidence-Based Escalation Tiers**
+- Low risk + high confidence (>80): auto-execute
+- Medium risk or medium confidence (60-80): request approval
+- High risk or low confidence (<60): block and route to owner
+
+Mission Control's `CONFIDENCE_THRESHOLD = 80.0` is a single threshold. The pattern should evolve to support tiered thresholds based on action risk level.
+
+**Confidence:** MEDIUM -- Pattern is well-documented (Galileo, Zapier HITL guides) but the specific thresholds need calibration per deployment.
+
+**4. Immutable Audit Ledger**
+Mission Control has FOUR overlapping audit systems: `activities`, `decisions`, `events`, and `executionLog`. Industry best practice is a single append-only event stream (like `events`) with derived views, not four separate tables with different schemas. This should be consolidated.
+
+**Confidence:** HIGH -- Every enterprise AI governance framework (ISACA, Deloitte, Galileo) emphasizes a single source of truth for audit trails.
+
+---
+
+## Sources
+
+- [WorkOS Multi-Tenant Architecture Guide](https://workos.com/blog/developers-guide-saas-multi-tenant-architecture)
+- [Convex Row Level Security Patterns](https://stack.convex.dev/row-level-security)
+- [Convex Community: Multi-tenant Product Discussion](https://discord-questions.convex.dev/m/1471574111246356491)
+- [Portkey: Budget Limits and Alerts in LLM Apps](https://portkey.ai/blog/budget-limits-and-alerts-in-llm-apps/)
+- [Portkey: Tracking LLM Token Usage](https://portkey.ai/blog/tracking-llm-token-usage-across-providers-teams-and-workloads/)
+- [liteLLM: Budgets and Rate Limits](https://docs.litellm.ai/docs/proxy/users)
+- [Hierarchical Budget Controls for Multi-Tenant LLM Gateways](https://dev.to/pranay_batta/building-hierarchical-budget-controls-for-multi-tenant-llm-gateways-ceo)
+- [Statsig: Token Usage Tracking](https://www.statsig.com/perspectives/tokenusagetrackingcontrollingaicosts)
+- [TrueFoundry: LLM Cost Tracking Solution](https://www.truefoundry.com/blog/llm-cost-tracking-solution)
+- [Mavvrik: AI Cost Governance Report 2025](https://www.mavvrik.ai/ai-cost-governance-report/)
+- [Galileo: Human-in-the-Loop Agent Oversight](https://galileo.ai/blog/human-in-the-loop-agent-oversight)
+- [Zapier: Human-in-the-Loop Patterns](https://zapier.com/blog/human-in-the-loop/)
+- [Galileo: AI Agent Compliance & Governance 2025](https://galileo.ai/blog/ai-agent-compliance-governance-audit-trails-risk-management)
+- [ISACA: The Growing Challenge of Auditing Agentic AI](https://www.isaca.org/resources/news-and-trends/industry-news/2025/the-growing-challenge-of-auditing-agentic-ai)
+- [AWS: SaaS Tenant Isolation Strategies](https://docs.aws.amazon.com/whitepapers/latest/saas-architecture-fundamentals/tenant-isolation.html)
+- [LangGraph vs AutoGen vs CrewAI Comparison](https://latenode.com/blog/platform-comparisons-alternatives/automation-platform-comparisons/langgraph-vs-autogen-vs-crewai-complete-ai-agent-framework-comparison-architecture-analysis-2025)
+- [Better Stack: Cron Job Monitoring Tools 2026](https://betterstack.com/community/comparisons/cronjob-monitoring-tools/)

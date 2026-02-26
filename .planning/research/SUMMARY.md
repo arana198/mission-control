@@ -1,166 +1,101 @@
-# Project Research Summary
+# Research Summary: Mission Control REST API & Agent Orchestration
 
-**Project:** Mission Control — Multi-Agent Orchestration Control Plane
-**Domain:** Agent control plane / workflow orchestration / AI governance
-**Researched:** 2026-02-25
-**Confidence:** HIGH
+**Domain:** Agent Orchestration Platform - REST API Layer, Workflow Patterns, Notification Design, OpenAPI Documentation
+**Researched:** 2026-02-26
+**Overall confidence:** HIGH
+
+---
 
 ## Executive Summary
 
-Mission Control is a control plane for supervising autonomous specialist agents. The dominant pattern in 2025 for TypeScript-first control planes is to treat workflow state as an append-only event log (Temporal's insight), make the execution dashboard the entry point rather than the workflow builder (Prefect's insight), and enforce budget and governance at the orchestration layer before execution begins — not as an afterthought. The research confirms that Mission Control already has substantial infrastructure (agents, executions, approvals, anomaly detection, gateways) but is missing the unifying abstraction that binds them: a first-class `workflows` table with DAG step definitions, a step scheduler (execution engine), and the UI surfaces that make that data legible to operators.
+Mission Control is a Convex + Next.js agent orchestration platform managing 10 specialized AI agents across multi-workspace environments. The codebase has a solid foundation: 60+ API route handlers, Zod validation schemas, Convex backend with real-time subscriptions, DAG-based workflow validation (44 passing tests), and gateway WebSocket integration with connection pooling.
 
-The recommended approach for v1 is to build entirely on the existing Convex + Next.js stack without adding external services. The `@convex-dev/workflow` component provides durable execution. The existing `executions` table (extended with event sourcing semantics) provides audit and replay. Custom Convex mutations implement the execution engine and budget enforcement. This is the stack constraint imposed by the project and is also the architecturally correct choice for a single-operator v1: zero new infrastructure, reactive by default, fully typed.
+This research addresses four domains: (1) modernizing the REST API layer to current standards, (2) agent orchestration workflow execution patterns, (3) notification delivery for agent teams, and (4) keeping OpenAPI documentation synchronized with the actual API.
 
-The critical risk is not technical — it is scope and ordering. Multi-agent systems fail expensively and compoundingly when cost controls and auditability are treated as v2 concerns. The research across all four dimensions converges on the same warning: observability and budget enforcement must be baked into the schema and data model before the first workflow runs. Every other feature depends on them. Phase 1 must establish the data foundation; governance features that skip this foundation cannot be retrofitted.
+The highest-impact finding is that the project already has `zod-openapi` as a dependency but uses a hand-built 900+ line OpenAPI generator that will inevitably drift from the actual API. Replacing this with schema-driven generation from existing Zod validators is the single highest-ROI improvement -- low effort, eliminates an entire class of documentation bugs.
 
----
+The second key finding is that `@convex-dev/workflow` (Convex's native durable workflow component) should be adopted instead of building a custom execution engine. The project already has the scheduling primitives (DAG validation, topological sort, ready-step computation, state machines) -- the missing piece is durable execution with retry, and `@convex-dev/workflow` provides exactly that within the existing Convex infrastructure.
+
+For API design, the recommendation is URL path versioning (`/api/v1/`), cursor-based pagination, RFC 9457 error responses, and migration of the existing centralized error handler to produce the standard format. For notifications, the existing polling model is correct for agent consumers; webhook push should be added as a secondary channel for time-sensitive events only after the core workflow engine is operational.
 
 ## Key Findings
 
-### Recommended Stack
+**Stack:** Keep Convex + Next.js. Add `@convex-dev/workflow` for durable execution. Leverage existing `zod-openapi` for spec generation. No new infrastructure needed.
 
-The entire control plane can and should be built on the existing Convex + Next.js stack. No new languages, frameworks, or services are needed for v1. The research evaluated Temporal, Inngest, Mastra, LangGraph, Hatchet, AutoGen, and CrewAI; all were ruled out for v1 due to Python primacy, heavyweight infrastructure requirements, or license concerns (Mastra's Elastic v2). The `@convex-dev/workflow` component runs entirely within the existing Convex deployment, survives restarts, and makes workflow state reactive to the dashboard via existing `useQuery` subscriptions.
+**Architecture:** Action-mutation handoff pattern for gateway dispatch. Each workflow step is a Convex action (network calls allowed) that reports results back via mutation (database writes). DAG advancement happens in mutations, dispatch happens in actions.
 
-**Core technologies:**
-- `@convex-dev/workflow` (stable 2025): durable workflow execution — zero new infra, native Convex typing, reactive by default
-- `graphlib` ^3.0.0 (MIT): cycle detection and topological sort for DAG validation — battle-tested, 50 lines of integration code
-- `@traceloop/node-server-sdk` (OpenLLMetry-JS): token instrumentation via OTel GenAI conventions — zero-config wrapping of Anthropic/OpenAI SDK
-- Convex `executions` table (extended): cost accounting and audit log — existing schema extended with `eventType`, `correlationId`, `estimatedCostUsd`
-- Custom Convex pre-step mutation: budget enforcement — in-process comparison against `totalCostCents`, no gateway proxy needed for v1
-
-**Deferred to v2+:** Langfuse (LLM observability dashboard), LiteLLM/Helicone (gateway-layer hard budget stops), ClickHouse (cold audit archive), Temporal/Hatchet (advanced workflow engines).
-
-See `.planning/research/STACK.md` for full analysis.
-
----
-
-### Expected Features
-
-The research identifies a tight v1 MVP: 6 Tier-1 launch blockers (all buildable) and 5 Tier-2 high-value items. The key realization is that the data model for most features already exists — the gap is the unifying workflow abstraction, the step scheduler, and the UI surfaces.
-
-**Must have (table stakes — launch blockers):**
-- Workflow definition model (DAG + steps + version) — the missing abstraction that ties agents, tasks, and execution together; `graphValidation.ts` DAG logic already exists
-- Manual workflow trigger from UI — no trigger mechanism exists today; medium effort (1 sprint)
-- Unified workflow run status view — data exists across scattered views; needs composition into single run view
-- Approval queue UI — `approvals.ts` backend is complete; only the UI queue and notification are missing
-- Audit log viewer — `decisions`, `activities`, `executions` tables already capture data; search/filter UI is the gap
-- Cost tracking per run — `calculateCost()` exists; needs aggregated cost queries and UI summary
-
-**Should have (high value, ship within first month):**
-- Budget enforcement with halt-on-limit — no enforcement logic exists despite data being present; medium effort
-- Workflow halt (emergency stop) — cascades cancellation to all in-flight steps and notifies agents via gateway
-- Failure detail view — failure-focused UI surface over the existing error fields
-- Anomaly detection wired to alert rules — components exist separately; need to be connected end-to-end
-- Operator identity (`triggeredBy`) in audit records — add once, never retrofit
-
-**Defer (v2+):**
-- Autonomous scheduling — v1 is supervised; earn trust before removing the human trigger
-- Multi-stage conditional approval workflows — binary approve/reject is sufficient for v1
-- ML-driven predictive cost forecasting — no historical data to train on in v1
-- Custom agent type plugin architecture — premature abstraction; v1 contracts are not yet stable
-- Full multi-tenant RBAC — single-user v1; capture `operatorId` from day one but defer enforcement
-- Live agent I/O trace viewer — gateway infrastructure exists but trace schema + UI is high effort (2-3 sprints); post-launch
-
-See `.planning/research/FEATURES.md` for full analysis.
-
----
-
-### Architecture Approach
-
-The architecture separates into six layers with strict boundaries: Workflow Definition (static artifacts in Convex), Execution Engine (Convex mutations as the scheduler), State Management (three new tables: `workflow_executions`, `workflow_steps`, `workflow_events`), Observability (reads from state; never writes), Economic Tracking (budget check before dispatch; cost rollup via hourly cron), and Audit/Replay (append-only `workflow_events` with periodic snapshots). The gateway layer is pass-through transport only — all state authority lives in Convex.
-
-**Major components:**
-1. Workflow Definition Layer (`workflows` table) — stores versioned DAG definitions; validates acyclicity on save via existing `detectCycle()`; never mutated in place
-2. Execution Engine (Convex mutations) — `startWorkflow`, `onStepComplete`, `onStepFailed`, `abortWorkflow`; single authority for dispatch sequencing; must be decomposed into small atomic mutations (Convex 10-second limit)
-3. State Management (`workflow_executions` + `workflow_steps` + `workflow_events`) — runtime ledger; Convex MVCC provides race-free concurrent step completions without explicit locks
-4. Economic Tracker (extends existing `executions` + `calculateCost()`) — pre-dispatch budget check is in-process (no DB roundtrip); hourly cron aggregates metrics for dashboard
-5. Audit/Replay Layer (`workflow_events` append-only + `workflow_snapshots`) — snapshot every 50 events and on completion; denormalize agent/workflow names at write time for historical accuracy
-6. Gateway Layer (existing, unchanged) — reuse `gatewayConnectionPool` and `gatewayRpc.call()`; add `dispatchStep` RPC and `onStepResult` callback
-
-**Build order (critical — each phase depends on prior):**
-Phase A: Schema → Phase B: Economic Layer → Phase C: Workflow Definition → Phase D: State Management → Phase E: Execution Engine → Phase F: Gateway Integration → Phase G: Audit/Replay → Phase H: Observability Dashboard
-
-See `.planning/research/ARCHITECTURE.md` for full analysis.
-
----
-
-### Critical Pitfalls
-
-The pitfalls research (14 identified failure modes, synthesized from 20+ production post-mortems and academic studies) reduces to five actionable imperatives for Mission Control:
-
-1. **Cost controls must be in the schema, not the UI** — Runaway agent execution is the single highest-impact failure. A production example: a single retry storm caused a 1,700% cost spike during a provider outage. Prevention: hard token budget per task enforced at orchestration layer before dispatch; real-time in-flight cost tracking; circuit breaker halting tasks that retry the same action 3x without progress. *Phase A must include budget fields in schema.*
-
-2. **Log every LLM call at all six layers — never sample** — Most observability tools capture only the LLM layer (final prompt/response) and miss: trigger context, orchestration decisions, tool call inputs/outputs, inter-agent payloads, and side effects. Without all six layers, production incidents cannot be debugged. Prevention: unified `executionId` spanning the entire workflow; structured JSON log per call with `{ taskId, workflowId, agentId, modelId, inputTokens, outputTokens, toolCallTokens, retryCount, timestamp }`. *Observability is a prerequisite, not a feature.*
-
-3. **Persist state machine in Convex at every transition — never rely on in-memory state** — WebSocket disconnects and process restarts silently lose execution state when it lives in memory. The specific risk for Mission Control: if a gateway connection drops mid-step, the step state must be recoverable from Convex, not from the gateway process. Prevention: explicit step status enum persisted on every transition; checkpoint snapshots at each agent handoff. *Phase D (State Management) is more critical than Phase E (Execution Engine).*
-
-4. **Schema-validate all inter-agent handoffs** — Hallucinations propagate through agent chains when Agent B trusts Agent A's output as ground truth. A structured handoff schema (`{ taskId, inputs, constraints, parentSummary }`) that is validated before forwarding prevents hallucination amplification. Prevention: agents return structured JSON with defined schemas; lightweight validation gate in the execution engine before advancing to next step. *This is Phase C (Workflow Definition) work: define output schemas per step at authoring time.*
-
-5. **Risk-stratify approvals — never require approval for every action** — Governance systems fail through approval fatigue when every minor action triggers a review. The opposite failure (single coarse-grained approval covering irreversible actions) is equally dangerous. Prevention: action risk tiers defined in workflow definition (read / write / irreversible / financial); approval required only for high-risk tiers; approval requests must show exact parameters and estimated cost, not just action type; approvals are time-bound and non-reusable across runs. *Current `approvals.ts` backend implements this correctly; the UI must expose risk context.*
-
-See `.planning/research/PITFALLS.md` for full analysis.
+**Critical pitfall:** Hand-built OpenAPI spec WILL drift from actual API behavior. Replace with schema-driven generation before the spec becomes unreliable.
 
 ---
 
 ## Implications for Roadmap
 
-Based on combined research, the architecture's prescribed build order maps directly to roadmap phases. The dependency chain is strict: you cannot build the execution engine before state management, and state management requires the schema. Budget enforcement belongs in Phase 2 (before the engine runs anything), not deferred.
+Based on research, suggested phase structure:
 
-### Phase 1: Data Foundation (Schema + Economic Layer)
-**Rationale:** All other phases depend on the schema. Establishing `workflow_executions`, `workflow_steps`, and `workflow_events` tables — plus budget fields — before any execution logic prevents the most expensive pitfall: retrofitting cost controls into a live system. This is architecturally mandatory, not optional.
-**Delivers:** Three new Convex tables with proper indexes; extended `executions` schema with event sourcing fields (`eventType`, `correlationId`, `estimatedCostUsd`); model pricing table; migrations for all changes; schema tests.
-**Addresses features:** Prerequisite for all Tier-1 features; directly addresses cost tracking (2.1) and audit log (1.6).
-**Avoids pitfalls:** Runaway execution (cost fields in schema from day 1); insufficient logging depth (event schema captures all 6 layers); lost state (state machine fields baked in).
-**Research flag:** Standard patterns — Convex schema migration is well-documented; no research needed.
+### 1. API Foundation Phase - Standardize the REST Layer
 
-### Phase 2: Workflow Definition + Budget Enforcement
-**Rationale:** The workflow abstraction is the missing linchpin. Without it, agents and tasks remain disconnected primitives. Budget enforcement belongs here because it must check against workflow-level budget caps — which only exist once workflows are defined. This phase closes the largest feature gap (no workflow pipeline abstraction) while establishing governance before any execution engine runs.
-**Delivers:** `workflows` table with CRUD mutations; DAG validation using `detectCycle()` at save time; `WorkflowDefinition` type with `totalBudgetCents`; `canDispatchStep()` budget enforcement function; workflow versioning.
-**Addresses features:** Workflow definition model (Tier-1); budget enforcement (Tier-2); operator identity in audit records (Tier-2 — low effort, add here).
-**Avoids pitfalls:** Implicit dependencies (explicit typed dependency graph); approval exhaustion (risk tier classification in workflow definition); policy drift (model version pinned at workflow definition time).
-**Research flag:** Standard patterns — DAG definition and budget enforcement are well-understood; no research needed.
+**Rationale:** Every subsequent feature (workflows, notifications, webhooks) is delivered via the REST API. Standardizing error format, pagination, and versioning FIRST means all new features ship with consistent patterns from day one.
 
-### Phase 3: Execution Engine + Gateway Integration
-**Rationale:** With schema and workflow definitions in place, the execution engine is a straightforward implementation of the state machine. Gateway integration reuses existing `gatewayConnectionPool` and `gatewayRpc.call()` — the only additions are `dispatchStep` RPC and `onStepResult` callback. This phase makes the system executable end-to-end for the first time.
-**Delivers:** `startWorkflow`, `onStepComplete`, `onStepFailed`, `abortWorkflow` mutations; parallel fan-out via `getReadySteps()`; retry policy with exponential backoff + jitter; `dispatchStep` and `onStepResult` gateway wiring; workflow trigger API endpoint.
-**Addresses features:** Manual workflow trigger (Tier-1); workflow halt/emergency stop (Tier-2); failure handling (Tier-2).
-**Avoids pitfalls:** Silent failure modes (explicit status enum, dead letter queue for halted tasks); cascading resource failures (orchestrator-level rate limiting, circuit breaker); hallucination propagation (schema validation gate in `onStepComplete`).
-**Research flag:** Needs phase research — Convex mutation time limits (10s max) require careful decomposition of long orchestration loops into small atomic mutations. Verify `@convex-dev/workflow` behavior at step boundaries.
+**Addresses:**
+- URL path versioning (`/api/v1/`)
+- RFC 9457 error responses (single change to `handleApiError()` updates all routes)
+- Cursor-based pagination helpers
+- OpenAPI spec generation from Zod schemas (replace hand-built generator)
 
-### Phase 4: Observability UI (Run View + Approval Queue + Cost Dashboard)
-**Rationale:** The execution engine produces data; this phase makes that data visible. The Prefect insight applies here: the dashboard is the product. Cost tracking data, audit records, and approval workflows already have backend implementations — this phase surfaces them in a unified operator interface.
-**Delivers:** Unified workflow run view (step-level drill-down, status per step, assigned agents); approval queue UI with approve/reject actions and pending notifications; cost breakdown dashboard (per-agent, per-workflow, today's spend); failure detail view with error context.
-**Addresses features:** Workflow run status view (Tier-1); approval queue UI (Tier-1); audit log viewer (Tier-1); cost tracking per run (Tier-1); failure detail view (Tier-2); alert rule notifications (Tier-2).
-**Avoids pitfalls:** Speed over observability (the dashboard is the entry point, not an afterthought); insufficient logging depth (all six layers visible in run view); compliance gaps (audit log viewer with search, filter, and eventual export).
-**Research flag:** Standard patterns — Convex `useQuery` reactive subscriptions are well-documented; UI component patterns are established in existing codebase.
+**Avoids:**
+- Pitfall: Two error formats coexisting (partial RFC 9457 adoption)
+- Pitfall: Breaking existing agents during versioning (use 301 redirects)
 
-### Phase 5: Audit/Replay + Pattern Learning Surfaces
-**Rationale:** After the system has accumulated execution history, the advanced auditability and intelligence features become valuable. Replay requires event snapshots that can only be taken after the event log is populated. Pattern learning UI requires accumulated execution data. This phase converts Mission Control from a governance tool to a learning system.
-**Delivers:** Replay engine (event log to execution state reconstruction); snapshot creation on completion and every 50 events; audit log viewer with search/filter by agent, workflow, time range, status, cost; pattern suggestions surface in workflow builder (backend `patternLearning.ts` already done); audit log export (CSV/JSON).
-**Addresses features:** Audit log viewer with full search (Tier-1 gap closed); pattern learning UI (Tier-3); audit log export (Tier-3); cost forecast based on historical averages (Tier-3).
-**Avoids pitfalls:** Lost state and non-reproducibility (full replay from checkpoint); compliance gaps (structured queries over audit data, export for external compliance tools).
-**Research flag:** Snapshot + incremental replay is a niche pattern — may benefit from brief research into Convex-specific snapshot storage patterns before implementation.
+### 2. Workflow Execution Engine Phase - Core Value Proposition
 
----
+**Rationale:** The workflow schema, validation logic, and state machines already exist. The execution engine is the missing piece that turns Mission Control from a task tracker into an orchestration platform.
 
-### Phase Ordering Rationale
+**Addresses:**
+- Integrate `@convex-dev/workflow` for durable step execution
+- Implement `advanceWorkflowStep` mutation (core DAG advancement loop)
+- Data chaining between steps (predecessor output -> successor input)
+- Per-step retry with exponential backoff
+- Step-level timeout detection
 
-- **Schema before engine:** The execution engine cannot be built without the tables it writes to. This is non-negotiable and matches the architecture's Phase A → Phase E dependency chain.
-- **Budget enforcement in Phase 2, not Phase 4:** Every production post-mortem in the pitfalls research identifies cost controls added "after the first incident" as the highest-consequence mistake. Budget fields must exist before the first execution.
-- **UI deferred to Phase 4:** The backend (Phases 1-3) must be testable independently of the UI. Building UI in parallel with engine logic creates coupling that makes debugging harder and slows TDD cycles.
-- **Audit/Replay last:** The replay engine's value is proportional to the quantity of historical data. Building it in Phase 1 (when there is no data) wastes effort; building it in Phase 5 (after Phases 1-4 have generated real execution data) maximizes value.
-- **Pattern learning deferred with replay:** Pattern learning UI requires `patternLearning.ts` (already built) to have accumulated data from real workflow runs. Phase 5 is the earliest it can deliver meaningful results.
+**Avoids:**
+- Pitfall: Synchronous multi-step execution in one mutation (action-mutation handoff)
+- Pitfall: Non-idempotent step dispatch (check-before-dispatch guard)
+- Pitfall: Workflow definition edited during execution (snapshot at trigger time)
 
-### Research Flags
+### 3. Notification & Monitoring Phase - Agent Lifecycle
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (Execution Engine):** Convex mutation execution time limits (10-second max) impose a constraint on how orchestration loops must be decomposed. The `@convex-dev/workflow` API for chaining steps needs to be verified against this constraint. Recommend a brief research spike on Convex action vs. mutation boundaries before detailed planning.
-- **Phase 5 (Audit/Replay):** Snapshot-based replay in Convex has no off-the-shelf solution. The `workflow_snapshots` table pattern is custom; verify storage size implications at the expected event volume before committing to the schema.
+**Rationale:** With workflows executing, agents need reliable notification delivery and the system needs monitoring to detect stalled agents and failed steps.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Schema):** Convex schema migrations are well-documented with established patterns in the existing codebase (`convex/migrations.ts`).
-- **Phase 2 (Workflow Definition):** DAG cycle detection with `graphlib` and `detectCycle()` is a solved problem; budget enforcement is a simple in-process comparison.
-- **Phase 4 (Observability UI):** Convex `useQuery` reactive patterns are used throughout the existing codebase; no new patterns needed.
+**Addresses:**
+- Webhook push for priority events (task.assigned critical, workflow.aborted)
+- Heartbeat-based liveness detection
+- Auto-reassignment for stalled agents
+- Budget enforcement per-step dispatch
+
+**Avoids:**
+- Pitfall: Agent deadlocks from crashed agents with no timeout detection
+- Pitfall: Webhook delivery without signature verification
+
+### 4. Observability & Documentation Phase - Production Readiness
+
+**Rationale:** With the system operational, build the dashboard and documentation that operators and agent developers need.
+
+**Addresses:**
+- Workflow execution dashboard (live status via Convex subscriptions)
+- Cost breakdown per workflow, step, agent
+- Audit log viewer
+- Swagger UI serving schema-generated OpenAPI spec
+
+**Phase ordering rationale:**
+- API Foundation must come first because error handling and pagination conventions propagate to every route
+- Workflow Engine depends on API Foundation (workflow trigger and status endpoints use standardized patterns)
+- Notifications depend on Workflow Engine (need running workflows to generate notification events)
+- Observability comes last because it needs operational data to display
+
+**Research flags for phases:**
+- Phase 2 (Workflow Engine): Needs deeper research on `@convex-dev/workflow` beta limitations, specifically around parallel step execution and error propagation
+- Phase 3 (Notifications): Webhook delivery reliability patterns need further investigation if agents are deployed across unreliable networks
+- Phase 1 and 4: Standard patterns, low research risk
 
 ---
 
@@ -168,45 +103,56 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Research covers official documentation for all frameworks evaluated; `@convex-dev/workflow` and OpenLLMetry-JS are first-party or widely adopted libraries with verified TypeScript support. Mastra v1 beta maturity is the only uncertainty — correctly deferred. |
-| Features | HIGH | Feature analysis benchmarked against 6 production systems (Temporal, Dagster, Prefect, Airflow, LangSmith, Helicone); existing codebase gaps accurately identified by cross-referencing schema and module files. |
-| Architecture | HIGH | Architecture recommendations are grounded in Mission Control's existing patterns (Convex mutations, WebSocket gateway, event logging) and extend them consistently. Six-layer model is well-established in industry. Build order derives from hard dependency constraints, not preference. |
-| Pitfalls | HIGH | Pitfalls sourced from 20+ post-mortems, academic research (Berkeley/MIT arXiv paper), and enterprise case studies. Quantitative claims (80% project failure rate, 340% cost overrun, 42% failure from implicit dependencies) are cited from named sources. |
-
-**Overall confidence:** HIGH
-
-### Gaps to Address
-
-- **`@convex-dev/workflow` step boundary behavior:** The component's API for chaining steps across Convex's 10-second mutation limit is partially documented. Validate with a prototype before Phase 3 planning.
-- **Streaming token counts for Anthropic API:** OpenLLMetry-JS may not capture token counts in streaming mode for all providers. A fallback estimator (chars/4 heuristic) should be designed in Phase 1 as a floor; validate during Phase 3 implementation.
-- **`estimatedCostCents` per step accuracy:** The pre-dispatch budget check depends on workflow authors providing estimated step costs. For v1 with a known set of 10 agents, seed initial estimates from historical execution data. Document the calibration loop in the workflow builder.
-- **Convex index performance at 90-day retention volume:** At the expected execution volume, verify that the `workflow_events` index by `workspaceId + timestamp` remains performant before the 90-day retention window fills. Plan a `pruneOldExecutions` cron as part of Phase 1 schema design.
+| REST API Design (versioning, pagination, errors) | HIGH | Industry consensus, multiple authoritative sources (Microsoft, Postman, RFC 9457) |
+| Workflow Execution (DAG patterns, action-mutation handoff) | HIGH | Convex documentation, existing codebase validation, industry patterns |
+| @convex-dev/workflow Suitability | MEDIUM | Beta component; API may change. Verified against official docs but limited production reports. |
+| Notification Patterns (polling vs webhooks) | HIGH | Well-established patterns, multiple sources agree. Convex real-time for dashboard is confirmed. |
+| OpenAPI from Zod (zod-openapi) | HIGH | Already a dependency, supports Zod v4, actively maintained, well-documented |
+| Rate Limiting Strategy | MEDIUM | Upstash/Convex approaches verified; specific implementation for this architecture needs Phase 1 research |
 
 ---
 
-## Sources
+## Gaps to Address
 
-### Primary (HIGH confidence)
-- [Convex Workflow Component](https://www.convex.dev/components/workflow) — durable execution, step chaining, retry semantics
-- [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) — token instrumentation standards
-- [OpenLLMetry-JS GitHub](https://github.com/traceloop/openllmetry-js) — TypeScript implementation, auto-instrumentation
-- [Mastra AI Framework](https://mastra.ai/blog/announcing-mastra-improved-agent-orchestration-ai-sdk-v5-support) — TS-first framework evaluation; Elastic v2 license noted
-- [Why Multi-Agent LLM Systems Fail (arXiv, Berkeley/MIT)](https://arxiv.org/html/2503.13657v1) — failure mode taxonomy, 42% implicit dependency stat
-- [OWASP MCP Top 10 2025](https://owasp.org/www-project-mcp-top-10/2025/MCP02-2025%E2%80%93Privilege-Escalation-via-Scope-Creep) — privilege escalation patterns
-- [Temporal TypeScript Workflows](https://medium.com/@sylvesterranjithfrancis/temporal-typescript-building-bulletproof-ai-agent-workflows-4863317144ce) — durable execution pattern reference
-
-### Secondary (MEDIUM confidence)
-- [Inngest Checkpointing](https://www.inngest.com/changelog/2025-12-10-checkpointing) — alternative workflow engine evaluation; rejected for v1 due to separate infrastructure
-- [Langfuse Token and Cost Tracking](https://langfuse.com/docs/observability/features/token-and-cost-tracking) — LLM observability reference; deferred to v2
-- [Helicone Cost Tracking](https://docs.helicone.ai/guides/cookbooks/cost-tracking) — LLM gateway evaluation; deferred to v2
-- [Postgres + ClickHouse for Agentic AI Scale](https://thenewstack.io/postgres-clickhouse-the-oss-stack-to-handle-agentic-ai-scale/) — cold storage pattern for v2+ audit archives
-- [AI Agent Cost Crisis](https://www.aicosts.ai/blog/ai-agent-cost-crisis-budget-disaster-prevention-guide/) — production cost overrun examples
-- [Multi-Agent Workflows Often Fail (GitHub Blog)](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/) — practical failure patterns
-
-### Tertiary (contextual)
-- [Forrester Agent Control Plane Market Evaluation](https://www.forrester.com/blogs/announcing-our-evaluation-of-the-agent-control-plane-market/) — market framing; control plane as emerging category
-- [Agentic AI Systems Don't Fail Suddenly — They Drift (CIO)](https://www.cio.com/article/4134051/agentic-ai-systems-dont-fail-suddenly-they-drift-over-time.html) — policy drift patterns
+- **@convex-dev/workflow beta stability:** No long-running production case studies found. Recommend running a spike/proof-of-concept with a 3-step workflow before full adoption.
+- **Zod v4 + zod-openapi integration specifics:** The `.meta()` API for adding OpenAPI metadata to Zod v4 schemas needs hands-on validation. The library documents support but the interaction with existing validators should be tested.
+- **Convex action retry behavior:** Documentation says actions are "at-most-once" but `@convex-dev/workflow` adds retry. Need to understand exactly when retries fire and how to prevent duplicate side effects.
+- **Cross-workspace agent context:** Agents are global but workflows are workspace-scoped. The exact mechanism for propagating workspace context through workflow dispatch needs design-time attention (addressed in existing PITFALLS.md CRIT-1).
 
 ---
-*Research completed: 2026-02-25*
-*Ready for roadmap: yes*
+
+## Files Created/Updated
+
+| File | Purpose |
+|------|---------|
+| `.planning/research/SUMMARY.md` | This file -- executive summary with roadmap implications |
+| `.planning/research/STACK.md` | Technology recommendations: REST API, workflow orchestration, notifications, OpenAPI |
+| `.planning/research/FEATURES.md` | Feature landscape (existing, from prior research session) |
+| `.planning/research/ARCHITECTURE.md` | Architecture patterns (existing, from prior research session) |
+| `.planning/research/PITFALLS.md` | Domain pitfalls (existing, from prior research session) |
+
+---
+
+## Sources (All Research)
+
+### REST API Design
+- [Postman: REST API Best Practices](https://blog.postman.com/rest-api-best-practices/)
+- [Microsoft: Web API Design Best Practices](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+- [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
+- [Speakeasy: Pagination Best Practices](https://www.speakeasy.com/api-design/pagination)
+- [Slack Engineering: Evolving API Pagination](https://slack.engineering/evolving-api-pagination-at-slack/)
+- [Swagger: RFC 9457 Error Handling](https://swagger.io/blog/problem-details-rfc9457-api-error-handling/)
+
+### Agent Orchestration
+- [Convex Workflow Component](https://www.convex.dev/components/workflow)
+- [Convex: Durable Workflows](https://stack.convex.dev/durable-workflows-and-strong-guarantees)
+- [Convex Scheduling Documentation](https://docs.convex.dev/scheduling)
+- [PracData: State of Workflow Orchestration 2025](https://www.pracdata.io/p/state-of-workflow-orchestration-ecosystem-2025)
+
+### Notification Patterns
+- [AlgoMaster: Polling vs SSE vs WebSockets vs Webhooks](https://blog.algomaster.io/p/polling-vs-long-polling-vs-sse-vs-websockets-webhooks)
+- [Convex Realtime Documentation](https://docs.convex.dev/realtime)
+
+### OpenAPI Documentation
+- [samchungy/zod-openapi GitHub](https://github.com/samchungy/zod-openapi)
+- [Speakeasy: Generate OpenAPI with Zod v4](https://www.speakeasy.com/openapi/frameworks/zod)
