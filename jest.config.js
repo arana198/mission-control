@@ -84,6 +84,9 @@ module.exports = {
   // Test timeout
   testTimeout: 10000,
 
+  // Setup files to run after test environment is ready
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+
   // Verbose output
   verbose: true,
 };
