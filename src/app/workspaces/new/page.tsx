@@ -122,7 +122,7 @@ export default function NewPage() {
               value={formData.name}
               onChange={handleNameChange}
               placeholder="e.g., Mission Control HQ"
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 border border-border rounded-lg text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               required
             />
           </div>
@@ -140,7 +140,7 @@ export default function NewPage() {
                 value={formData.slug}
                 onChange={handleSlugChange}
                 placeholder="auto-generated from name"
-                className="flex-1 px-4 py-3 border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 px-4 py-3 border border-border rounded-lg font-mono text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
             </div>
@@ -161,7 +161,7 @@ export default function NewPage() {
                 value={formData.emoji}
                 onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
                 maxLength={2}
-                className="w-full px-4 py-3 border border-border rounded-lg text-2xl text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-border rounded-lg text-2xl text-center text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
@@ -173,7 +173,7 @@ export default function NewPage() {
                 type="color"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="w-full px-4 py-3 border border-border rounded-lg h-12 cursor-pointer"
+                className="w-full px-4 py-3 border border-border rounded-lg h-12 cursor-pointer bg-background"
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function NewPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Brief description of your business"
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 border border-border rounded-lg text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -204,7 +204,7 @@ export default function NewPage() {
               onChange={(e) => setFormData({ ...formData, missionStatement: e.target.value })}
               placeholder="What problem does your workspace solve? What's your vision?"
               rows={4}
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="w-full px-4 py-3 border border-border rounded-lg text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               required
             />
             <p className="text-xs text-muted-foreground mt-2">

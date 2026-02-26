@@ -34,6 +34,11 @@ function createMockCtx(db: MockDatabase) {
   return {
     db: {
       get: (id: Id<"tasks">) => db.get(id),
+      query: (table: string) => ({
+        withIndex: (indexName: string, filter: (q: any) => any) => ({
+          take: (limit: number) => db.getAllTasks(),
+        }),
+      }),
     },
   };
 }

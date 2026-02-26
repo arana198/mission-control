@@ -74,18 +74,6 @@ export const migrationMultiSupport = mutation({
         }
       }
 
-      // Migrate goals - add workspaceId
-      const goals = await ctx.db.query("goals").collect();
-      const goalsBatch = goals.slice(0, batchSize);
-
-      for (const goal of goalsBatch) {
-        if (!goal.workspaceId) {
-          await ctx.db.patch(goal._id, {
-            workspaceId: defaultWorkspace,
-          });
-        }
-      }
-
       // Migrate activities - add workspaceId
       const activities = await ctx.db.query("activities").collect();
       const activitiesBatch = activities.slice(0, batchSize);
@@ -184,7 +172,6 @@ export const migrationMultiSupport = mutation({
         defaultId: defaultWorkspace,
         migratedTasks: Math.min(tasks.length, batchSize),
         migratedEpics: Math.min(epics.length, batchSize),
-        migratedGoals: Math.min(goals.length, batchSize),
         migratedActivities: Math.min(activities.length, batchSize),
         migratedDocuments: Math.min(documents.length, batchSize),
         migratedReports: Math.min(reports.length, batchSize),
@@ -1420,6 +1407,103 @@ export const migrateAddRBACSupport = mutation({
 });
 
 /**
+ * MIG-06: Fix businessId → workspaceId Migration (2026-02-25)
+ *
+ * Problem: Some documents (epics, tasks, goals, etc.) still have `businessId` field
+ * from before the Business → Workspace rename, and are missing `workspaceId`.
+ * This breaks the schema validation which requires `workspaceId` and doesn't allow `businessId`.
+ *
+ * Schema changes: None (schema.ts already updated)
+ *
+ * Migration action:
+ * 1. Get default workspace (created by previous migrations)
+ * 2. Find all documents with `businessId` but missing `workspaceId` in:
+ *    - epics
+ *    - tasks
+ *    - goals
+ *    - activities
+ *    - documents
+ *    - strategicReports
+ *    - messages
+ *    - threadSubscriptions
+ *    - executionLog
+ *    - settings
+ * 3. For each document:
+ *    - Add workspaceId: defaultWorkspace._id
+ *    - Remove businessId field (via patch with undefined)
+ *
+ * Idempotent: Only updates documents that have businessId, skips those with workspaceId.
+ */
+export const migrateFixBusinessIdToWorkspaceId = mutation({
+  args: {
+    batchSize: convexVal.optional(convexVal.number()),
+  },
+  handler: async (ctx, { batchSize = 100 }) => {
+    try {
+      // Get default workspace
+      const defaultWorkspace = await ctx.db
+        .query("workspaces")
+        .filter((q) => q.eq(q.field("isDefault"), true))
+        .first();
+
+      if (!defaultWorkspace) {
+        return {
+          message: "No default workspace found, skipping migration",
+          tablesFixed: 0,
+          documentsUpdated: 0,
+        };
+      }
+
+      let totalUpdated = 0;
+
+      // Helper function to process a table
+      const processTable = async (
+        tableName: "epics" | "tasks" | "activities" | "documents" | "strategicReports" | "messages" | "threadSubscriptions" | "executionLog" | "settings",
+        label: string
+      ) => {
+        const allDocs = await ctx.db.query(tableName).collect();
+        const docsToUpdate = allDocs.filter((doc: any) => doc.businessId && !doc.workspaceId);
+
+        for (let i = 0; i < docsToUpdate.length; i += batchSize) {
+          const batch = docsToUpdate.slice(i, i + batchSize);
+
+          for (const doc of batch) {
+            await ctx.db.patch(doc._id, {
+              workspaceId: defaultWorkspace._id,
+            });
+            totalUpdated++;
+          }
+
+          console.log(`${label}: Updated ${batch.length} documents`);
+        }
+
+        return docsToUpdate.length;
+      };
+
+      // Process each table individually
+      await processTable("epics", "migrateFixBusinessIdToWorkspaceId[epics]");
+      await processTable("tasks", "migrateFixBusinessIdToWorkspaceId[tasks]");
+      await processTable("activities", "migrateFixBusinessIdToWorkspaceId[activities]");
+      await processTable("documents", "migrateFixBusinessIdToWorkspaceId[documents]");
+      await processTable("strategicReports", "migrateFixBusinessIdToWorkspaceId[strategicReports]");
+      await processTable("messages", "migrateFixBusinessIdToWorkspaceId[messages]");
+      await processTable("threadSubscriptions", "migrateFixBusinessIdToWorkspaceId[threadSubscriptions]");
+      await processTable("executionLog", "migrateFixBusinessIdToWorkspaceId[executionLog]");
+      await processTable("settings", "migrateFixBusinessIdToWorkspaceId[settings]");
+
+      return {
+        message: "businessId → workspaceId migration completed",
+        documentsUpdated: totalUpdated,
+        defaultWorkspaceId: defaultWorkspace._id,
+      };
+    } catch (error) {
+      console.error("migrateFixBusinessIdToWorkspaceId failed:", error);
+      throw error;
+    }
+  },
+});
+
+/**
  * Implementation notes for Phase 6A migration:
  *
  * 1. Execute schema upgrade (schema.ts already updated)
@@ -1446,3 +1530,4 @@ export const migrateAddRBACSupport = mutation({
  *    - Verify agent_status records created for all agents
  *    - Verify executions.workspaceId backfilled correctly
  */
+

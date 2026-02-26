@@ -49,27 +49,6 @@ export const getTimelineRange = query(async (ctx, args: {
 });
 
 /**
- * GET all events for a goal
- * Note: Optionally workspace-scoped via workspaceId (uses by_workspace index if provided)
- */
-export const getByGoal = query(async (ctx, args: {
-  goalId: Id<'goals'>;
-  workspaceId?: Id<'workspaces'>;
-}) => {
-  // Use by_workspace index if workspaceId provided, otherwise full query
-  const events = args.workspaceId
-    ? await ctx.db
-        .query('calendarEvents')
-        .withIndex('by_workspace', (q: any) => q.eq('workspaceId', args.workspaceId!))
-        .take(500)
-    : await ctx.db
-        .query('calendarEvents')
-        .take(500);
-
-  return events.filter((e: any) => e.goalIds?.includes(args.goalId));
-});
-
-/**
  * CREATE human calendar event
  */
 export const createHumanEvent = mutation(async (ctx, args: {
@@ -78,7 +57,6 @@ export const createHumanEvent = mutation(async (ctx, args: {
   startTime: number;
   endTime: number;
   timezone: string;
-  goalIds?: Id<'goals'>[];
   color?: string;
 }) => {
   return await ctx.db.insert('calendarEvents', {
@@ -88,7 +66,6 @@ export const createHumanEvent = mutation(async (ctx, args: {
     endTime: args.endTime,
     timezone: args.timezone,
     type: 'human',
-    goalIds: args.goalIds || [],
     color: args.color || '#3b82f6',
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -105,7 +82,6 @@ export const scheduleTaskEvent = mutation(wrapConvexHandler(async (ctx, args: {
   startTime: number;
   durationHours: number;
   generatedBy: string;
-  goalIds?: Id<'goals'>[];
 }) => {
   const task = await ctx.db.get(args.taskId);
   if (!task) throw ApiError.notFound('Task', { taskId: args.taskId });
@@ -121,7 +97,6 @@ export const scheduleTaskEvent = mutation(wrapConvexHandler(async (ctx, args: {
     type: 'ai_task',
     taskId: args.taskId,
     generatedBy: args.generatedBy,
-    goalIds: args.goalIds || task.goalIds || [],
     color: '#8b5cf6', // Purple for AI tasks
     priority: task.priority === 'P0' ? 0 : task.priority === 'P1' ? 1 : 2,
     createdAt: Date.now(),
@@ -266,7 +241,6 @@ export const updateEvent = mutation(async (ctx, args: {
   startTime?: number;
   endTime?: number;
   color?: string;
-  goalIds?: Id<'goals'>[];
 }) => {
   const updates: any = {
     updatedAt: Date.now(),
@@ -277,7 +251,6 @@ export const updateEvent = mutation(async (ctx, args: {
   if (args.startTime) updates.startTime = args.startTime;
   if (args.endTime) updates.endTime = args.endTime;
   if (args.color) updates.color = args.color;
-  if (args.goalIds) updates.goalIds = args.goalIds;
 
   await ctx.db.patch(args.id, updates);
 });

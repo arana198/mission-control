@@ -14,12 +14,11 @@ import { WorkspaceFilter } from "../WorkspaceFilter";
 
 const CalendarView = lazy(() => import("../CalendarView").then(m => ({ default: m.CalendarView })));
 const BrainHub = lazy(() => import("../BrainHub").then(m => ({ default: m.BrainHub })));
-const BottleneckVisualizer = lazy(() => import("../BottleneckVisualizer").then(m => ({ default: m.BottleneckVisualizer })));
 const AnalyticsDashboard = lazy(() => import("../AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const ApiDocsPanel = lazy(() => import("../ApiDocsPanel").then(m => ({ default: m.ApiDocsPanel })));
 const AgentInbox = lazy(() => import("../AgentInbox").then(m => ({ default: m.AgentInbox })));
 
-type GlobalTabType = "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs" | "inbox";
+type GlobalTabType = "agents" | "workload" | "activity" | "calendar" | "brain" | "analytics" | "api-docs" | "inbox";
 
 interface GlobalDashboardProps {
   tab: GlobalTabType;
@@ -118,15 +117,6 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
                 tasks={filteredTasks || []}
                 activities={activities || []}
               />
-            </Suspense>
-          </ErrorBoundary>
-        );
-
-      case "bottlenecks":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<CardGridSkeleton />}>
-              <BottleneckVisualizer />
             </Suspense>
           </ErrorBoundary>
         );

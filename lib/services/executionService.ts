@@ -161,7 +161,6 @@ class ExecutionService {
         startTime,
         durationHours: estimatedHours,
         generatedBy: 'ExecutionService',
-        goalIds: task.goalIds,
       }
     );
 

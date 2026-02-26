@@ -39,7 +39,7 @@ class AdminMockDatabase {
     return _id;
   }
 
-  delete(id: string) {
+  async delete(id: string) {
     for (const docs of this.data.values()) {
       const index = docs.findIndex((d: any) => d._id === id);
       if (index !== -1) {
@@ -193,7 +193,7 @@ describe("Admin Mutations", () => {
       expect(mockDb.getTotalRecords()).toBe(0);
     });
 
-    it("should delete from all 26 expected tables", async () => {
+    it("should delete from all 27 expected tables", async () => {
       // Verify that clearAllData targets all required tables
       const tables = [
         "tasks", "epics", "goals", "messages", "activities", "documents",
@@ -204,7 +204,7 @@ describe("Admin Mutations", () => {
         "threadSubscriptions", "businesses", "agents", "keys",
       ];
 
-      expect(tables.length).toBe(26);
+      expect(tables.length).toBe(27);
       expect(tables).toContain("businesses");
       expect(tables).toContain("tasks");
       expect(tables).toContain("settings");

@@ -55,12 +55,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch active goals for this business
-    const goals = await client.query(api.goals.getActiveGoals, { workspaceId });
-    const allGoals = Array.isArray(goals) ? goals : Object.values(goals).flat() as any[];
-
     // Generate daily tasks
-    const review = await taskGenService.generateDailyTasks(allGoals);
+    const review = await taskGenService.generateDailyTasks([]);
     const tasks = review.dailyTasks || [];
 
     if (!tasks || tasks.length === 0) {

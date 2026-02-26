@@ -147,7 +147,6 @@ export const createTask = mutation({
       subtaskIds: [],
       blockedBy: [],
       blocks: [],
-      goalIds: [],
     });
 
     // DM-02: Update epic's taskIds array if epic is specified (C-06 fix: maintain denormalization)
@@ -1179,7 +1178,6 @@ export const createSubtask = mutation({
       subtaskIds: [],
       blockedBy: [],
       blocks: [],
-      goalIds: [],
     });
 
     // Update parent's subtask list

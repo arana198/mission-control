@@ -30,7 +30,6 @@ import type * as executionLog from "../executionLog.js";
 import type * as executions from "../executions.js";
 import type * as gateways from "../gateways.js";
 import type * as github from "../github.js";
-import type * as goals from "../goals.js";
 import type * as invites from "../invites.js";
 import type * as memoryIndex from "../memoryIndex.js";
 import type * as messages from "../messages.js";
@@ -86,7 +85,6 @@ declare const fullApi: ApiFromModules<{
   executions: typeof executions;
   gateways: typeof gateways;
   github: typeof github;
-  goals: typeof goals;
   invites: typeof invites;
   memoryIndex: typeof memoryIndex;
   messages: typeof messages;

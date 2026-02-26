@@ -17,7 +17,7 @@ import { getMemoryService } from './memoryService';
 import { Id } from '@/convex/_generated/dataModel';
 
 interface GoalProgress {
-  goalId: Id<'goals'>;
+  goalId: string;
   title: string;
   progress: number;
   relatedTasksCount: number;
@@ -37,7 +37,7 @@ interface ExecutionMetrics {
 }
 
 interface Bottleneck {
-  goalId: Id<'goals'>;
+  goalId: string;
   goalTitle: string;
   severity: 'critical' | 'high' | 'medium'; // critical if <25%, high if <50%
   description: string;
@@ -102,7 +102,7 @@ export class StrategicPlanningEngine {
     
     // Get all data in parallel
     const [goals, activities] = await Promise.all([
-      this.client.query(api.goals.getByProgress),
+      Promise.resolve([]), // Goals feature removed
       this.client.query(api.activities.getRecent, {
         limit: 100,
       }),

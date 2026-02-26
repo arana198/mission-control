@@ -76,11 +76,6 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
     currentWorkspace ? { workspaceId: currentWorkspace._id as Id<"workspaces"> } : "skip"
   );
 
-  // Fetch pattern insights from activity analysis (Phase 4D)
-  const patternInsights = useQuery(api.goals.getPatternInsights,
-    currentWorkspace ? { workspaceId: currentWorkspace._id as Id<"workspaces"> } : "skip"
-  );
-
   // Always call mutations at component level (never conditionally)
   const linkMemory = useMutation(api.memoryIndex.linkMemory);
 
@@ -428,29 +423,6 @@ export function BrainHub({ tasks, activities }: { tasks: Task[]; activities: Act
             </div>
           )}
 
-          {/* Recent Patterns */}
-          <div className="card p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Recent Patterns
-            </h3>
-            <div className="space-y-2">
-              {(patternInsights?.patterns ?? []).length > 0 ? (
-                (patternInsights?.patterns ?? []).map((pattern, i) => (
-                  <div key={i} className="p-2 bg-muted/50 rounded text-sm">
-                    <p className="text-xs text-muted-foreground flex items-start gap-2">
-                      <span className="text-success mt-0.5">•</span>
-                      {pattern}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="p-2 bg-muted/50 rounded text-sm">
-                  <p className="text-xs text-muted-foreground">No activity patterns yet - check back after some task completion</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

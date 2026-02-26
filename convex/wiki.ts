@@ -22,7 +22,7 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
 // ════════════════════════════════════════════════════════════════════════════════
 
 export interface WikiPage extends Doc<"wikiPages"> {
-  workspaceId: Id<"workspaces">;
+  workspaceId?: Id<"workspaces">;
   title: string;
   content: string; // Plain markdown
   parentId?: Id<"wikiPages">;

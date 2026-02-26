@@ -14,7 +14,7 @@ describe("WorkspaceProvider - Loading State", () => {
 
       // Loading state determination logic
       const businessesData = businesses ?? [];
-      const isLoadingWhenQueryUndefined = businesses === undefined || default === undefined;
+      const isLoadingWhenQueryUndefined = businesses === undefined || defaultWorkspace === undefined;
 
       expect(isLoadingWhenQueryUndefined).toBe(true);
       expect(businessesData.length).toBe(0);
@@ -27,7 +27,7 @@ describe("WorkspaceProvider - Loading State", () => {
 
       // Loading state determination logic (after fix)
       const businessesData = businesses ?? [];
-      const queriesLoaded = businesses !== undefined && default !== undefined;
+      const queriesLoaded = businesses !== undefined && defaultWorkspace !== undefined;
       const isLoadingAfterFix = !queriesLoaded;
 
       // Before fix: isLoading would be true if businessesData.length === 0
@@ -42,11 +42,11 @@ describe("WorkspaceProvider - Loading State", () => {
         { _id: "b1", name: " 1", slug: "business-1", isDefault: true },
         { _id: "b2", name: " 2", slug: "business-2", isDefault: false },
       ];
-      const defaultWorkspace = workspaces[0];
+      const defaultWorkspace = businesses[0];
 
       // Loading state determination logic
       const businessesData = businesses ?? [];
-      const queriesLoaded = businesses !== undefined && default !== undefined;
+      const queriesLoaded = businesses !== undefined && defaultWorkspace !== undefined;
       const isLoading = !queriesLoaded;
 
       expect(isLoading).toBe(false);
@@ -65,7 +65,7 @@ describe("WorkspaceProvider - Loading State", () => {
       isLoading = businesses === undefined;
       // After fix: isLoading should be false because queries have resolved
       expect(isLoading).toBe(false);
-      expect(workspaces.length).toBe(0);
+      expect(businesses.length).toBe(0);
 
       // This allows ClientLayout to show the empty-state screen
     });
@@ -81,7 +81,7 @@ describe("WorkspaceProvider - Loading State", () => {
       businesses = [{ _id: "b1", name: " 1", slug: "business-1", isDefault: true }];
       isLoading = businesses === undefined;
       expect(isLoading).toBe(false);
-      expect(workspaces.length).toBe(1);
+      expect(businesses.length).toBe(1);
     });
   });
 });

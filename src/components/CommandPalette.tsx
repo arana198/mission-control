@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useWorkspace } from "./WorkspaceProvider";
-import { Goal } from "@/types/goal";
 import { Task } from "@/types/task";
 import { Agent } from "@/types/agent";
 import { getMemoryService } from "@/lib/services/memoryService";
-import { CreateGoalModal } from "@/components/CreateGoalModal";
 import {
   Search,
   FileText,
@@ -28,7 +26,7 @@ import clsx from "clsx";
 
 interface SearchResult {
   id: string;
-  type: "goal" | "task" | "memory" | "agent" | "document" | "epic" | "wiki";
+  type: "task" | "memory" | "agent" | "document" | "epic" | "wiki";
   title: string;
   description?: string;
   metadata?: Record<string, any>;
@@ -48,13 +46,11 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showCreateGoalModal, setShowCreateGoalModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const memoryService = getMemoryService();
   // Always call hooks - don't conditionally call them (Rules of Hooks)
-  const goals = useQuery(api.goals.getActiveGoals, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
   const tasks = useQuery(api.tasks.getAllTasks, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
   const agents = useQuery(api.agents.getAllAgents);
   const epics = useQuery(api.epics.getAllEpics, currentWorkspace ? { workspaceId: currentWorkspace._id } as any : "skip");
@@ -114,32 +110,6 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
       setLoading(true);
       const results: SearchResult[] = [];
       const q = query.toLowerCase();
-
-      // Search goals
-      if (goals) {
-        const allGoals = (goals as Goal[]) ?? [];
-        const matchedGoals = allGoals
-          .filter(
-            (g) =>
-              g.title.toLowerCase().includes(q) ||
-              g.description?.toLowerCase().includes(q)
-          )
-          .slice(0, 3)
-          .map((g) => ({
-            id: g._id,
-            type: "goal" as const,
-            title: g.title,
-            description: g.description,
-            metadata: {
-              status: g.status,
-              progress: g.progress || 0,
-            },
-            action: () => {
-              router.push(`/${currentWorkspace?.slug}/overview`);
-            },
-          }));
-        results.push(...matchedGoals);
-      }
 
       // Search tasks
       if (tasks) {
@@ -259,19 +229,6 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
         });
       }
 
-      if ("new goal".includes(q)) {
-        results.push({
-          id: "action:new-goal",
-          type: "goal",
-          title: "Create new goal",
-          description: "Add a new strategic goal",
-          action: () => {
-            setShowCreateGoalModal(true);
-            setOpen(false);
-          },
-        });
-      }
-
       setResults(results);
       setSelected(0);
       setLoading(false);
@@ -279,7 +236,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
     const timer = setTimeout(search, 300); // Debounce
     return () => clearTimeout(timer);
-  }, [query, goals, tasks, agents, epics, wikiTree, memoryService, currentWorkspace, router, onCreateTask]);
+  }, [query, tasks, agents, epics, wikiTree, memoryService, currentWorkspace, router, onCreateTask]);
 
   if (!open) {
     return (
@@ -366,9 +323,6 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
                     >
                       {/* Icon */}
                       <div className="pt-0.5">
-                        {result.type === "goal" && (
-                          <Target className="w-4 h-4 text-primary" />
-                        )}
                         {result.type === "task" && (
                           <CheckCircle className="w-4 h-4 text-success" />
                         )}
@@ -446,15 +400,6 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
           </div>
         </div>
       </div>
-
-      {/* Create Goal Modal */}
-      {showCreateGoalModal && (
-        <CreateGoalModal
-          tasks={tasks || []}
-          onClose={() => setShowCreateGoalModal(false)}
-          onSuccess={() => setShowCreateGoalModal(false)}
-        />
-      )}
     </>
   );
 }

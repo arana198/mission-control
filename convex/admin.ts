@@ -14,7 +14,7 @@ export const clearAllData = mutation({
   args: {},
   handler: async (ctx) => {
     const tables = [
-      "tasks", "epics", "goals", "messages", "activities", "documents",
+      "tasks", "epics", "messages", "activities", "documents",
       "executionLog", "alerts", "alertRules", "alertEvents", "decisions",
       "strategicReports", "settings", "calendarEvents", "taskComments",
       "mentions", "taskSubscriptions", "presenceIndicators", "taskPatterns",

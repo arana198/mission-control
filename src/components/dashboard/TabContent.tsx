@@ -14,9 +14,8 @@ import { DashboardOverview } from "./DashboardOverview";
 const EpicBoard = lazy(() => import("@/components/EpicBoard").then(m => ({ default: m.EpicBoard })));
 const BrainHub = lazy(() => import("@/components/BrainHub").then(m => ({ default: m.BrainHub })));
 const CalendarView = lazy(() => import("@/components/CalendarView").then(m => ({ default: m.CalendarView })));
-const BottleneckVisualizer = lazy(() => import("@/components/BottleneckVisualizer").then(m => ({ default: m.BottleneckVisualizer })));
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "bottlenecks" | "settings";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "documents" | "calendar" | "brain" | "settings";
 
 interface DashboardStats {
   activeCount: number;
@@ -96,13 +95,6 @@ export function TabContent({
           <ErrorBoundary componentName="BrainHub">
             <Suspense fallback={<CardGridSkeleton />}>
               <BrainHub tasks={tasks} activities={activities} />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-        {activeTab === "bottlenecks" && (
-          <ErrorBoundary componentName="BottleneckVisualizer">
-            <Suspense fallback={<LoadingSkeleton />}>
-              <BottleneckVisualizer />
             </Suspense>
           </ErrorBoundary>
         )}

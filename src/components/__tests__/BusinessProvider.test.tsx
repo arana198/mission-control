@@ -41,7 +41,7 @@ class WorkspaceProviderMock {
         null;
     } else {
       this.currentWorkspace =
-        businesses.find((b) => b.isDefault) || workspaces[0] || null;
+        businesses.find((b) => b.isDefault) || businesses[0] || null;
     }
   }
 
@@ -338,7 +338,7 @@ describe("WorkspaceProvider", () => {
     it("should query api.workspaces.getAll on mount", async () => {
       // Verify: provider has all businesses
       const context = provider.getContextValue();
-      expect(context.workspaces.length).toBeGreaterThan(0);
+      expect(context.businesses.length).toBeGreaterThan(0);
     });
 
     it("should handle getAll query loading state", async () => {

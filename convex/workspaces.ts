@@ -228,7 +228,7 @@ export const setDefault = mutation({
  * - Cannot delete default business
  * Cascades:
  * - Deletes all tasks, epics, messages, activities
- * - Deletes all documents, calendar events, goals
+ * - Deletes all documents, calendar events
  * - Deletes all related metrics and logs
  * - Deletes all settings and alerts
  * - Deletes all 25 workspace-scoped tables (includes MIG-10 additions)
@@ -287,7 +287,6 @@ export const remove = mutation({
     // Delete from all 25 workspace-scoped tables (using indexes)
     deletedCounts.tasks = await collectAndDelete("tasks", "by_workspace");
     deletedCounts.epics = await collectAndDelete("epics", "by_workspace");
-    deletedCounts.goals = await collectAndDelete("goals", "by_workspace");
     deletedCounts.messages = await collectAndDelete("messages", "by_workspace");
     deletedCounts.activities = await collectAndDelete("activities", "by_workspace");
     deletedCounts.documents = await collectAndDelete("documents", "by_workspace");

@@ -18,7 +18,7 @@ import { Dashboard } from "./dashboard/BusinessDashboard";
 import { GlobalDashboard } from "./dashboard/GlobalDashboard";
 import { LoadingSkeleton } from "./LoadingSkeletons";
 
-type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "wiki" | "calendar" | "brain" | "bottlenecks" | "analytics" | "settings" | "api-docs" | "inbox";
+type TabType = "overview" | "board" | "epics" | "agents" | "workload" | "activity" | "wiki" | "calendar" | "brain" | "analytics" | "settings" | "api-docs" | "inbox";
 
 /**
  * Dashboard Tab Content Component (Client)
@@ -115,7 +115,7 @@ export function DashboardTabClientContent({
         />
       ) : (
         <Suspense fallback={<LoadingSkeleton />}>
-          <GlobalDashboard tab={tab as "agents" | "workload" | "activity" | "calendar" | "brain" | "bottlenecks" | "analytics" | "api-docs"} />
+          <GlobalDashboard tab={tab as "agents" | "workload" | "activity" | "calendar" | "brain" | "analytics" | "api-docs" | "inbox"} />
         </Suspense>
       )}
 

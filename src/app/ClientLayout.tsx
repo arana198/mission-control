@@ -42,8 +42,14 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     });
   }
 
+  // Determine if we're on a workspace management route (check both pathname and window.location)
+  const isWorkspaceManagementRoute =
+    pathname?.startsWith("/workspaces") ||
+    (typeof window !== 'undefined' && window.location.pathname.startsWith("/workspaces"));
+
   // Show empty state if no workspaces exist and data is not loading
-  if (!isLoading && workspaces.length === 0) {
+  // But NOT on workspace management routes (allow /workspaces/* to render normally)
+  if (!isLoading && workspaces.length === 0 && !isWorkspaceManagementRoute) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center max-w-md p-8">
@@ -61,6 +67,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         </div>
       </div>
     );
+  }
+
+  // Skip full layout (sidebar, header) for workspace management routes when no workspaces exist
+  if (!isLoading && workspaces.length === 0 && isWorkspaceManagementRoute) {
+    return <>{children}</>;
   }
 
   // Extract current tab from pathname

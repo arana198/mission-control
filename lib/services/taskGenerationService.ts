@@ -15,7 +15,7 @@ import { Id } from '@/convex/_generated/dataModel';
 type ConvexClientType = ConvexClient | ConvexHttpClient;
 
 interface Goal {
-  _id: Id<'goals'>;
+  _id: string;
   title: string;
   description: string;
   category: string;
@@ -29,7 +29,7 @@ interface Goal {
 interface TaskInput {
   title: string;
   description: string;
-  goalIds: Id<'goals'>[];
+  goalIds: string[];
   priority: 'P0' | 'P1' | 'P2' | 'P3';
   impact: 'P0' | 'P1' | 'P2' | 'P3';
   estimatedHours: number;
@@ -56,9 +56,9 @@ interface WeeklyPlan {
     year: number;
     goalsReview: {
       activeGoals: number;
-      completedThisWeek: Id<'goals'>[];
-      blockedGoals: Id<'goals'>[];
-      acceleratingGoals: Id<'goals'>[];
+      completedThisWeek: string[];
+      blockedGoals: string[];
+      acceleratingGoals: string[];
     };
     taskMetrics: {
       tasksGenerated: number;
@@ -215,7 +215,7 @@ class TaskGenerationService {
           activeGoals: activeGoals.length,
           completedThisWeek: goals.filter(g => g.status === 'completed')
             .map(g => g._id)
-            .slice(0, 10) as Id<'goals'>[],
+            .slice(0, 10) as string[],
           blockedGoals: blockedGoals.map(g => g._id),
           acceleratingGoals: acceleratingGoals.map(g => g._id),
         },

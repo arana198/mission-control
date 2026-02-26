@@ -13,7 +13,6 @@ export const getAll = query({
 export const getByEntity = query({
   args: {
     entityType: convexVal.optional(convexVal.union(
-      convexVal.literal("goal"),
       convexVal.literal("task"),
       convexVal.literal("event"),
       convexVal.literal("note")
@@ -53,7 +52,6 @@ export const search = query({
 export const linkMemory = mutation({
   args: {
     entityType: convexVal.union(
-      convexVal.literal("goal"),
       convexVal.literal("task"),
       convexVal.literal("event"),
       convexVal.literal("note")

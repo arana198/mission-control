@@ -22,12 +22,6 @@ export const create = mutation({
       workspaceId: args.workspaceId,  // ADD: workspace scoping
       week: args.week,
       year: args.year,
-      goalsReview: reportData.goalsReview || {
-        activeGoals: 0,
-        completedThisWeek: [],
-        blockedGoals: [],
-        acceleratingGoals: [],
-      },
       taskMetrics: reportData.taskMetrics || {
         tasksGenerated: 0,
         tasksCompleted: 0,

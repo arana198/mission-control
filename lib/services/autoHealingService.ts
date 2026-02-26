@@ -11,7 +11,7 @@
 import { Id } from '@/convex/_generated/dataModel';
 
 interface Bottleneck {
-  goalId: Id<'goals'>;
+  goalId: string;
   goalTitle: string;
   severity: 'critical' | 'high' | 'medium';
   description: string;
@@ -22,7 +22,7 @@ interface Bottleneck {
 interface FixProposal {
   id: string;
   bottleneckId: string;
-  goalId: Id<'goals'>;
+  goalId: string;
   goalTitle: string;
   category: 'split' | 'simplify' | 'reassign' | 'deprioritize' | 'redefine';
   title: string;
@@ -204,7 +204,7 @@ export class AutoHealingService {
    */
   async executeHealing(
     proposal: FixProposal,
-    goalId: Id<'goals'>
+    goalId: string
   ): Promise<HealingExecution> {
     const execution: HealingExecution = {
       id: `healing-exec-${Date.now()}`,
