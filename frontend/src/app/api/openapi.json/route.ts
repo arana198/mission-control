@@ -368,6 +368,50 @@ function generateOpenAPISpec() {
     },
   });
 
+  // Example: Agent Rotate API Key endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}/rotate-key",
+    method: "POST",
+    summary: "Rotate API Key",
+    description: "Rotate the agent's API key for security purposes",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "API key rotated successfully",
+        content: {
+          "application/json": {
+            schema: successResponseSchema({
+              type: "object",
+              properties: {
+                agentId: { type: "string", example: "agent-123" },
+                newApiKey: {
+                  type: "string",
+                  description: "New API key (UUID format)",
+                  example: "550e8400-e29b-41d4-a716-446655440000",
+                },
+                oldKeyExpiresAt: {
+                  type: "string",
+                  format: "date-time",
+                  description: "When the old API key will expire (24 hour grace period)",
+                },
+                rotatedAt: { type: "string", format: "date-time" },
+              },
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
   return doc;
 }
 
