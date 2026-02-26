@@ -46,3 +46,43 @@ Read the relevant file for your task type:
 | [convex.md](convex.md) | Schema rules, migrations, Convex-specific constraints |
 | [code-quality.md](code-quality.md) | Safety rules, TDD workflow, enforcement gate |
 | [deployment.md](deployment.md) | Pre-deploy checklist, migration safety |
+
+## Phase Execution Strategy (Autonomous with Ralph Loop)
+
+When user requests phase execution ("execute phase X", "run phase 10", etc.):
+
+1. **Check if PLAN.md exists** for the phase
+   - If no: Run `/gsd:plan-phase` to create it
+   - If yes: Skip to execution
+
+2. **Launch Ralph Loop** for autonomous execution
+   ```bash
+   /ralph-loop "Execute the plan in .planning/phases/{PHASE_ID}-{PHASE_NAME}/PLAN.md.
+   Complete all tasks sequentially. Run tests after each major change.
+   Output <promise>PHASE COMPLETE</promise> when all tasks finished."
+   --max-iterations 30 --completion-promise "PHASE COMPLETE"
+   ```
+
+3. **Ralph handles iteration automatically:**
+   - Reads PLAN.md and executes each task
+   - Self-corrects on test failures
+   - Makes atomic commits after each step
+   - Continues until completion promise or max iterations
+   - **No manual intervention needed**
+
+4. **After completion:**
+   - Verify all tests pass: `npm run validate`
+   - Review commits: `git log --oneline -10`
+   - Mark phase as done in ROADMAP.md
+
+**Direct execution command:**
+```bash
+/execute-phase-with-ralph {PHASE_ID}
+```
+
+Example:
+```bash
+# User says: "execute phase 10"
+# Claude automatically runs:
+/execute-phase-with-ralph 10
+```
