@@ -1373,4 +1373,19 @@ export default defineSchema({
     updatedAt: convexVal.number(),
   }).index("by_workspace", ["workspaceId"]),
 
+  /**
+   * API KEY QUOTA - Rate Limiting Tracking
+   * Per-API-key token bucket state for rate limiting enforcement
+   */
+  apiKeyQuota: defineTable({
+    apiKeyId: convexVal.string(),         // Indexed for fast lookup
+    tokensRemaining: convexVal.number(),  // Current quota balance
+    tokensPerHour: convexVal.number(),    // Refill rate per hour (default 1000)
+    tokensPerDay: convexVal.number(),     // Daily hard cap (default 10000)
+    hourlyResetAt: convexVal.number(),    // Timestamp when hourly quota resets
+    dailyResetAt: convexVal.number(),     // Timestamp when daily quota resets
+    createdAt: convexVal.number(),
+    updatedAt: convexVal.number(),
+  }).index("by_api_key", ["apiKeyId"]),
+
 });

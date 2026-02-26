@@ -104,3 +104,21 @@ export interface ResolvedActor {
   name: string;
   id: string;
 }
+
+// ─── Rate Limiting ─────────────────────────────────────────────────────
+export interface RateLimitState {
+  apiKeyId: string;
+  tokensRemaining: number;
+  tokensPerHour: number;
+  tokensPerDay: number;
+  hourlyResetAt: number;
+  dailyResetAt: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RateLimitCheckResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+}
