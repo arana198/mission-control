@@ -167,6 +167,84 @@ function generateOpenAPISpec() {
     },
   });
 
+  // Example: Update Agent endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}",
+    method: "PUT",
+    summary: "Update Agent",
+    description: "Update an agent's properties",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              name: { type: "string", example: "Jarvis" },
+              role: { type: "string", example: "Squad Lead" },
+              status: {
+                type: "string",
+                enum: ["idle", "active", "blocked"],
+                example: "active",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Agent updated successfully",
+        content: {
+          "application/json": {
+            schema: successResponseSchema({
+              type: "object",
+              properties: {
+                id: { type: "string", example: "agent-123" },
+                name: { type: "string", example: "Jarvis" },
+                role: { type: "string", example: "Squad Lead" },
+                status: { type: "string", enum: ["idle", "active", "blocked"] },
+              },
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
+  // Example: Delete Agent endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}",
+    method: "DELETE",
+    summary: "Delete Agent",
+    description: "Remove an agent from a workspace",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+    ],
+    responses: {
+      "204": {
+        description: "Agent deleted successfully",
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
   return doc;
 }
 
