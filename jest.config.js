@@ -1,7 +1,7 @@
 /**
  * Jest Configuration
  *
- * Configures testing framework for mission-control project
+ * Configures testing framework for mission-control monorepo project
  * TypeScript support via ts-jest
  * Path mapping support for @/ imports
  */
@@ -10,11 +10,16 @@ module.exports = {
   // Use ts-jest preset for TypeScript support
   preset: 'ts-jest',
 
-  // Test environment - use Node for backend tests (can be overridden per file)
-  testEnvironment: 'node',
+  // Test environment - use jsdom to support JSX in both frontend and backend
+  testEnvironment: 'jsdom',
 
   // Root directories to search for tests
-  roots: ['<rootDir>/lib', '<rootDir>/convex', '<rootDir>/src'],
+  roots: [
+    '<rootDir>/backend/convex',
+    '<rootDir>/backend/lib',
+    '<rootDir>/frontend/src',
+    '<rootDir>/frontend/lib',
+  ],
 
   // Test file patterns
   testMatch: [
@@ -27,23 +32,24 @@ module.exports = {
   // Module name mapping for @/ imports
   // Must match tsconfig.json paths exactly for ts-jest to resolve correctly
   moduleNameMapper: {
-    '^@/types/(.*)$': '<rootDir>/src/types/$1',
-    '^@/components/(.*)$': '<rootDir>/src/components/$1',
-    '^@/contexts/(.*)$': '<rootDir>/src/contexts/$1',
-    '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
-    '^@/styles/(.*)$': '<rootDir>/src/styles/$1',
-    '^@/services/(.*)$': '<rootDir>/src/services/$1',
-    '^@/app/(.*)$': '<rootDir>/src/app/$1',
-    '^@/convex/(.*)$': '<rootDir>/convex/$1',
-    '^@/lib/(.*)$': '<rootDir>/lib/$1',
-    '^@/(.*)$': '<rootDir>/$1',  // Fallback for other root-level modules
+    '^@/convex/(.*)$': '<rootDir>/backend/convex/$1',
+    '^@/lib/(.*)$': '<rootDir>/frontend/lib/$1',
+    '^@/types/(.*)$': '<rootDir>/frontend/src/types/$1',
+    '^@/components/(.*)$': '<rootDir>/frontend/src/components/$1',
+    '^@/contexts/(.*)$': '<rootDir>/frontend/src/contexts/$1',
+    '^@/hooks/(.*)$': '<rootDir>/frontend/src/hooks/$1',
+    '^@/styles/(.*)$': '<rootDir>/frontend/src/styles/$1',
+    '^@/services/(.*)$': '<rootDir>/frontend/src/services/$1',
+    '^@/app/(.*)$': '<rootDir>/frontend/src/app/$1',
+    '^@/(.*)$': '<rootDir>/frontend/$1',
   },
 
   // TypeScript configuration for ts-jest
   globals: {
     'ts-jest': {
       tsconfig: {
-        jsx: 'react',
+        jsx: 'react-jsx',
+        jsxImportSource: 'react',
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
       },
@@ -52,9 +58,9 @@ module.exports = {
 
   // Files to collect coverage from
   collectCoverageFrom: [
-    'lib/**/*.ts',
-    'convex/**/*.ts',
-    'src/app/api/**/*.ts',
+    'backend/lib/**/*.ts',
+    'backend/convex/**/*.ts',
+    'frontend/src/app/api/**/*.ts',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/dist/**',

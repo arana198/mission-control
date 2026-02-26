@@ -6,16 +6,15 @@
       "esnext"
     ],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "plugins": [
       {
         "name": "next"
@@ -23,41 +22,40 @@
     ],
     "paths": {
       "@/convex/*": [
-        "./backend/convex/*"
+        "../backend/convex/*"
       ],
       "@/lib/*": [
-        "./frontend/lib/*"
+        "./lib/*"
       ],
       "@/types/*": [
-        "./frontend/src/types/*"
+        "./src/types/*"
       ],
       "@/components/*": [
-        "./frontend/src/components/*"
+        "./src/components/*"
       ],
       "@/hooks/*": [
-        "./frontend/src/hooks/*"
+        "./src/hooks/*"
       ],
       "@/services/*": [
-        "./frontend/src/services/*"
+        "./src/services/*"
       ],
       "@/contexts/*": [
-        "./frontend/src/contexts/*"
+        "./src/contexts/*"
       ],
       "@/styles/*": [
-        "./frontend/src/styles/*"
+        "./src/styles/*"
       ],
       "@/*": [
-        "./frontend/*"
+        "./*"
       ]
-    },
-    "target": "ES2017"
+    }
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "lib/**/*.ts",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

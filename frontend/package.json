@@ -1,41 +1,9 @@
 {
-  "name": "mission-control-root",
+  "name": "@mission-control/frontend",
   "version": "1.0.0",
-  "description": "Real-time command center for OpenClaw AI agent squads",
-  "author": "Bhanu Teja P (adapted)",
-  "license": "MIT",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
-  "scripts": {
-    "dev": "npm run dev -w @mission-control/frontend",
-    "build": "npm run build -w @mission-control/frontend",
-    "start": "npm start -w @mission-control/frontend",
-    "lint": "npm run lint -w @mission-control/frontend",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathPattern=unit",
-    "test:ci": "jest --ci --coverage --maxWorkers=2",
-    "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy",
-    "auto-claim": "node scripts/trigger-auto-claim.js",
-    "auto-claim:cron": "npx convex run cron:autoClaimCron",
-    "daemon:start": "pm2 start scripts/notification-daemon.js --name mission-control-daemon",
-    "daemon:stop": "pm2 stop mission-control-daemon",
-    "heartbeat:setup": "bash scripts/setup-agents.sh",
-    "morning-brief": "node scripts/morning-brief.js",
-    "morning-brief:setup": "node scripts/setup-morning-brief.js",
-    "automation:status": "echo 'Mission Control Automation Status:' && pm2 list",
-    "calendar:sync": "echo 'Calendar sync feature coming soon'",
-    "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui",
-    "e2e:debug": "playwright test --debug",
-    "validate": "npm run lint && npm run build && npm test"
-  },
   "dependencies": {
+    "@mission-control/backend": "*",
     "@tiptap/extension-code-block-lowlight": "^3.20.0",
     "@tiptap/extension-link": "^3.20.0",
     "@tiptap/extension-placeholder": "^3.20.0",
@@ -84,6 +52,13 @@
     "jest-environment-node": "^30.2.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.4.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=18.0.0"

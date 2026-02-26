@@ -1,0 +1,26 @@
+{
+  "name": "@mission-control/backend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "convex": "^1.32.0",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.2.0",
+    "jest-environment-node": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.4.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

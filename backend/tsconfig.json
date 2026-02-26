@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@/convex/*": ["./convex/*"],
+      "@/lib/*": ["./lib/*"]
+    }
+  },
+  "include": [
+    "convex/**/*",
+    "lib/**/*"
+  ],
+  "exclude": [
+    "convex/_generated",
+    "node_modules"
+  ]
+}

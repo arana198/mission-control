@@ -1,4 +1,4 @@
 {
-  "functions": "convex/",
-  "seed": "convex/seed.ts"
+  "functions": "backend/convex/",
+  "seed": "backend/convex/seed.ts"
 }
