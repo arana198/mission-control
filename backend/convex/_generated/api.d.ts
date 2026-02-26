@@ -39,6 +39,7 @@ import type * as opsMetrics from "../opsMetrics.js";
 import type * as organizationMembers from "../organizationMembers.js";
 import type * as patternLearning from "../patternLearning.js";
 import type * as presence from "../presence.js";
+import type * as rateLimit from "../rateLimit.js";
 import type * as skillInference from "../skillInference.js";
 import type * as strategicReports from "../strategicReports.js";
 import type * as taskComments from "../taskComments.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   organizationMembers: typeof organizationMembers;
   patternLearning: typeof patternLearning;
   presence: typeof presence;
+  rateLimit: typeof rateLimit;
   skillInference: typeof skillInference;
   strategicReports: typeof strategicReports;
   taskComments: typeof taskComments;
