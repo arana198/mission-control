@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import {
   Calendar, Clock, Users, ChevronLeft, ChevronRight,
   CheckCircle2, AlertCircle, Zap, Repeat2

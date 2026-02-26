@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { Agent } from "@/types/agent";
 import { Task } from "@/types/task";
 import { Epic } from "@/types/epic";

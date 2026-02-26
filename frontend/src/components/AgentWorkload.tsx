@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import {
   Clock, CheckCircle2, AlertCircle, Loader2, Users,
   Briefcase, BarChart3, Calendar, ArrowUpRight, X, Zap, AlertTriangle

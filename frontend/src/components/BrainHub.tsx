@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "./WorkspaceProvider";
 import {
   Brain, Search, FileText, Calendar, Target, Users,
@@ -17,7 +17,7 @@ import {
 import { KnowledgeCard } from "./KnowledgeCard";
 import { KnowledgeDetailPanel } from "./KnowledgeDetailPanel";
 import { StatCard } from "./StatCard";
-import { exportKnowledgeAsJSON, exportKnowledgeAsMarkdown, downloadBlob } from "../lib/knowledgeExport";
+import { exportKnowledgeAsJSON, exportKnowledgeAsMarkdown, downloadBlob } from "@/lib/knowledgeExport";
 
 interface Task {
   _id: string;

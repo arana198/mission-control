@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { GitBranch, GitCommit, Loader2, RefreshCw, ExternalLink, AlertCircle, Package } from "lucide-react";
 

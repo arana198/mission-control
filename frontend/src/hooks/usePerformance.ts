@@ -5,8 +5,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { metrics, monitor } from "../lib/monitoring";
-import { log } from "../lib/logger";
+import { metrics, monitor } from "@/lib/monitoring";
+import { log } from "@/lib/logger";
 
 /**
  * Hook to monitor component render time

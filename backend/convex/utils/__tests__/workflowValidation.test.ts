@@ -13,7 +13,16 @@ import {
   isWorkflowTransitionAllowed,
   isStepTransitionAllowed,
   computeWorkflowStatus,
+  WorkflowNode,
 } from "../workflowValidation";
+
+// Helper function to create minimal valid test nodes
+const createNode = (title: string): WorkflowNode => ({
+  taskTemplate: {
+    title,
+    description: `Description for ${title}`,
+  },
+});
 
 describe("detectWorkflowCycle", () => {
   test("empty graph has no cycle", () => {
@@ -22,23 +31,23 @@ describe("detectWorkflowCycle", () => {
   });
 
   test("single node with no edges has no cycle", () => {
-    const nodes = { step_1: { label: "Step 1" } };
+    const nodes = { step_1: createNode("Step 1") };
     const edges = {};
     expect(detectWorkflowCycle(nodes, edges)).toBe(false);
   });
 
   test("two-node chain (step_1 -> step_2) has no cycle", () => {
-    const nodes = { step_1: { label: "Step 1" }, step_2: { label: "Step 2" } };
+    const nodes = { step_1: createNode("Step 1"), step_2: createNode("Step 2") };
     const edges = { step_1: ["step_2"] };
     expect(detectWorkflowCycle(nodes, edges)).toBe(false);
   });
 
   test("three-node diamond (step_1 -> step_2,3; step_2,3 -> step_4) has no cycle", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
-      step_4: { label: "Step 4" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
+      step_4: createNode("Step 4"),
     };
     const edges = {
       step_1: ["step_2", "step_3"],
@@ -49,13 +58,13 @@ describe("detectWorkflowCycle", () => {
   });
 
   test("direct self-loop (step_1 -> step_1) is a cycle", () => {
-    const nodes = { step_1: { label: "Step 1" } };
+    const nodes = { step_1: createNode("Step 1") };
     const edges = { step_1: ["step_1"] };
     expect(detectWorkflowCycle(nodes, edges)).toBe(true);
   });
 
   test("two-node cycle (step_1 -> step_2, step_2 -> step_1) is detected", () => {
-    const nodes = { step_1: { label: "Step 1" }, step_2: { label: "Step 2" } };
+    const nodes = { step_1: createNode("Step 1"), step_2: createNode("Step 2") };
     const edges = {
       step_1: ["step_2"],
       step_2: ["step_1"],
@@ -65,9 +74,9 @@ describe("detectWorkflowCycle", () => {
 
   test("transitive cycle (step_1 -> step_2 -> step_3 -> step_1) is detected", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
     };
     const edges = {
       step_1: ["step_2"],
@@ -85,16 +94,16 @@ describe("topologicalSort", () => {
   });
 
   test("single node returns [nodeId]", () => {
-    const nodes = { step_1: { label: "Step 1" } };
+    const nodes = { step_1: createNode("Step 1") };
     const edges = {};
     expect(topologicalSort(nodes, edges)).toEqual(["step_1"]);
   });
 
   test("linear chain (step_1 -> step_2 -> step_3) sorts in order", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
     };
     const edges = {
       step_1: ["step_2"],
@@ -110,10 +119,10 @@ describe("topologicalSort", () => {
 
   test("diamond (step_1 -> [step_2, step_3] -> step_4) sorts with step_1 first, step_4 last", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
-      step_4: { label: "Step 4" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
+      step_4: createNode("Step 4"),
     };
     const edges = {
       step_1: ["step_2", "step_3"],
@@ -128,7 +137,7 @@ describe("topologicalSort", () => {
   });
 
   test("cycle returns null (non-topological graph)", () => {
-    const nodes = { step_1: { label: "Step 1" }, step_2: { label: "Step 2" } };
+    const nodes = { step_1: createNode("Step 1"), step_2: createNode("Step 2") };
     const edges = {
       step_1: ["step_2"],
       step_2: ["step_1"],
@@ -139,7 +148,7 @@ describe("topologicalSort", () => {
 
 describe("getReadySteps", () => {
   test("with no steps completed, only entry node is ready", () => {
-    const nodes = { step_1: { label: "Step 1" } };
+    const nodes = { step_1: createNode("Step 1") };
     const edges = {};
     // Assume step_1 is entry node (for now, just get nodes with no predecessors)
     const result = getReadySteps(nodes, edges, []);
@@ -148,8 +157,8 @@ describe("getReadySteps", () => {
 
   test("when step_1 completed in (step_1 -> step_2) chain, step_2 becomes ready", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
     };
     const edges = { step_1: ["step_2"] };
     const result = getReadySteps(nodes, edges, ["step_1"]);
@@ -159,9 +168,9 @@ describe("getReadySteps", () => {
 
   test("parallel fanout: when step_1 completed, both step_2 and step_3 become ready", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
     };
     const edges = { step_1: ["step_2", "step_3"] };
     const result = getReadySteps(nodes, edges, ["step_1"]);
@@ -171,10 +180,10 @@ describe("getReadySteps", () => {
 
   test("diamond: when step_1 done, step_2,3 ready; when step_2,3 done, step_4 ready", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" },
-      step_4: { label: "Step 4" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"),
+      step_4: createNode("Step 4"),
     };
     const edges = {
       step_1: ["step_2", "step_3"],
@@ -194,8 +203,8 @@ describe("getReadySteps", () => {
 
   test("with all steps completed, nothing is ready", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
     };
     const edges = { step_1: ["step_2"] };
     const result = getReadySteps(nodes, edges, ["step_1", "step_2"]);
@@ -204,9 +213,9 @@ describe("getReadySteps", () => {
 
   test("steps with multiple predecessors require all predecessors done", () => {
     const nodes = {
-      step_1: { label: "Step 1" },
-      step_2: { label: "Step 2" },
-      step_3: { label: "Step 3" }, // requires both step_1 and step_2
+      step_1: createNode("Step 1"),
+      step_2: createNode("Step 2"),
+      step_3: createNode("Step 3"), // requires both step_1 and step_2
     };
     const edges = {
       step_1: ["step_3"],
@@ -440,18 +449,18 @@ describe("computeWorkflowStatus", () => {
 
   test("priority: failed > running > success/skipped > pending", () => {
     // Test that failed takes priority
-    let statuses = {
+    const statuses1 = {
       step_1: "failed" as const,
       step_2: "running" as const,
       step_3: "success" as const,
     };
-    expect(computeWorkflowStatus(statuses)).toBe("failed");
+    expect(computeWorkflowStatus(statuses1)).toBe("failed");
 
     // Test that running takes priority over success
-    statuses = {
+    const statuses2 = {
       step_1: "running" as const,
       step_2: "success" as const,
     };
-    expect(computeWorkflowStatus(statuses)).toBe("running");
+    expect(computeWorkflowStatus(statuses2)).toBe("running");
   });
 });

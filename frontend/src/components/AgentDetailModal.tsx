@@ -4,7 +4,7 @@ import { ModalWrapper } from "./Modal";
 
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import {
   Shield, Briefcase, ExternalLink, History, Calendar,
   MessageSquare, PlusCircle, CheckCircle2, UserPlus, Clock,

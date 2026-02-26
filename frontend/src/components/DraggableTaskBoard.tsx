@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { getTaskIdRange } from "@/lib/rangeSelect";
 import { useNotification } from "@/hooks/useNotification";
 import { useSetState } from "@/hooks/useSetState";

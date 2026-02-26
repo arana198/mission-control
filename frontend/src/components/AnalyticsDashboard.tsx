@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { metrics, monitor } from "../lib/monitoring";
+import { metrics, monitor } from "@/lib/monitoring";
 import { BarChart3, Activity, AlertCircle, Zap, TrendingUp, Clock } from "lucide-react";
 
 interface MetricsSnapshot {

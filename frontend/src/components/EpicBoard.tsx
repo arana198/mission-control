@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useNotification } from "@/hooks/useNotification";
 import { useMutationWithNotification } from "@/hooks/useMutationWithNotification";
 import { useWorkspace } from "./WorkspaceProvider";

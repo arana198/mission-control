@@ -48,7 +48,10 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "target": "ES2017",
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
   "include": [
     "next-env.d.ts",
