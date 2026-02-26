@@ -47,6 +47,38 @@ Read the relevant file for your task type:
 | [code-quality.md](code-quality.md) | Safety rules, TDD workflow, enforcement gate |
 | [deployment.md](deployment.md) | Pre-deploy checklist, migration safety |
 
+## Phase Planning Strategy (Automated with GSD)
+
+When user requests phase planning ("plan phase X", "plan phase 1", "create plan for workflow schema", etc.):
+
+1. **Automatically invoke `/gsd:plan-phase`**
+   - User input: "plan phase 1"
+   - Claude action: `/gsd:plan-phase` (no manual intervention)
+
+2. **GSD handles planning:**
+   - Gathers phase requirements from ROADMAP.md
+   - Analyzes codebase for dependencies
+   - Creates detailed PLAN.md in `.planning/phases/{PHASE_ID}-{PHASE_NAME}/`
+   - Generates task breakdown with success criteria
+   - Asks for user approval before proceeding
+
+3. **User reviews and approves:**
+   - Reads PLAN.md summary
+   - Approves or requests changes
+   - Once approved, PLAN.md is locked for execution
+
+**Natural language triggers (Claude auto-detects):**
+```
+"plan phase 1"           → /gsd:plan-phase
+"create plan for phase 2" → /gsd:plan-phase
+"plan the data layer"     → /gsd:plan-phase
+"what should phase 1 do?" → (clarify, then /gsd:plan-phase)
+```
+
+**No skill/command needed** — Just ask Claude to plan, and it automatically runs `/gsd:plan-phase`.
+
+---
+
 ## Phase Execution Strategy (Autonomous with Ralph Loop)
 
 When user requests phase execution ("execute phase X", "run phase 10", etc.):
