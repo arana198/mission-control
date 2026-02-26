@@ -1,138 +1,295 @@
-# Roadmap: Mission Control
+# Mission Control — v1 Roadmap
 
-## Overview
+**Project:** Mission Control (multi-workspace AI orchestration platform)
+**Version:** v1
+**Created:** 2026-02-26
+**Updated:** 2026-02-26
 
-Mission Control adds a governance and observability layer on top of an existing multi-agent execution engine. The build order follows a strict dependency chain: the schema that records everything must exist before the execution engine writes to it, the workflow abstraction must exist before the engine can execute one, and the UI that makes execution legible can only be built after the data it displays is being produced. Five phases deliver the complete system — from empty tables to full audit replay — with cost controls and auditability established in Phase 1, not retrofitted later.
+## Roadmap Overview
 
-## Phases
+The v1 roadmap breaks 47 requirements into 6 phases, each building a foundational layer for the multi-workspace AI orchestration control plane.
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+**Completion Strategy:** Sequential phases with gates; all E2E tests must pass before advancing.
 
-Decimal phases appear between their surrounding integers in numeric order.
+---
 
-- [ ] **Phase 1.1 (INSERTED): REST API Analysis & Standardization** - Analyze current REST API endpoints, evaluate against RESTful best practices, identify standardization gaps, create OpenAPI spec
-- [ ] **Phase 1: Data Foundation** - Establish schema tables, event sourcing fields, model pricing, and immutable audit log infrastructure
-- [ ] **Phase 2: Workflow Definition + Budget Enforcement** - Define reusable workflow DAGs, validate structure, set and enforce budget caps
-- [ ] **Phase 3: Execution Engine + Approvals** - Execute workflows end-to-end via the state machine, wire gateway dispatch, enforce approval gates
-- [ ] **Phase 4: Observability Dashboard** - Surface real-time execution status, agent I/O, cost breakdowns, and error details in unified UI
-- [ ] **Phase 5: Audit & Replay** - Enable search, filter, and full replay of any past execution from the immutable event log
+## Phase 1: REST API Foundation & Standardization
 
-## Phase Details
+**Goal:** Establish uniform REST API standards and coverage across all domains
 
-### Phase 1.1: REST API Analysis & Standardization
-**Goal**: Evaluate the existing REST API against RESTful best practices, identify architectural issues and standardization gaps, create an OpenAPI 3.0 specification, and provide a detailed report with recommendations for Phase 1+ implementation.
-**Depends on**: Nothing (preparatory analysis)
-**Requirements**: None (planning phase)
-**Success Criteria** (what must be TRUE):
-  1. A comprehensive API audit report exists documenting all current endpoints (25+ identified), their HTTP methods, paths, request/response patterns, and compliance with REST principles
-  2. RESTful compliance matrix created assessing each endpoint against: correct HTTP verb usage, resource-based naming, statelessness, consistent response codes, hypermedia, versioning strategy
-  3. OpenAPI 3.0 specification created documenting the current API surface (all 25+ endpoints with schemas, required params, response types)
-  4. Standardization recommendations document provided identifying: naming convention gaps, error response standardization, pagination/filtering patterns, authentication boundaries
-  5. Actionable roadmap created for API refactoring (breaking changes vs. additive improvements) that informs Phase 1+ schema and API design decisions
-**Plans**: 2 plans in 2 waves
+**Duration:** ~1 sprint
+**Requirements Addressed:** API-01 through API-12, foundational for all subsequent phases
 
-Plans:
-- [ ] 01.1-01: Endpoint audit, REST compliance matrix, and standardization recommendations (Wave 1)
-- [ ] 01.1-02: OpenAPI spec generation from Zod validators and refactoring roadmap (Wave 2, depends on 01.1-01)
+**What it builds:**
+- Uniform request/response format (RFC 9457 for errors, standardized data shape)
+- Cursor pagination, filtering, sorting on list endpoints
+- OpenAPI 3.0 spec generation from Zod schemas (zod-openapi)
+- API versioning (/api/v1/, /api/v2/)
+- Workspace context in URL paths (`/api/v1/workspaces/{workspaceId}/...`)
 
-### Phase 1: Data Foundation
-**Goal**: The data infrastructure required by all subsequent phases exists: three new Convex tables (`workflow_executions`, `workflow_steps`, `workflow_events`), event sourcing fields on the existing `executions` table, a model pricing table, and the schema-level immutability guarantee for the audit log.
-**Depends on**: Nothing (first phase)
-**Requirements**: AUDIT-01
-**Success Criteria** (what must be TRUE):
-  1. The `workflow_events` table exists with no Convex mutations that allow update or delete — immutability is enforced at the schema boundary, not by convention
-  2. The `workflow_executions` table exists with budget fields (`totalBudgetCents`, `spentCents`) and a state machine status enum (`pending`, `running`, `completed`, `failed`, `aborted`)
-  3. The `workflow_steps` table exists with step-level cost fields (`inputTokens`, `outputTokens`, `estimatedCostCents`) and status enum (`waiting`, `running`, `completed`, `failed`, `blocked`)
-  4. A model pricing table (or config) exists that maps model IDs to per-token costs, usable by budget enforcement logic
-  5. All schema changes have corresponding migrations in `convex/migrations.ts` and all new table indexes pass the existing schema validation tests
-**Plans**: TBD
+**Success Criteria:**
+- [ ] All 32 existing API routes migrated to `/api/v1/` with REST compliance
+- [ ] OpenAPI spec auto-generated and validated
+- [ ] Swagger UI available at `/api/docs`
+- [ ] Error responses in RFC 9457 format with request ID tracing
+- [ ] All list endpoints support cursor, filter, sort
+- [ ] No breaking changes to agent integrations
+- [ ] E2E test coverage for API contract
 
-Plans:
-- [ ] 01-01: Schema tables and migrations
-- [ ] 01-02: Model pricing config and cost utilities
+**Outcomes:**
+- Agents can reliably discover and use all API endpoints
+- Foundation for workspace isolation (requires URL path context)
+- Prerequisite for Phase 2 (Agent Registration & RBAC)
 
-### Phase 2: Workflow Definition + Budget Enforcement
-**Goal**: Users can define reusable workflow pipelines composed of sequential and parallel steps, the system validates DAG structure at save time, and budget caps are enforced before any workflow dispatches a step.
-**Depends on**: Phase 1
-**Requirements**: WF-01, WF-02, WF-03, WF-04, WF-05, BUDGET-01, BUDGET-02
-**Success Criteria** (what must be TRUE):
-  1. User can create a workflow with sequential steps (A → B → C) and save it — the workflow persists in Convex with the full step definition and dependency graph
-  2. User can add parallel execution blocks to a workflow (A, B, C run concurrently) and save — the system correctly represents fan-out and fan-in in the DAG
-  3. When the user saves a workflow containing a circular dependency, the system rejects the save with a specific error identifying the cycle — no invalid workflow is persisted
-  4. When the user saves a workflow referencing an agent or input that does not exist, the system rejects the save with a specific error identifying the missing dependency
-  5. User can manually trigger workflow execution from the UI — clicking "Run" creates a `workflow_executions` record and returns a run ID
-  6. When a workflow's estimated cost exceeds its configured budget cap, the system halts dispatch before the first step is sent to any agent — no execution begins
-**Plans**: TBD
+---
 
-Plans:
-- [ ] 02-01: Workflow CRUD mutations and DAG validation
-- [ ] 02-02: Workflow builder UI
-- [ ] 02-03: Budget enforcement (pre-dispatch check and halt logic)
+## Phase 2: Workspace Isolation & RBAC
 
-### Phase 3: Execution Engine + Approvals
-**Goal**: Workflows execute end-to-end: the state machine advances steps, dispatches work to agents via the gateway, tracks tokens in real time, and halts at approval gates for operator review before irreversible actions.
-**Depends on**: Phase 2
-**Requirements**: APPR-01, APPR-02, APPR-03, BUDGET-03, BUDGET-04
-**Success Criteria** (what must be TRUE):
-  1. When a workflow run reaches a step marked as requiring approval, execution pauses and the step appears in the operator's approval queue — no dispatch occurs until the operator acts
-  2. When an operator approves or rejects a queued step, the system records the operator's identity (username, timestamp) in the `workflow_events` log as an immutable event
-  3. Read-only workflow steps execute without entering the approval queue; only write and irreversible steps require approval — the risk tier defined in the workflow definition determines routing
-  4. Input token counts for each executing step update in the `workflow_steps` table in real time as the step runs — the count is observable before the step completes
-  5. Output token counts for each executing step update in the `workflow_steps` table upon step completion — both input and output counts are always present in the record for completed steps
-**Plans**: TBD
+**Goal:** Enforce workspace boundaries and role-based access control
 
-Plans:
-- [ ] 03-01: Execution engine state machine (startWorkflow, onStepComplete, onStepFailed, abortWorkflow)
-- [ ] 03-02: Gateway dispatch integration (dispatchStep RPC, onStepResult callback)
-- [ ] 03-03: Approval queue backend and UI
+**Duration:** ~1.5 sprints
+**Requirements Addressed:** WS-01 through WS-06, foundational for governance
 
-### Phase 4: Observability Dashboard
-**Goal**: The operator can see everything happening across all workflow runs in a single unified dashboard — live execution status per step, agent I/O for completed steps, accumulated cost against budget, and error details for failures.
-**Depends on**: Phase 3
-**Requirements**: OBS-01, OBS-02, OBS-03, OBS-04, OBS-05, OBS-06, BUDGET-05, BUDGET-06
-**Success Criteria** (what must be TRUE):
-  1. The unified dashboard shows all workflow runs (running, completed, failed) with current status — a user arriving at the page sees the system's complete execution state without navigating elsewhere
-  2. Clicking into a running workflow shows each step's current status (running, completed, failed, blocked) updating in real time without a page refresh
-  3. For any completed step, the user can view the full agent I/O: the exact inputs provided to the agent and the exact outputs the agent returned
-  4. During an active workflow run, the user can see the token count consumed so far and the USD cost accumulated so far — both update as steps complete
-  5. For failed workflow steps, the user can view the specific error message and failure reason — enough detail to diagnose the problem without inspecting server logs
-  6. On the cost breakdown view, the user can see cost grouped by agent and grouped by model for any completed workflow run
-**Plans**: TBD
+**What it builds:**
+- Workspace creation (name, slug, mission statement, emoji, color)
+- Role-based access control: Admin, Agent, Collaborator, Viewer
+- Per-workspace data isolation (agents, tickets, crons, wiki, budget)
+- Workspace context propagated through all API calls
+- Default workspace assignment
+- User → workspace membership management
 
-Plans:
-- [ ] 04-01: Unified run status view (workflow list + step drill-down)
-- [ ] 04-02: Real-time token and cost display
-- [ ] 04-03: Cost breakdown dashboard (per-agent, per-model)
-- [ ] 04-04: Failure detail view
+**Success Criteria:**
+- [ ] Workspace schema in Convex supports CRUD
+- [ ] RBAC enforced on all API endpoints
+- [ ] Users see only assigned workspaces
+- [ ] Workspace context extracted from URL and validated on every request
+- [ ] Agents cannot access data from workspaces they're not registered in
+- [ ] E2E tests verify isolation boundaries
+- [ ] Audit logs track permission changes
 
-### Phase 5: Audit & Replay
-**Goal**: The operator can search the full history of every workflow execution by name, agent, or time range, and can replay any past execution to see all inputs, outputs, costs, and decisions in their original order.
-**Depends on**: Phase 4
-**Requirements**: AUDIT-02, AUDIT-03, AUDIT-04, AUDIT-05, AUDIT-06
-**Success Criteria** (what must be TRUE):
-  1. The audit log viewer allows the user to search executions by workflow name and see matching results — search returns only runs matching the query, not all runs
-  2. The audit log viewer allows the user to filter by agent name — results show only runs where that agent participated
-  3. The audit log viewer allows the user to filter by date/time range — results show only runs that started within the specified window
-  4. The user can select any completed execution from the audit log and replay it — the replay reconstructs the full execution state showing all steps in their original sequence
-  5. A replayed execution shows all inputs, outputs, token costs, and approval decisions for every step — nothing from the original run is omitted from the replay view
-**Plans**: TBD
+**Outcomes:**
+- Multi-tenant isolation complete
+- Foundation for agent registration approval (Phase 3)
+- Cost attribution per workspace (Phase 5)
 
-Plans:
-- [ ] 05-01: Audit log viewer with search and filter UI
-- [ ] 05-02: Replay engine (event log to state reconstruction)
+---
 
-## Progress
+## Phase 3: Agent Registration & Management
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+**Goal:** Implement agent registration flow with approval gates and API key management
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1.1 (INSERTED) REST API Analysis | 2/2 | ✓ Complete | 2026-02-26 |
-| 1. Data Foundation | 0/2 | Not started | - |
-| 2. Workflow Definition + Budget Enforcement | 0/3 | Not started | - |
-| 3. Execution Engine + Approvals | 0/3 | Not started | - |
-| 4. Observability Dashboard | 0/4 | Not started | - |
-| 5. Audit & Replay | 0/2 | Not started | - |
+**Duration:** ~1 sprint
+**Requirements Addressed:** AG-01 through AG-06, enables agent orchestration
+
+**What it builds:**
+- Agent self-registration via REST API (POST /api/v1/agents)
+- Registration approval flow (admin reviews pending registrations)
+- API key issuance upon approval (Bearer token in Authorization header)
+- API key rotation with grace period
+- Agent deactivation/removal by admin
+- Agent listing endpoint with filtering
+
+**Success Criteria:**
+- [ ] Agents can register with endpoint + capabilities
+- [ ] Admin approval UI shows pending registrations
+- [ ] Agents receive API key upon approval
+- [ ] API key auth enforced on all agent API calls
+- [ ] Key rotation generates new key, keeps old key active for grace period (24 hours)
+- [ ] Old key expires and is no longer usable
+- [ ] E2E test: agent register → admin approve → agent use API key
+
+**Outcomes:**
+- Agents can authenticate with Mission Control
+- Foundation for ticket claiming and work discovery (Phase 4)
+
+---
+
+## Phase 4: Ticket Management & Kanban Lifecycle
+
+**Goal:** Implement full ticket lifecycle with agent claiming and comment threading
+
+**Duration:** ~1.5 sprints
+**Requirements Addressed:** TK-01 through TK-07, enables agent work intake
+
+**What it builds:**
+- Ticket polling endpoint (GET /api/v1/tickets/available?limit=10)
+- Agent ticket claiming (PATCH /api/v1/tickets/{id}/claim)
+- Ticket status state machine: To-do → In Progress → PR Review → Done → Closed
+- Comment system with @mentions (@user, @all)
+- PR reference auto-detection in comments (#123, https://github.com/.../pull/123)
+- Admin ticket assignment to agents
+- Ticket search/filter/sort
+
+**Success Criteria:**
+- [ ] Agents can poll for available tickets (unassigned, To-do status)
+- [ ] Agents can claim unclaimed tickets (exclusive lock on claim)
+- [ ] Status transitions validated by state machine
+- [ ] Comments support @mentions (triggers notifications in Phase 5)
+- [ ] PR references auto-detected and stored (backlinks)
+- [ ] Human can view full ticket context: description, agent, comments, linked PR
+- [ ] E2E test: agent poll → claim → progress → comment → PR link
+
+**Outcomes:**
+- Agent work intake pipeline operational
+- Foundation for notifications (Phase 5)
+
+---
+
+## Phase 5: Activity Logging, Metrics & Observability
+
+**Goal:** Implement comprehensive activity logging, cost tracking, and agent metrics
+
+**Duration:** ~1 sprint
+**Requirements Addressed:** AC-01 through AC-05, MT-01 through MT-04, enables governance
+
+**What it builds:**
+- Activity audit log: every agent action (timestamp, agentId, workspaceId, action, metadata)
+- Execution metrics: startTime, endTime, duration, status, tokens consumed, cost
+- Agent decision logging: input → reasoning → output
+- Activity query endpoint (GET /api/v1/activity?limit=50&cursor=...)
+- Searchable by agent, workspace, date range, status
+- Agent success rate metrics: (completed / attempted) per agent
+- Cost efficiency: average tokens per task completion
+- Agent can query own metrics (GET /api/v1/agents/{id}/metrics)
+
+**Success Criteria:**
+- [ ] All agent API calls logged with metadata
+- [ ] Execution logs include tokens, cost, status
+- [ ] Activity searchable and filterable
+- [ ] Agent success/cost metrics computed and queryable
+- [ ] Metrics per workspace and time period (day/week/month)
+- [ ] No performance regression (async logging)
+- [ ] E2E test: agent executes ticket → activity logged → metrics updated
+
+**Outcomes:**
+- Full observability into agent usage and costs
+- Foundation for cron management (Phase 6)
+
+---
+
+## Phase 6: Cron Jobs, Workflows & Wiki
+
+**Goal:** Implement cron job management, workflow execution, and per-workspace wiki
+
+**Duration:** ~2 sprints
+**Requirements Addressed:** CR-01 through CR-08, WF-01 through WF-06, WK-01 through WK-04
+
+**What it builds:**
+- Cron job CRUD: create, edit, delete, list (admin only)
+- Cron scheduling: single workspace or cross-workspace
+- Cron execution activity logging: output, tickets created, cost
+- Retry logic with exponential backoff
+- Bidirectional sync with OpenClaw crons
+- Workflow definition (DAG of agents and tasks)
+- Workflow validation: no cycles, dependencies satisfied
+- Multiple concurrent executions per workflow (no serial blocking)
+- Step N output auto-merged into step N+1 input (data chaining)
+- Workflow state machine: pending → running → success/failed/aborted
+- Per-workspace wiki: create, edit, delete markdown pages
+- Wiki pages stored in git with PR review requirement
+- Wiki pages accessible via REST API
+- Tickets can link to wiki pages for context
+
+**Success Criteria:**
+- [ ] Admin can create/edit/delete crons
+- [ ] Crons execute on schedule and log activity
+- [ ] Failed crons retry with backoff
+- [ ] OpenClaw crons sync bidirectionally
+- [ ] Workflows validate DAG and enforce state machine
+- [ ] Multiple executions allowed per workflow
+- [ ] Data chaining works correctly (step output merged into next input)
+- [ ] Wiki pages created via API and stored in git
+- [ ] Wiki changes require PR review
+- [ ] Tickets can reference wiki pages
+- [ ] E2E test: create cron → execute → log activity → success rate tracked
+
+**Outcomes:**
+- Complete v1 feature set operational
+- Agents can automate recurring work (crons)
+- Agents can execute multi-step workflows
+- Teams have workspace-specific documentation (wiki)
+
+---
+
+## Phase 7: OpenClaw Integration & Agent Invocation
+
+**Goal:** Complete bidirectional OpenClaw integration (pull + push + invoke)
+
+**Duration:** ~1 sprint
+**Requirements Addressed:** OC-01 through OC-05
+
+**What it builds:**
+- OpenClaw agents pull work from Mission Control (existing in Phase 4)
+- OpenClaw agents push results via REST API (existing in Phase 4)
+- Mission Control can invoke OpenClaw agents (async dispatch)
+- Agents receive ticket data, task parameters, workspace context on invocation
+- Agents report results via REST API (update ticket, post comments, link PRs)
+- Webhook callbacks for agent notifications
+
+**Success Criteria:**
+- [ ] Mission Control can invoke agents via `/api/v1/agents/{id}/invoke`
+- [ ] Agents receive full task context (ticket data, parameters, workspace)
+- [ ] Agents can report progress via comments API
+- [ ] Agents can update ticket status
+- [ ] Agents can link PRs in comments
+- [ ] E2E test: MC triggers agent → agent processes work → reports results
+
+**Outcomes:**
+- Agents can be proactively dispatched
+- Bidirectional agent orchestration complete
+
+---
+
+## Deferred: Phase 8 (v1.1 or v2)
+
+These requirements are out of v1 scope but captured for future:
+
+- **Notifications System:** @mentions → webhook callbacks, polling notifications (NOTIF-01, NOTIF-02, NOTIF-03)
+- **Critical Bug Fixes:** Workspace isolation bypass fixes, retry limits, cost calculation (BUG-01, BUG-02, BUG-03)
+
+---
+
+## Cross-Phase Dependencies
+
+```
+Phase 1: REST API Foundation
+    ↓
+Phase 2: Workspace Isolation & RBAC
+    ↓
+Phase 3: Agent Registration & Management
+    ├→ Phase 4: Ticket Management
+    │   ├→ Phase 5: Activity Logging & Metrics
+    │   └→ Phase 6: Cron Jobs, Workflows & Wiki
+    │       └→ Phase 7: OpenClaw Invocation
+```
+
+---
+
+## Success Criteria (Overall)
+
+- [ ] All 47 v1 requirements mapped to phases and addressed
+- [ ] All phases have executable PLAN.md with task breakdown
+- [ ] No broken E2E tests at any phase
+- [ ] Agent can poll tickets, claim work, report progress
+- [ ] Multi-workspace isolation enforced at data access layer
+- [ ] Cost tracking per workspace
+- [ ] Full audit trail of agent actions
+- [ ] OpenAPI spec generated and accurate
+- [ ] Agents can integrate via REST API (no SDK required)
+
+---
+
+## Notes
+
+- **Phase 1** is critical path; all other phases depend on REST standardization
+- **Phase 2** must complete before agents can be properly isolated (Phase 3+)
+- **Phase 4** is high-value; enables agent work intake immediately after Phase 3
+- **Phase 5** can run parallel with Phase 4 (independent logging infrastructure)
+- **Phase 6** integrates cron + workflow + wiki (complex but high-value)
+- **Phase 7** is final integration; ensures agents can be both polled and invoked
+
+---
+
+*Roadmap created: 2026-02-26*
+*v1 target: 47 requirements across 7 phases*
+*Estimated duration: 9-11 sprints (brownfield, existing foundation)*
