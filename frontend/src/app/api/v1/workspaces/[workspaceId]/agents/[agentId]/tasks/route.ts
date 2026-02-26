@@ -1,31 +1,22 @@
 /**
- * GET /api/v1/workspaces/{workspaceId}/agents
- * POST /api/v1/workspaces/{workspaceId}/agents
+ * GET /api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks
+ * POST /api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks
  *
- * RESTful agent management endpoints — v1 REST API standardized format
+ * Agent task management endpoints — v1 REST API standardized format
  *
- * GET - List all agents in workspace (requires Bearer token or legacy auth)
- *       Supports cursor pagination: ?limit=20&cursor=abc123
- * POST - Register new agent or get existing agent
- *        Returns 201 for new agents, 200 for existing
+ * GET - List all tasks assigned to an agent with cursor pagination
+ * POST - Create a new task for an agent
  */
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
-import { verifyAgent } from "@/lib/agent-auth";
-import {
-  RegisterAgentSchema,
-  validateAgentInput,
-} from "@/lib/validators/agentValidators";
 import { createLogger } from "@/lib/utils/logger";
 import {
   extractWorkspaceIdFromPath,
   parsePaginationFromRequest,
   createListResponseObject,
-  validateWorkspaceAccess,
-  getWorkspaceIdFromUrl,
 } from "@/lib/api/routeHelpers";
 import {
   ValidationError,
@@ -35,49 +26,41 @@ import {
 import { generateRequestId } from "@/lib/api/responses";
 import { extractAuth, isAuthRequired } from "@/lib/api/auth";
 
-const log = createLogger("api:v1:agents");
-
-// Create Convex client lazily to support testing with mocks
-function getConvexClient(): ConvexHttpClient {
-  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-}
+const log = createLogger("api:v1:agents:tasks");
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
- * GET /api/v1/workspaces/{workspaceId}/agents
- * List all agents in a workspace with cursor pagination
+ * GET /api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks
+ * List all tasks assigned to an agent with pagination support
  *
  * Query Parameters:
  *   limit: number (1-100, default 20) - items per page
  *   cursor: string (optional) - base64 encoded pagination cursor
- *
- * Headers:
- *   Authorization: Bearer <token> (primary)
- *   OR X-Agent-ID, X-Agent-Key (legacy fallback)
+ *   status: string (optional) - filter by status (pending, in_progress, completed)
  *
  * Response: RFC 9457 compliant paginated list
- * {
- *   success: true,
- *   data: [{ id, name, role, level, status }, ...],
- *   pagination: { total, limit, offset, cursor, nextCursor, hasMore },
- *   timestamp: ISO string,
- *   requestId: unique request ID
- * }
  */
 export async function GET(
   request: NextRequest,
-  context: { params: { workspaceId: string } }
+  context: { params: { workspaceId: string; agentId: string } }
 ): Promise<NextResponse> {
   const requestId = generateRequestId();
   const pathname = new URL(request.url).pathname;
 
   try {
-    // Extract workspace ID from URL
+    // Extract workspace and agent IDs from URL
     const workspaceId = context.params.workspaceId;
+    const agentId = context.params.agentId;
+
     if (!workspaceId) {
       throw new NotFoundError(
         "Workspace ID not found in request path",
         pathname
       );
+    }
+
+    if (!agentId) {
+      throw new NotFoundError("Agent ID not found in request path", pathname);
     }
 
     // Validate authentication
@@ -106,36 +89,41 @@ export async function GET(
       }
     }
 
-    // Parse pagination parameters
+    // Parse pagination and filter parameters
     const searchParams = new URL(request.url).searchParams;
     const paginationParams = parsePaginationFromRequest(searchParams, 20);
+    const statusFilter = searchParams.get("status") || undefined;
 
-    // TODO: Validate workspace access when workspace context is available
-    // validateWorkspaceAccess(workspaceId, userWorkspaceIds);
+    // Query tasks from Convex
+    const tasks = await convex.query(api.agents.getAgentTasks, {
+      agentId,
+      workspaceId,
+      status: statusFilter,
+    });
 
-    // Query agents from Convex
-    const convex = getConvexClient();
-    const agents = await convex.query(api.agents.getAllAgents);
-
-    // Filter and sanitize agent list (all agents for now, later add workspace filtering)
-    const agentList = agents.map((a: any) => ({
-      id: a._id,
-      name: a.name,
-      role: a.role,
-      level: a.level,
-      status: a.status,
+    // Filter and sanitize task list
+    const taskList = (tasks || []).map((t: any) => ({
+      id: t._id,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      priority: t.priority,
+      dueDate: t.dueDate,
+      createdAt: t._creationTime,
+      updatedAt: t._creationTime,
     }));
 
-    log.info("Agents list requested", {
+    log.info("Agent tasks listed", {
       workspaceId,
-      count: agentList.length,
+      agentId,
+      count: taskList.length,
       requestId,
     });
 
     // Create paginated response
     const response = createListResponseObject(
-      agentList,
-      agentList.length,
+      taskList,
+      taskList.length,
       paginationParams.limit!,
       0
     );
@@ -154,9 +142,8 @@ export async function GET(
       }
     );
   } catch (error) {
-    log.error("Error listing agents", { error, requestId });
+    log.error("Error listing agent tasks", { error, requestId });
 
-    // Handle known error types
     if (error instanceof ValidationError) {
       return NextResponse.json(
         {
@@ -202,7 +189,6 @@ export async function GET(
       );
     }
 
-    // Handle unknown errors
     return NextResponse.json(
       {
         type: "https://api.mission-control.dev/errors/internal_error",
@@ -219,48 +205,41 @@ export async function GET(
 }
 
 /**
- * POST /api/v1/workspaces/{workspaceId}/agents
- * Register a new agent or get existing agent's API key
+ * POST /api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks
+ * Create a new task assigned to an agent
  *
  * Body:
  * {
- *   name: string (required)
- *   role: string (required)
- *   level: "lead" | "specialist" | "intern" (required)
- *   sessionKey: string (required)
- *   workspacePath: string (required)
- *   capabilities?: string[]
- *   model?: string
- *   personality?: string
+ *   title: string (required)
+ *   description?: string
+ *   priority?: "low" | "normal" | "high"
+ *   dueDate?: ISO date string
+ *   tags?: string[]
  * }
  *
- * Response: RFC 9457 compliant
- * {
- *   success: true,
- *   data: { agentId, apiKey, isNew },
- *   timestamp: ISO string,
- *   requestId: unique request ID
- * }
- *
- * Status Codes:
- * - 201: New agent created
- * - 200: Existing agent retrieved
+ * Response: RFC 9457 compliant with created task
  */
 export async function POST(
   request: NextRequest,
-  context: { params: { workspaceId: string } }
+  context: { params: { workspaceId: string; agentId: string } }
 ): Promise<NextResponse> {
   const requestId = generateRequestId();
   const pathname = new URL(request.url).pathname;
 
   try {
-    // Extract workspace ID from URL
+    // Extract workspace and agent IDs from URL
     const workspaceId = context.params.workspaceId;
+    const agentId = context.params.agentId;
+
     if (!workspaceId) {
       throw new NotFoundError(
         "Workspace ID not found in request path",
         pathname
       );
+    }
+
+    if (!agentId) {
+      throw new NotFoundError("Agent ID not found in request path", pathname);
     }
 
     // Validate authentication
@@ -301,49 +280,50 @@ export async function POST(
       throw new ValidationError("Request body is required", pathname);
     }
 
-    // Validate input against schema
-    const input = validateAgentInput(RegisterAgentSchema, body);
+    // Validate required fields
+    if (!body.title || typeof body.title !== "string") {
+      throw new ValidationError("Title is required and must be a string", pathname);
+    }
 
-    // Generate API key
-    const generatedApiKey = crypto.randomUUID();
+    if (body.priority && !["low", "normal", "high"].includes(body.priority)) {
+      throw new ValidationError("Invalid priority value", pathname);
+    }
 
-    // Call Convex — create or get agent
-    const convex = getConvexClient();
-    const result = await convex.mutation(api.agents.register, {
-      name: input.name,
-      role: input.role,
-      level: input.level,
-      sessionKey: input.sessionKey,
-      capabilities: input.capabilities,
-      model: input.model,
-      personality: input.personality,
-      workspacePath: input.workspacePath,
-      generatedApiKey,
+    // Call Convex — create task
+    const result = await convex.mutation(api.agents.createAgentTask, {
+      agentId,
+      workspaceId,
+      title: body.title,
+      description: body.description || undefined,
+      priority: body.priority || "normal",
+      dueDate: body.dueDate || undefined,
+      tags: body.tags || [],
     });
 
-    log.info("Agent registered", {
+    log.info("Agent task created", {
       workspaceId,
-      agentId: result.agentId,
-      isNew: result.isNew,
-      name: input.name,
+      agentId,
+      taskId: result._id,
       requestId,
     });
-
-    const statusCode = result.isNew ? 201 : 200;
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          agentId: result.agentId,
-          apiKey: result.apiKey,
-          isNew: result.isNew,
+          id: result._id,
+          title: result.title,
+          description: result.description,
+          status: "pending",
+          priority: result.priority,
+          dueDate: result.dueDate,
+          createdAt: new Date().toISOString(),
         },
         timestamp: new Date().toISOString(),
         requestId,
       },
       {
-        status: statusCode,
+        status: 201,
         headers: {
           "Content-Type": "application/json",
           "X-Request-ID": requestId,
@@ -351,9 +331,8 @@ export async function POST(
       }
     );
   } catch (error) {
-    log.error("Error registering agent", { error, requestId });
+    log.error("Error creating agent task", { error, requestId });
 
-    // Handle known error types
     if (error instanceof ValidationError) {
       return NextResponse.json(
         {
@@ -399,7 +378,6 @@ export async function POST(
       );
     }
 
-    // Handle unknown errors
     return NextResponse.json(
       {
         type: "https://api.mission-control.dev/errors/internal_error",

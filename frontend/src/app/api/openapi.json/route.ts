@@ -412,6 +412,115 @@ function generateOpenAPISpec() {
     },
   });
 
+  // Example: Agent Tasks List endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks",
+    method: "GET",
+    summary: "List Agent Tasks",
+    description: "Get all tasks assigned to an agent with pagination support",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+      queryParams.limit,
+      queryParams.cursor,
+      {
+        name: "status",
+        in: "query",
+        description: "Filter by task status",
+        schema: {
+          type: "string",
+          enum: ["pending", "in_progress", "completed"],
+          example: "pending",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "List of agent tasks",
+        content: {
+          "application/json": {
+            schema: paginatedResponseSchema({
+              type: "object",
+              properties: {
+                id: { type: "string", example: "task-123" },
+                title: { type: "string", example: "Fix bug" },
+                description: { type: "string" },
+                status: { type: "string", enum: ["pending", "in_progress", "completed"] },
+                priority: { type: "string", enum: ["low", "normal", "high"] },
+              },
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
+  // Example: Create Agent Task endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks",
+    method: "POST",
+    summary: "Create Agent Task",
+    description: "Create a new task assigned to an agent",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["title"],
+            properties: {
+              title: { type: "string", example: "Fix critical bug" },
+              description: { type: "string", example: "Issue in the auth module" },
+              priority: {
+                type: "string",
+                enum: ["low", "normal", "high"],
+                example: "high",
+              },
+              dueDate: { type: "string", format: "date", example: "2026-03-01" },
+              tags: { type: "array", items: { type: "string" } },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Task created successfully",
+        content: {
+          "application/json": {
+            schema: successResponseSchema({
+              type: "object",
+              properties: {
+                id: { type: "string", example: "task-123" },
+                title: { type: "string", example: "Fix critical bug" },
+                description: { type: "string" },
+                status: { type: "string", example: "pending" },
+                priority: { type: "string", enum: ["low", "normal", "high"] },
+                createdAt: { type: "string", format: "date-time" },
+              },
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
   return doc;
 }
 
