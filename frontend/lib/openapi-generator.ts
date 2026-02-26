@@ -1964,6 +1964,215 @@ export function generateOpenAPISpec(): OpenAPISpec {
         },
       },
     },
+
+    '/api/v1/workspaces/{workspaceId}/agents/{agentId}/tasks/{taskId}/comments/{commentId}': {
+      get: {
+        tags: ['V1 Agent Task Comments'],
+        summary: 'Get comment detail',
+        description: 'Retrieve a specific comment on a task',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'commentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Comment identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Comment retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        content: { type: 'string' },
+                        authorId: { type: 'string' },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Comment not found',
+          },
+        },
+      },
+      put: {
+        tags: ['V1 Agent Task Comments'],
+        summary: 'Update comment',
+        description: 'Modify the content of an existing comment',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'commentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  content: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 5000,
+                    description: 'Updated comment content',
+                  },
+                },
+                required: ['content'],
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Comment updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        content: { type: 'string' },
+                        authorId: { type: 'string' },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Validation error - Invalid comment content',
+          },
+          '404': {
+            description: 'Comment not found',
+          },
+        },
+      },
+      delete: {
+        tags: ['V1 Agent Task Comments'],
+        summary: 'Delete comment',
+        description: 'Remove a comment from a task',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'commentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Comment deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        deleted: { type: 'boolean' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Comment not found',
+          },
+        },
+      },
+    },
   };
 
   // Merge all path builders
