@@ -1,137 +1,145 @@
 # Requirements: Mission Control
 
-**Defined:** 2025-02-25
-**Core Value:** Separation of Control from Execution — Agents execute autonomously within defined policies. Mission Control enforces governance, ensures visibility, and maintains auditability.
+**Defined:** 2026-02-26
+**Core Value:** Replace fragmented, opaque, silo'd agent usage with a coordinated, observable, cost-governed, multi-workspace control plane
 
 ## v1 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+### Workspace Management
+- [ ] **WS-01**: User can create a workspace (name, slug, mission statement, emoji, color)
+- [ ] **WS-02**: Workspace has isolated data: agents, tickets, crons, wiki, cost budget
+- [ ] **WS-03**: Admin can set workspace budget (monthly token limit)
+- [ ] **WS-04**: Admin can set default workspace
+- [ ] **WS-05**: Workspace isolation enforced (users see only assigned workspaces)
+- [ ] **WS-06**: Workspace context propagated through all API calls (URL path `/api/v1/workspaces/{id}/...`)
 
-### Workflow Orchestration
+### Agent Registration & Management
+- [ ] **AG-01**: Agent can register via REST API (POST /api/v1/agents) with endpoint + capabilities
+- [ ] **AG-02**: Admin can view pending registrations and approve/reject
+- [ ] **AG-03**: Agent receives API key upon approval (Bearer token in Authorization header)
+- [ ] **AG-04**: Agent can list other agents via REST API (GET /api/v1/agents)
+- [ ] **AG-05**: Agent can rotate API key (old key has grace period before expiration)
+- [ ] **AG-06**: Admin can deactivate/remove agents
 
-- [ ] **WF-01**: User can define a workflow with sequential steps (Step A → Step B → Step C)
-- [ ] **WF-02**: User can add parallel execution blocks to workflows (Steps A, B, C run concurrently)
-- [ ] **WF-03**: System validates workflows for circular dependencies at save time
-- [ ] **WF-04**: System validates workflows for missing dependencies (agent/inputs not defined) at save time
-- [ ] **WF-05**: User can manually trigger workflow execution from UI
+### Ticket / Work Item Management
+- [ ] **TK-01**: Agent can poll for available tickets (GET /api/v1/tickets/available?limit=10)
+- [ ] **TK-02**: Agent can claim unclaimed ticket (PATCH /api/v1/tickets/{id}/claim)
+- [ ] **TK-03**: Agent can update ticket status (PATCH /api/v1/tickets/{id}) with state machine: To-do → In Progress → PR Review → Done → Closed
+- [ ] **TK-04**: Agent can add comments to ticket (POST /api/v1/tickets/{id}/comments)
+- [ ] **TK-05**: Agent can @mention individuals or @all in comments
+- [ ] **TK-06**: System auto-detects PR references in comments and creates backlinks
+- [ ] **TK-07**: Admin can assign tickets to agents (alternative to agents claiming)
 
-### Budget & Cost Control
+### Activity Logging & Observability
+- [ ] **AC-01**: Every agent action logged: timestamp, agentId, workspaceId, action, metadata
+- [ ] **AC-02**: Execution log includes: startTime, endTime, duration, status, tokens consumed, cost
+- [ ] **AC-03**: Agent decisions logged: input → reasoning → output/decision
+- [ ] **AC-04**: Agent can query activity log (GET /api/v1/activity?limit=50&cursor=...)
+- [ ] **AC-05**: Activity log searchable by agent, workspace, date range, status
 
-- [ ] **BUDGET-01**: User can set a maximum token budget per workflow (e.g., 100,000 tokens)
-- [ ] **BUDGET-02**: System enforces budget: halts workflow if token limit exceeded before dispatch
-- [ ] **BUDGET-03**: System tracks input tokens per step in real-time during execution
-- [ ] **BUDGET-04**: System tracks output tokens per step in real-time during execution
-- [ ] **BUDGET-05**: User can view cost breakdown by agent for a completed workflow run
-- [ ] **BUDGET-06**: User can view cost breakdown by model (GPT-4, Claude, etc.) for a completed workflow run
+### Agent Evaluation & Metrics
+- [ ] **MT-01**: Success metrics tracked: (tasks completed / tasks attempted) per agent
+- [ ] **MT-02**: Cost efficiency metrics: average tokens per task completion
+- [ ] **MT-03**: Agent can query own metrics (GET /api/v1/agents/{id}/metrics)
+- [ ] **MT-04**: Metrics available per workspace and time period
 
-### Approvals & Governance
+### Cron Job Management
+- [ ] **CR-01**: Admin can create cron job (POST /api/v1/crons): schedule, agent, task definition
+- [ ] **CR-02**: Crons globally visible (filterable by workspace)
+- [ ] **CR-03**: Cron can reference agents in single or multiple workspaces
+- [ ] **CR-04**: Admin can edit cron (PATCH /api/v1/crons/{id})
+- [ ] **CR-05**: Admin can delete cron (DELETE /api/v1/crons/{id})
+- [ ] **CR-06**: Bidirectional sync with OpenClaw crons
+- [ ] **CR-07**: Cron execution activity logged: metadata, output, tickets created, cost
+- [ ] **CR-08**: Cron failures trigger automatic retry with exponential backoff
 
-- [ ] **APPR-01**: Operator can approve workflow execution via approval queue before execution starts
-- [ ] **APPR-02**: System captures operator identity (username, email, timestamp) in audit log for every approval
-- [ ] **APPR-03**: System enforces risk-stratified approval rules (read operations skip approval, write/irreversible require approval)
+### Workflow Management
+- [ ] **WF-01**: User can define workflow (DAG of agents and tasks)
+- [ ] **WF-02**: Workflow validates: no cycles, all dependencies satisfied
+- [ ] **WF-03**: Multiple concurrent executions allowed per workflow
+- [ ] **WF-04**: Step N output automatically merged into step N+1 input (data chaining)
+- [ ] **WF-05**: Workflow state machine enforced: pending → running → success/failed/aborted
+- [ ] **WF-06**: User can trigger workflow execution (POST /api/v1/workflows/{id}/execute)
 
-### Real-Time Observability
+### Per-Workspace Wiki
+- [ ] **WK-01**: Workspace admin can create wiki pages (markdown documents)
+- [ ] **WK-02**: Wiki pages stored in git with PR review requirement
+- [ ] **WK-03**: Wiki pages accessible via REST API (GET /api/v1/workspaces/{id}/wiki/pages)
+- [ ] **WK-04**: Tickets can link to wiki pages for context
 
-- [ ] **OBS-01**: User can view workflow execution status in unified dashboard (running/completed/failed)
-- [ ] **OBS-02**: User can view current step execution status (running/completed/failed/blocked) in real-time
-- [ ] **OBS-03**: User can view agent I/O for completed steps (inputs provided, outputs returned)
-- [ ] **OBS-04**: User can view real-time token count during execution (tokens consumed so far)
-- [ ] **OBS-05**: User can view accumulated cost during execution (USD spent so far)
-- [ ] **OBS-06**: User can view error details and failure reasons for failed steps
+### OpenClaw Integration
+- [ ] **OC-01**: OpenClaw agents can poll Mission Control for work (pull-based)
+- [ ] **OC-02**: OpenClaw agents can create/update tickets via REST API (push-based)
+- [ ] **OC-03**: Mission Control can invoke OpenClaw agents (async dispatch)
+- [ ] **OC-04**: Agents receive ticket data, task parameters, workspace context on invocation
+- [ ] **OC-05**: Agents report results via REST API (update ticket, post comments, link PRs)
 
-### Audit & Replay
+### REST API Standards (CRITICAL - Foundation for All Above)
+- [ ] **API-01**: All endpoints follow RESTful routing (GET/POST/PUT/DELETE/PATCH)
+- [ ] **API-02**: All errors return RFC 9457 format: `{type, title, detail, instance, status}`
+- [ ] **API-03**: Success responses: `{data: {...}, success: true}`
+- [ ] **API-04**: List endpoints support cursor pagination: `?limit=50&cursor=abc123`
+- [ ] **API-05**: List endpoints support filtering: `?status=pending&agent=x`
+- [ ] **API-06**: List endpoints support sorting: `?sort=-createdAt`
+- [ ] **API-07**: Workspace context in URL path: `/api/v1/workspaces/{workspaceId}/...`
+- [ ] **API-08**: All endpoints require API key auth (Authorization: Bearer {apiKey})
+- [ ] **API-09**: Rate limiting enforced: X-RateLimit-* headers, 429 on limit exceeded
+- [ ] **API-10**: OpenAPI 3.0 spec auto-generated from Zod schemas (zod-openapi)
+- [ ] **API-11**: Swagger UI available at /api/docs
+- [ ] **API-12**: Support /api/v1/ and /api/v2/ for backwards compatibility
 
-- [ ] **AUDIT-01**: System creates immutable event log for every workflow execution (no updates/deletes)
-- [ ] **AUDIT-02**: User can search audit logs by workflow name
-- [ ] **AUDIT-03**: User can search audit logs by agent name
-- [ ] **AUDIT-04**: User can search audit logs by execution date/time range
-- [ ] **AUDIT-05**: User can replay a completed execution from audit trail (rebuild full state)
-- [ ] **AUDIT-06**: Replay shows all inputs, outputs, costs, and decisions in original order
+### Critical Bug Fixes (Research-Identified)
+- [ ] **BUG-01**: Fix workspace isolation bypass in notifications.ts and executions.ts
+- [ ] **BUG-02**: Implement retry limit and timeout protection (no infinite retries)
+- [ ] **BUG-03**: Fix cost calculation silent $0 fallback (fail loudly on misconfiguration)
 
 ## v2 Requirements
 
-Deferred to future release. Not in current roadmap.
+### Notifications System
+- **NOTIF-01**: When agent @mentioned in comment, agent receives webhook callback (async)
+- **NOTIF-02**: Agent can poll for notifications (GET /api/v1/notifications)
+- **NOTIF-03**: Webhook delivery with retry logic and exponential backoff
 
-### Workflow Orchestration (v2)
+### Advanced Approval & Decision Making
+- **APPR-01**: Step-level approval gates in workflows
+- **APPR-02**: Approval velocity metrics and stale approval escalation
+- **APPR-03**: Tiered confidence thresholds (low/medium/high risk)
 
-- **WF-SCHED-01**: Workflows can be scheduled to run on a cron schedule
-- **WF-EVENT-01**: Workflows can be triggered by external events (webhook, task completion, state change)
-- **WF-VERSION-01**: User can version workflows and rollback to previous versions
-- **WF-NESTED-01**: User can create sub-workflows (nested composition)
+### Audit & Compliance
+- **AUD-01**: Consolidate audit systems (activities, decisions, events, executionLog → single event stream)
+- **AUD-02**: Immutable workflow_events table for regulatory compliance
+- **AUD-03**: Audit viewer and replay UI
 
-### Budget & Cost Control (v2)
-
-- **BUDGET-FORECAST-01**: System shows cost forecasting (predicted spend given historical rates)
-- **BUDGET-ML-01**: System recommends model selection based on cost/performance tradeoff
-
-### Approvals & Governance (v2)
-
-- **APPR-COND-01**: User can define conditional approval gates between workflow steps
-- **APPR-EXPORT-01**: User can export audit logs for compliance review (CSV, JSON)
-
-### Real-Time Observability (v2)
-
-- **OBS-REASONING-01**: User can view agent reasoning/thinking display in real-time
-- **OBS-PERF-01**: User can view performance metrics (latency per step, throughput, error rates)
-
-### Audit & Replay (v2)
-
-- **AUDIT-PATTERN-01**: System suggests workflow optimizations based on execution history
-- **AUDIT-ANOMALY-01**: System alerts on anomalies (cost spikes, unusual latency, error patterns)
+### Observability Dashboard
+- **DASH-01**: Real-time workflow execution monitoring
+- **DASH-02**: Cost breakdown by workspace, agent, workflow
+- **DASH-03**: Agent performance metrics and trends
 
 ## Out of Scope
 
-Explicitly excluded from Mission Control scope (by design or deferral).
-
 | Feature | Reason |
 |---------|--------|
-| Autonomous scheduling (v1) | Humans trigger workflows in v1; automation deferred to v2 |
-| Conditional approval gates (v1) | Approval/no-approval only; branching logic deferred to v2 |
-| ML-driven cost forecasting | Requires historical data accumulation; deferred to v2 |
-| Custom agent types | Integration focuses on existing agent backend only |
-| Multi-tenant RBAC | Single-operator control plane for v1; enterprise auth deferred |
-| Push notifications | Status visible in UI; push notifications deferred |
-| Custom approval workflows | Risk-stratified (read/write/irreversible) only; complex trees deferred |
+| Real-time chat | Use comments/mentions on tickets instead |
+| Video content storage | Agents reference external links |
+| Mobile app | Web-first, mobile later |
+| OAuth / SAML enterprise auth | API key auth sufficient for v1 |
+| Data warehouse / BI dashboards | Query metrics API for custom analysis |
+| Audit compliance (SOC 2) | Activity logs provide foundation |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+(To be populated during roadmap creation)
 
 | Requirement | Phase | Status |
-|-------------|-------|--------|
-| WF-01 | Phase 2 | Pending |
-| WF-02 | Phase 2 | Pending |
-| WF-03 | Phase 2 | Pending |
-| WF-04 | Phase 2 | Pending |
-| WF-05 | Phase 2 | Pending |
-| BUDGET-01 | Phase 2 | Pending |
-| BUDGET-02 | Phase 2 | Pending |
-| BUDGET-03 | Phase 3 | Pending |
-| BUDGET-04 | Phase 3 | Pending |
-| BUDGET-05 | Phase 4 | Pending |
-| BUDGET-06 | Phase 4 | Pending |
-| APPR-01 | Phase 3 | Pending |
-| APPR-02 | Phase 3 | Pending |
-| APPR-03 | Phase 3 | Pending |
-| OBS-01 | Phase 4 | Pending |
-| OBS-02 | Phase 4 | Pending |
-| OBS-03 | Phase 4 | Pending |
-| OBS-04 | Phase 4 | Pending |
-| OBS-05 | Phase 4 | Pending |
-| OBS-06 | Phase 4 | Pending |
-| AUDIT-01 | Phase 1 | Pending |
-| AUDIT-02 | Phase 5 | Pending |
-| AUDIT-03 | Phase 5 | Pending |
-| AUDIT-04 | Phase 5 | Pending |
-| AUDIT-05 | Phase 5 | Pending |
-| AUDIT-06 | Phase 5 | Pending |
+|------------|-------|--------|
+| (Phase 1 requirements mapped here) | Phase 1 | Pending |
+| (Phase 2 requirements mapped here) | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 26 total
-- Mapped to phases: 26
-- Unmapped: 0
+- v1 requirements: 47 total
+- Mapped to phases: (pending)
+- Unmapped: (pending)
 
 ---
-
-*Requirements defined: 2025-02-25*
-*Last updated: 2026-02-25 after roadmap creation — all 26 requirements mapped*
+*Requirements defined: 2026-02-26*
+*Last updated: 2026-02-26 after research synthesis*
