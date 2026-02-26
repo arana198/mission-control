@@ -985,6 +985,102 @@ export function generateOpenAPISpec(): OpenAPISpec {
           },
         },
       },
+      put: {
+        tags: ['Agent Tasks'],
+        summary: 'Update task',
+        description: 'Update task properties (title, status, priority, progress, dueDate)',
+        parameters: [
+          {
+            name: 'agentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string', description: 'Task title' },
+                  description: { type: 'string', description: 'Task description' },
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'in_progress', 'completed'],
+                    description: 'Task status',
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'normal', 'high'],
+                    description: 'Task priority',
+                  },
+                  progress: {
+                    type: 'number',
+                    minimum: 0,
+                    maximum: 100,
+                    description: 'Task progress percentage',
+                  },
+                  dueDate: {
+                    type: 'string',
+                    format: 'date',
+                    description: 'Task due date (ISO format)',
+                  },
+                },
+                example: {
+                  title: 'Updated task title',
+                  status: 'in_progress',
+                  priority: 'high',
+                  progress: 50,
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Task updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        status: { type: 'string' },
+                        priority: { type: 'string' },
+                        progress: { type: 'number' },
+                        dueDate: { type: ['string', 'null'] },
+                        updatedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request - Invalid field values',
+          },
+          '404': {
+            description: 'Task not found',
+          },
+        },
+      },
       patch: {
         tags: ['Agent Tasks'],
         summary: 'Update task status',
