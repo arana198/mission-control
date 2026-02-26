@@ -245,6 +245,71 @@ function generateOpenAPISpec() {
     },
   });
 
+  // Example: Agent Heartbeat endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}/heartbeat",
+    method: "POST",
+    summary: "Agent Heartbeat",
+    description: "Send periodic heartbeat to indicate agent is active",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+    ],
+    requestBody: {
+      required: false,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              status: {
+                type: "string",
+                enum: ["active", "idle", "blocked"],
+                example: "active",
+              },
+              metrics: {
+                type: "object",
+                properties: {
+                  cpuUsage: { type: "number", example: 45.2 },
+                  memoryUsage: { type: "number", example: 62.1 },
+                  taskCount: { type: "number", example: 3 },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Heartbeat recorded successfully",
+        content: {
+          "application/json": {
+            schema: successResponseSchema({
+              type: "object",
+              properties: {
+                agentId: { type: "string", example: "agent-123" },
+                status: { type: "string", enum: ["active", "idle", "blocked"] },
+                lastHeartbeat: { type: "string", format: "date-time" },
+                nextHeartbeatIn: {
+                  type: "number",
+                  description: "Expected next heartbeat interval in milliseconds",
+                  example: 30000,
+                },
+              },
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
   return doc;
 }
 
