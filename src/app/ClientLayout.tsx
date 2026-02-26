@@ -13,7 +13,7 @@ import { PanelContext, type PanelType } from "@/contexts/PanelContext";
 import { api } from "@/convex/_generated/api";
 import {
   BarChart3, Activity, LayoutDashboard, Zap, Target, Tag, CheckCircle,
-  Store, Package, Building2, Bot, Cpu, Moon, Sun, Bell, Settings, MessageSquare
+  Store, Package, Building2, Bot, Moon, Sun, Bell, Settings, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -109,8 +109,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       items: [
         { id: "workload", label: "Workload", icon: BarChart3, isGlobal: true },
         { id: "api-docs", label: "API Docs", icon: Package, isGlobal: true },
-        { id: "bottlenecks", label: "Bottlenecks", icon: Cpu, isGlobal: true },
-        { id: "businesses", label: "es", icon: Store, isGlobal: true },
+        { id: "businesses", label: "Businesses", icon: Store, isGlobal: true },
         { id: "control", label: "Control", icon: Building2, isGlobal: true },
       ],
     },
