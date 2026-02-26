@@ -1,191 +1,237 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-02-25
+**Analysis Date:** 2026-02-26
 
 ## Naming Patterns
 
 **Files:**
-- Component files: PascalCase (e.g., `GatewaySessionsPanel.tsx`)
-- Hook files: camelCase with `use` prefix (e.g., `useGatewaySessions.ts`)
-- Utility/service files: camelCase (e.g., `gatewayRpc.ts`, `taskUtils.ts`)
-- Test files: match source file name with `.test.ts` or `.test.tsx` suffix
-  - Location: Co-located in `__tests__/` directory (e.g., `src/components/__tests__/GatewaySessionsPanel.test.tsx`)
-  - Convex tests: `convex/__tests__/` or nested (e.g., `convex/tasks/__tests__/mutations.test.ts`)
+- TypeScript files: `camelCase.ts` (e.g., `gatewayConnectionPool.ts`, `workflowValidation.ts`)
+- React components: `PascalCase.tsx` (e.g., `BusinessFilter.tsx`, `WorkspaceFilter.tsx`, `AgentDetailModal.tsx`)
+- Test files: `__tests__/` directory with `*.test.ts` or `*.test.tsx` suffix (e.g., `__tests__/workflowValidation.test.ts`)
+- Utility modules: `camelCase.ts` for functions and classes (e.g., `agentProvisioning.ts`, `epicTaskSync.ts`)
+- Barrel files: `index.ts` exports all named exports from a module
 
 **Functions:**
-- camelCase for all functions (exports and internal)
-- Examples: `useGatewaySessions()`, `fetchSessions()`, `detectCycle()`, `inferTagsFromContent()`
-- Factory functions and helpers: prefix with action verb (e.g., `createMockCtx()`, `makeSessionsRequest()`)
+- Regular functions: `camelCase` (e.g., `detectWorkflowCycle()`, `topologicalSort()`, `buildCacheKey()`)
+- React hooks: `useXxx` (e.g., `useNotification()`, `useGatewaySessions()`, `useFilterPersistence()`)
+- Helper functions: `camelCase`, internal functions use no prefix (e.g., `interpolate()`, `identityTemplate()`)
+- Class methods: `camelCase` (e.g., `acquire()`, `release()`, `buildCacheKey()`)
 
 **Variables:**
-- camelCase for all variables, including state variables
-- Examples: `isLoading`, `expandedSession`, `mockSessions`, `gatewayConfig`
-- Constants (truly immutable): UPPER_SNAKE_CASE
-  - Example: `const ONE_DAY = 86400000;` in `lib/taskUtils.ts`
-  - Example: `const ALLOWED_TRANSITIONS` in `lib/constants/taskTransitions.ts`
+- Local variables: `camelCase` (e.g., `cacheKey`, `filteredWorkspaces`, `selectedWorkspaceId`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `POOL_TTL_MS = 60_000`, `POOL_MAX_PER_KEY = 3`)
+- Boolean variables: `isX` or `hasX` (e.g., `isOpen`, `inUse`, `isValid`)
+- React state: `useState<Type>` with variable and setter (e.g., `const [selectedWorkspaceId, setSelectedId]`)
 
-**Types:**
-- PascalCase for all interfaces and type aliases
-- Examples: `GatewaySession`, `UseGatewaySessionsReturn`, `HistoryEntry`, `RpcRequest`
-- Enum values: PascalCase (e.g., `ErrorCode.VALIDATION_ERROR`)
-
-**Interfaces:**
-- Props interfaces: `{ComponentName}Props` suffix (e.g., `GatewaySessionsPanelProps`)
-- Return types: `Use{HookName}Return` for hooks (e.g., `UseGatewaySessionsReturn`)
-- Generic structures: Descriptive names without suffix (e.g., `GatewaySession`, `HistoryEntry`)
+**Types and Interfaces:**
+- Types: `PascalCase` (e.g., `WorkflowExecutionStatus`, `StepExecutionStatus`)
+- Interfaces: `PascalCase` (e.g., `ConnectConfig`, `PoolEntry`, `ValidationResult`)
+- Props interfaces: `{ComponentName}Props` (e.g., `WorkspaceFilterProps`)
+- Exported types: defined at module top with JSDoc comments
 
 ## Code Style
 
 **Formatting:**
-- ESLint configured via `next lint` (Next.js default rules)
-- Indentation: 2 spaces (checked in `.next/` generated files)
-- Line length: No hard limit enforced; practical limit ~100 characters
-- Semicolons: Required (enforced by Next.js/TypeScript)
+- No formatter configured in repo (no prettier/biome config files)
+- TypeScript strict mode enabled: `"strict": true` in frontend/tsconfig.json
+- 2-space indentation (inferred from code samples)
+- Line length: ~80 characters (observed in comments and code structure)
+- Semicolons: required at statement end (TypeScript default)
 
 **Linting:**
-- Tool: ESLint with Next.js config (`eslint-config-next`)
-- Command: `npm run lint`
-- Rules follow Next.js opinionated defaults (import ordering, React rules, etc.)
+- ESLint configured: `eslint: ^8.0.0` in dependencies
+- Next.js ESLint config: `eslint-config-next: ^14.0.0`
+- No custom `.eslintrc` found; uses Next.js defaults
+- Run: `npm run lint` (proxies to `next lint`)
 
 ## Import Organization
 
-**Order (observed pattern):**
-1. React and React utilities (hooks, utilities)
-   - `import { useEffect, useState, useRef } from "react";`
-   - `import { useRouter } from "next/navigation";`
-2. External libraries
-   - `import { useQuery } from "convex/react";`
-   - `import WebSocket from "ws";`
-3. Project alias imports (`@/...`)
-   - `import { api } from "../../convex/_generated/api";` (or use `@/convex/...`)
-   - `import { useWorkspace } from "./WorkspaceProvider";`
-4. Type imports (rarely separate, usually inline)
-   - `import { Task } from "@/types/task";`
-5. Icon imports (grouped together)
-   - `import { Search, FileText, Target, ... } from "lucide-react";`
-6. Utility imports
-   - `import clsx from "clsx";`
+**Order:**
+1. External packages (React, third-party libraries)
+2. Absolute path imports (@/ aliases)
+3. Relative imports (internal modules)
+4. Blank line between groups (if present)
 
-**Path Aliases (configured in tsconfig.json):**
-- `@/*` → root-level files (fallback)
+**Example from `workflowValidation.ts`:**
+```typescript
+// No external imports (pure logic)
+// Interfaces and types defined inline at top
+export type WorkflowExecutionStatus = "pending" | "running" | ...
+```
+
+**Example from `gatewayConnectionPool.ts`:**
+```typescript
+import WebSocket from 'ws';        // External package
+import { connect } from '@/services/gatewayRpc';  // Absolute path (@/)
+```
+
+**Path Aliases:**
+- `@/convex/*` → `../backend/convex/*`
+- `@/lib/*` → `./lib/*` (frontend)
 - `@/types/*` → `./src/types/*`
 - `@/components/*` → `./src/components/*`
 - `@/hooks/*` → `./src/hooks/*`
 - `@/services/*` → `./src/services/*`
-- `@/convex/*` → `./convex/*`
-- `@/lib/*` → `./lib/*`
-
-**No barrel files detected** - imports are direct from source files (e.g., `import { GatewaySession } from "@/hooks/useGatewaySessions"`)
+- `@/contexts/*` → `./src/contexts/*`
+- `@/styles/*` → `./src/styles/*`
+- `@/*` → `./*` (catch-all)
 
 ## Error Handling
 
 **Patterns:**
-- `ApiError` class (`lib/errors/ApiError.ts`) for standardized errors in Convex mutations
-  - Constructor: `new ApiError(ErrorCode.NOT_FOUND, message, details?)`
-  - Static factories: `ApiError.notFound(resource, details?)`, `ApiError.validationError(message, details?)`, `ApiError.conflict(message, details?)`
-  - Methods: `isRetryable()`, `toJSON()`
 
-**Error Codes (enum):**
-- `VALIDATION_ERROR` (422)
-- `NOT_FOUND` (404)
-- `CONFLICT` (409)
-- `FORBIDDEN` (403)
-- `LIMIT_EXCEEDED` (429)
-- `INTERNAL_ERROR` (500)
-- `SERVICE_UNAVAILABLE` (503)
+**Throwing errors with context:**
+```typescript
+// From agentProvisioning.ts
+} catch (error) {
+  throw new Error(`Failed to provision agent ${agentKey}: ${(error as Error).message}`);
+}
+```
 
-**Usage examples:**
-- Convex mutations: Wrap with `wrapConvexHandler()` from `lib/errors/convexErrorHandler.ts`
-- In handlers: Check preconditions, throw `ApiError` with appropriate code
-- Location: `convex/examples/errorHandlingPattern.ts` shows recommended patterns
+**Catching specific errors:**
+```typescript
+// From gatewayRpc.ts
+} catch (e) {
+  // Error handling with type assertion
+  reject(new Error(`RPC call timeout: ${method}`));
+}
+```
 
-**Component/Hook Error Handling:**
-- State-based: `error` state variable (string or null)
-  - Example: `const [error, setError] = useState<string | null>(null);`
-  - Set on catch: `setError(message)` where message is parsed from Error instance
-- Fetch errors: Parse response status, throw Error with descriptive message
-  - Example: `throw new Error(\`API error: ${response.status} ${response.statusText}\`);`
+**Silent catches (when safe):**
+```typescript
+// From gatewayConnectionPool.ts
+} catch {
+  // Socket cleanup on error, silently continue with pool management
+}
+```
+
+**Error response structure (API handlers):**
+```typescript
+// Return { success: false, error: "message" } for failures
+expect(data.success).toBe(false);
+```
+
+**Status codes:**
+- 200: Success
+- 201: Created
+- 400: Bad request (validation failed)
+- 401: Unauthorized (auth failed)
+- 500: Server error
 
 ## Logging
 
-**Framework:** No logger detected in conventions; uses `console.*` methods
-- `console.log()` - informational
-- `console.error()` - errors
-- Pino logger configured in `package.json` but not used in observed code
+**Framework:** `console` for basic logging
 
-**Patterns (observed):**
-- Minimal logging in source code
-- Error context logged in test setup/teardown
-- Activity logging in Convex: `resolveActorName()` utility in `convex/utils/activityLogger.ts`
+**Patterns:**
+- No pino/winston integration for logs in analyzed code
+- Console.log used implicitly in error messages
+- Error tracking: use Error constructors with context (e.g., "Failed to provision agent X")
+- No DEBUG env var patterns observed
 
 ## Comments
 
 **When to Comment:**
-- File headers: JSDoc block describing purpose and key responsibilities
-  - Pattern: `/** File purpose ... */` at top of file
-  - Example: `useGatewaySessions.ts` has "Real-time gateway session fetching and management"
-- Function headers: JSDoc with parameters and return type
-  - Example: `/** Check if a task is overdue (more than 1 day past due date) */`
-- Inline: Sparingly, only for non-obvious logic
-  - Example: "Skip if no gatewayId or not active"
-  - Example: "Polling effect" before useEffect setup
+- File-level: JSDoc block at top of file explaining module purpose
+- Function-level: JSDoc blocks for exported functions, especially public APIs
+- Inline: Only for non-obvious logic or workarounds
+- Decision points: Why a choice was made (not what the code does)
 
 **JSDoc/TSDoc:**
-- Function parameters documented in JSDoc comments:
-  ```typescript
-  /**
-   * Check if a task is overdue (more than 1 day past due date)
-   * @param dueDate - timestamp in milliseconds
-   * @returns true if dueDate is more than 24 hours in the past
-   */
-  export function isOverdue(dueDate?: number): boolean { ... }
-  ```
-- Return types implicit from code (TypeScript handles this)
+```typescript
+/**
+ * Detect if a workflow graph contains a cycle using DFS.
+ *
+ * @param nodes - Map of node IDs to node objects
+ * @param edges - Map of node IDs to arrays of successor node IDs
+ * @returns true if a cycle is detected, false otherwise
+ */
+export function detectWorkflowCycle(
+  nodes: Record<string, WorkflowNode>,
+  edges: Record<string, string[]>
+): boolean
+```
+
+**File-level comments:**
+```typescript
+/**
+ * Pure Logic Functions for Workflow Validation
+ *
+ * Zero Convex dependencies. All functions are deterministic and testable in isolation.
+ * Used by Convex mutations to validate workflows before persisting.
+ */
+```
+
+**Architecture comments:**
+```typescript
+/**
+ * Gateway Connection Pool
+ *
+ * Module-level singleton that keeps authenticated WebSocket connections alive
+ * for 60 seconds of idle time. Handlers call pool.acquire() instead of connect()
+ * and pool.release() instead of ws.close().
+ */
+```
 
 ## Function Design
 
-**Size:** Keep functions small; complexity threshold ~50 lines
-- Examples: Most utility functions 5-20 lines
-- Larger functions (mutations, complex hooks): ~40-60 lines, well-commented
+**Size:** Functions should be < 50 lines when possible (observed: most utility functions 10-40 lines)
 
 **Parameters:**
-- Positional parameters for primary inputs
-- Object parameter for multiple related options (seen in component props)
-  - Example: `GatewaySessionsPanelProps` spreads 8 props instead of positional args
-- Optional parameters: Use `?` in interface or default in function signature
-  - Example: `isActive: boolean = true` (default in useGatewaySessions)
-  - Example: `sessions?: GatewaySession[]` (optional in component props)
+- Prefer explicit parameters over object spreading
+- Use interface for complex parameter objects
+```typescript
+export interface ConnectConfig {
+  url: string;
+  token?: string;
+  disableDevicePairing?: boolean;
+  allowInsecureTls?: boolean;
+}
+async acquire(gatewayId: string, config: ConnectConfig): Promise<WebSocket>
+```
 
 **Return Values:**
-- Single value for simple functions
-- Object return for multiple related values
-  - Example: `UseGatewaySessionsReturn` returns `{ sessions, isLoading, error, refresh, sendMessage, fetchHistory }`
-- Void for mutations with side effects (Convex pattern)
-- Promise<T> for async operations
+- Explicit return types for all exported functions
+- Use `void` for side-effect-only functions
+- Async functions return `Promise<T>`
+- Use union types for multiple return states
+```typescript
+export type WorkflowExecutionStatus = "pending" | "running" | "success" | "failed" | "aborted";
+```
 
 ## Module Design
 
 **Exports:**
-- Named exports preferred (not default exports) for utilities and hooks
-  - Example: `export function useGatewaySessions() { ... }`
-  - Example: `export const clearAllData = mutation({ ... })`
-- Default export for React components (some files)
-  - Example: `export function GatewaySessionsPanel() { ... }` (named in this codebase)
+- Named exports preferred: `export function`, `export const`, `export interface`
+- Default exports avoided (not observed in codebase)
+- Module singletons exported as constants: `export const gatewayPool = new GatewayConnectionPool()`
+- Interfaces exported for consumers to use in type annotations
 
 **Barrel Files:**
-- No barrel files observed (`src/types/index.ts` does not exist)
-- Imports are direct from source files (e.g., `@/hooks/useGatewaySessions`)
-- Recommendation: Add barrel files for cleaner imports if importing multiple items from same directory
+- `index.ts` exists but role not extensively documented in samples
+- Path aliases used to shield consumers from internal structure
 
-**Module Patterns:**
-- Services as functions with WebSocket lifecycle management
-  - Example: `gatewayRpc.ts` exports `connect()` and `call()` functions for RPC over WebSocket
-  - Pattern: Acquire resource, use, close in try/finally
-- Hooks manage React state and side effects
-  - Example: `useGatewaySessions` manages fetch state, polling, error handling
-- Convex mutations/queries use `wrapConvexHandler()` for error standardization
-  - Example: `admin.ts` mutations use ApiError for consistent responses
+## Type Safety
+
+**TypeScript Strict Mode:**
+- `"strict": true` enforced
+- All parameters explicitly typed
+- All return types explicitly declared
+- No implicit `any` types
+- Type guards for runtime checks:
+```typescript
+if (!visited.has(successor)) {
+  if (dfs(successor)) {
+    return true;
+  }
+}
+```
+
+## Testing Conventions (Related to Code)
+
+- Pure functions isolated from side effects (no Convex dependencies in validation logic)
+- Class methods clearly defined with public/private intent via naming
+- Exports grouped at end of module for clarity
 
 ---
 
-*Convention analysis: 2026-02-25*
+*Convention analysis: 2026-02-26*

@@ -1,205 +1,197 @@
 # External Integrations
 
-**Analysis Date:** 2026-02-25
+**Analysis Date:** 2026-02-26
 
 ## APIs & External Services
 
-**OpenClaw Gateway:**
-- Service: OpenClaw distributed runtime environment
-- What it's used for: Agent orchestration, session management, RPC communication with agents
-  - SDK/Client: `ws` (WebSocket client)
-  - Implementation: `src/services/gatewayRpc.ts` (JSON-RPC v3 protocol)
-  - Connection: WebSocket (ws:// or wss://)
-  - Auth: Optional token via gateway config
-  - Operations: `sessions.list`, `chat.history`, `chat.send`, `agents.create`
+**OpenClaw Gateway (Distributed Runtime):**
+- Service: OpenClaw gateway daemon (local or remote)
+- What it's used for: WebSocket RPC communication with distributed agent runtime
+- Protocol: JSON-RPC 3.0 over WebSocket (ws:// or wss://)
+- SDK/Client: Custom WebSocket client in `frontend/src/services/gatewayRpc.ts`
+- Auth: Optional token-based auth + optional ed25519 device pairing signatures
+- Connection Config env var: `OPENCLAW_GATEWAY_URL` (default: `http://localhost:8000`)
+- Features:
+  - Session management (get active sessions)
+  - RPC method calls (health checks, message sending)
+  - Automatic connection teardown
 
-**GitHub Integration:**
-- Service: Local git repository access
-- What it's used for: Commit fetching and linking to task tickets
-  - Implementation: `convex/github.ts`
-  - Method: `spawnSync("git")` for local commits only (no GitHub API)
-  - Pattern matching: Extracts ticket IDs like CORE-01, PERF-01, EPUK-1 from commit messages
-  - No authentication required (local filesystem only)
+**Mission Control REST API:**
+- Service: Self-hosted (Next.js API routes)
+- What it's used for: Agent-facing HTTP endpoints + internal API
+- Location: `frontend/src/app/api/`
+- Framework: Next.js route handlers with TypeScript
+- Endpoints:
+  - `/api/gateway/[gatewayId]` - Gateway RPC proxy (sessions, messages, history)
+  - `/api/businesses/` - Business management
+  - `/api/tasks/` - Task operations
+  - `/api/epics/` - Epic management
+  - `/api/openapi` - OpenAPI 3.0 spec generation
+  - `/api/health` - Health checks
+  - More: see `frontend/src/app/api/` directory
+- Auth: API key validation (agents authenticate with Convex API keys)
+- Spec Generation: OpenAPI 3.0 generated dynamically from route handlers via `frontend/lib/openapi-generator.ts`
 
 ## Data Storage
 
-**Databases:**
-- Convex Cloud
-  - Type: Real-time document database with live queries
-  - Provider: Convex (SaaS)
-  - Connection: Via `NEXT_PUBLIC_CONVEX_URL` environment variable
-  - Client: `ConvexReactClient` (frontend), `ConvexHttpClient` (API routes)
-  - ORM: Convex SDK (declarative schema in `convex/schema.ts`)
-  - Tables: 40+ including workspaces, agents, tasks, epics, executions, notifications, gateways, etc.
+**Convex Backend-as-a-Service:**
+- Service: Convex (SaaS)
+- Deployment: Cloud-hosted at `*.convex.cloud`
+- Connection: HTTPS to Convex deployment URL
+- Client: `convex` npm package + `ConvexHttpClient` for HTTP-based access
+- Schema: `backend/convex/schema.ts` (defines 20+ tables)
+- Key tables:
+  - `workspaces` - Multi-tenant support
+  - `agents` - Agent squad state
+  - `tasks` - Task queue and execution log
+  - `executions` - Full audit trail of agent actions
+  - `gateways` - Gateway configuration (WebSocket URLs, auth tokens)
+  - `businesses` - Organizational units
+  - `documents`, `epics`, `goals` - Project management entities
+  - And more (see schema.ts for complete list)
+- Auth: API keys (agents) and internal Convex mutations (Mission Control)
+- Real-time: Built-in via Convex subscriptions
 
 **File Storage:**
-- Local filesystem only
-  - Workspace root paths stored in `agents.workspacePath`
-  - No cloud storage integration detected
-  - Git commits accessed locally via filesystem
+- Not detected. Code suggests no external file storage integration.
+- Assumption: Files managed locally or within Convex documents
 
 **Caching:**
-- In-memory caching in Convex queries (automatic)
-- No external cache service (Redis, Memcached) detected
+- Internal: `frontend/src/lib/advancedCache.ts` - In-memory caching utility
+- External: Not detected (no Redis, Memcached imports)
 
 ## Authentication & Identity
 
-**Auth Provider:**
-- Custom implementation via API keys
-  - Agent authentication: API key stored in `agents.apiKey`
-  - Key rotation: Tracked with `lastKeyRotationAt`, `keyRotationCount`, `previousApiKey`
-  - Human/organizational auth: Invitation-based via `invites` table
-  - Email validation: Case-insensitive normalization in `convex/invites.ts`
+**Agent Authentication:**
+- Provider: Custom (Convex-based API keys)
+- Implementation:
+  - Agents authenticate via `apiKey` field in `agents` table
+  - API keys stored in Convex database
+  - HTTP routes validate API keys via `frontend/lib/agent-auth.ts`
+  - Keys support rotation with grace periods (old key validity window)
+- Key Rotation: Tracked in agents table:
+  - `lastKeyRotationAt` - Timestamp of rotation
+  - `keyRotationCount` - Total rotations (audit)
+  - `previousApiKey` - Grace period old key
+  - `previousKeyExpiresAt` - When old key becomes invalid
 
-**Authorization:**
-- Workspace-scoped access control
-  - Multi-tenant via `workspaceId` in most tables
-  - Agent role-based: "lead", "specialist", "intern"
+**Multi-User Access:**
+- Method: Email-based invitations + role-based access control
+- Implementation: `organizationMembers` table + `invites` table
+- Roles: admin, member (custom role system)
+- Invite flow: Admin sends invite email → user accepts → account created
+
+**Gateway Device Pairing (Optional):**
+- Method: Ed25519 signatures (device pairing protocol)
+- Optional: Can be disabled via `disableDevicePairing` parameter
+- Implementation: `frontend/src/services/gatewayRpc.ts` handles pairing handshake
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Custom error handling
-  - Implementation: `lib/errors/convexErrorHandler.ts`
-  - Structured error types: `ApiError`, `ValidationError`, `NotFoundError`
-  - Stack traces included in development, hidden in production
-  - No third-party error tracking (Sentry, Rollbar) detected
+- Framework: Pino logging (structured JSON logs)
+- Location: Backend Convex functions + API routes log to Pino
+- Export: Not detected (logs to stdout/stderr)
+- No external error tracking service (Sentry, Datadog, etc.) detected
 
 **Logs:**
-- Structured logging via custom logger
-  - Framework: `lib/utils/logger.ts` (custom implementation, not Pino in use)
-  - Format: JSON lines in production, pretty-printed in development
-  - Levels: debug, info, warn, error
-  - Environment: `LOG_LEVEL` env var controls verbosity
-  - Output: stdout/stderr (suitable for log aggregation services)
+- Framework: Pino 10.3.1 (Node.js structured logger)
+- Pretty-printing: `pino-pretty` for development (`npm run dev`)
+- Log format: JSON (production-ready)
+- Log level: Configurable via `LOG_LEVEL` env var (default: info)
+- Utilities: `frontend/lib/logger.ts`, `backend/convex/utils/activityLogger.ts`
+- Activity Audit: Separate activity logging via `executions` table for action audit trail
 
-**Metrics & Analytics:**
-- Agent execution metrics tracked in database
-  - `executions` table: duration, tokens, cost, status
-  - `agentMetrics.ts`: Token counts, performance tracking
-  - `agentSelfCheck.ts`: Self-evaluation and anomaly detection
-  - Dashboard: `convex/dashboard.ts` aggregates real-time metrics
-
-**Observability Gaps:**
-- No APM (Application Performance Monitoring) detected
-- No distributed tracing framework (OpenTelemetry)
-- No uptime/SLA monitoring
+**Health Monitoring:**
+- Health endpoint: `/api/health` (basic status checks)
+- Gateway health: `call(ws, 'health')` RPC method to test gateway connectivity
+- No external health/uptime monitoring detected
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Frontend: Next.js (Vercel, AWS, or self-hosted)
-- Backend: Convex Cloud (managed)
+- Frontend: Deployment-ready for Vercel, AWS, Docker, self-hosted
+- Backend (Convex): Convex cloud deployment via `npm run convex:deploy`
+- Gateway: Runs locally or on separate infrastructure (connects via WebSocket)
 
 **CI Pipeline:**
-- GitHub Actions (inferred from `.env.CI` patterns)
-- Test automation: `npm run test:ci` configured with coverage
-- Build validation: `npm run validate` (lint + build + test)
-
-**Deployment Targets:**
-- Convex: `npm run convex:deploy` (automatic on schema changes)
-- Next.js: Standard production build via `npm run build`
+- Framework: None auto-detected (no GitHub Actions, GitLab CI, CircleCI configs found)
+- Manual commands available:
+  - `npm run validate` - Lint + build + test (pre-deploy checklist)
+  - `npm test` - Unit/integration tests
+  - `npm run e2e` - End-to-end tests with Playwright
 
 ## Environment Configuration
 
-**Required env vars:**
-- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (public)
-- `CONVEX_URL` - Convex backend URL (server-side)
-- `OPENCLAW_GATEWAY_URL` - Gateway WebSocket endpoint (e.g., http://localhost:8000)
+**Required env vars (must be set):**
+- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL
+- `CONVEX_URL` - Server-side Convex URL
 
 **Optional env vars:**
-- `TELEGRAM_BOT_TOKEN` - For Telegram standup notifications
-- `TELEGRAM_CHAT_ID` - Telegram chat recipient
-- `LOG_LEVEL` - Logging verbosity (default: "info")
-- `POLL_INTERVAL_MS` - Daemon polling interval
-- `NODE_ENV` - Environment (development, production)
-- `NEXT_PUBLIC_APP_NAME` - UI branding
+- `OPENCLAW_GATEWAY_URL` - Gateway WebSocket URL (default: http://localhost:8000)
+- `WAKE_SECRET` - Webhook secret for wake endpoint
+- `TELEGRAM_BOT_TOKEN` - Telegram notifications
+- `TELEGRAM_CHAT_ID` - Telegram chat ID
 
 **Secrets location:**
-- `.env.local` (development, not committed)
-- `.env.docker.example` (template for Docker deployments)
-- Convex secrets: Managed via Convex dashboard
-- API keys: Stored in database (`agents.apiKey`), rotated via `convex/agents.ts`
+- `.env.local` (gitignored, local development only)
+- `.env.production.local` (if using Next.js deployment)
+- Convex dashboard (for deployed functions)
+- PM2 environment variables (if using daemon processes)
 
 ## Webhooks & Callbacks
 
-**Incoming:**
-- Wake notifications: `convex/wake.ts` endpoint
-  - Method: POST with `WAKE_SECRET` token validation
-  - Purpose: Trigger agent wake-up events
-  - Verified by: `process.env.WAKE_SECRET`
+**Incoming Webhooks:**
+- Wake endpoint: `/api/wake` (Convex HTTP action)
+  - Purpose: External trigger for autonomous agents
+  - Auth: `WAKE_SECRET` validation
+  - Returns: List of pending tasks
 
-**Outgoing:**
-- Telegram notifications (optional)
-  - Used in: Standup delivery, automated reports
-  - Config: `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
-  - Status: Enabled if env vars present, silent fail otherwise
+**Outgoing Webhooks:**
+- Not detected in current codebase
+- Optional: Telegram notifications via `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`
 
-- Slack notifications (schema-prepared, not yet implemented)
-  - Alert rules support: `alertRules` table has `slackChannel`, `slackMention` fields
-  - Status: Schema defined but no active integration
+## Notifications
 
-## Real-time Communication
+**Telegram Integration (Optional):**
+- Purpose: Standup delivery, team notifications
+- Env vars: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- Implementation: `scripts/morning-brief.js`, `scripts/setup-morning-brief.js`
+- Feature: Optional morning brief automation
 
-**WebSocket Connections:**
-- Gateway RPC: `ws://` or `wss://` connections to OpenClaw gateway
-  - Implementation: `src/services/gatewayRpc.ts`
-  - Protocol: JSON-RPC v3
-  - Connection timeout: 10 seconds
-  - Device pairing: Optional (can disable for control UI)
-  - TLS validation: `allowInsecureTls` option for dev environments
+**Slack Integration (Schema Support):**
+- Schema fields present: `slackChannel`, `slackMention` in alert rules
+- Implementation status: Schema defined but functionality not yet integrated
+- Blocked on: External Slack API integration not yet implemented
 
-- Convex live queries: Automatic WebSocket via ConvexClient
-  - Real-time data sync without polling
+**Email (Schema Support):**
+- Schema support: `emailAddresses` field in alert rules
+- Implementation status: Schema defined but no email provider integration found
+- No SMTP or email service detected
 
-## External Service Dependencies
+## GitHub Integration (Reference Only)
 
-**OpenClaw (Required for gateway features):**
-- Status: Essential for distributed agent runtime
-- Connection: `OPENCLAW_GATEWAY_URL` must be set
-- Fallback: None (manual validation via `?action=validate` endpoint)
+**GitHub Settings Storage:**
+- Component: `frontend/src/components/BusinessSettingsPanel.tsx`
+- Settings tracked: `ticketPrefix`, `ticketPattern`, `githubRepo`
+- Status: UI components reference GitHub settings but no actual GitHub API integration detected
+- Not yet implemented: Would require GitHub OAuth + REST API client
 
-**Telegram (Optional):**
-- Status: Optional for notifications
-- Fallback: Graceful degradation if env vars missing
+## Platform Requirements
 
-**Slack (Planned):**
-- Status: Schema prepared, not yet integrated
-- Priority: Lower (alert rules defined but no active implementation)
+**Development:**
+- Node.js 18.0.0+
+- npm 9+
+- Convex CLI (`npm install -g convex` or via npx)
+- Playwright (for E2E tests)
 
-## Rate Limiting & Quotas
-
-**Convex:**
-- Built-in rate limiting per deployment
-- Token-based pricing tracked in `executions` table
-
-**Gateway RPC:**
-- No explicit rate limiting detected
-- Connection per request pattern (no connection pooling)
-
-**File Operations:**
-- Local git operations: No limits
-
-## Security Considerations
-
-**Authentication:**
-- API key-based for agents
-- Invitation tokens for human users
-- Convex handles auth for client/server communication
-
-**Authorization:**
-- Workspace isolation (multi-tenant)
-- Role-based access control (agent levels: lead, specialist, intern)
-
-**Data Protection:**
-- TLS/HTTPS for Convex connections (HTTPS URLs)
-- Optional TLS for gateway connections (configurable)
-- Secrets in environment variables, not hardcoded
-
-**Key Rotation:**
-- Automatic agent API key rotation tracked in schema
-- Grace period: `previousKeyExpiresAt` for old keys
+**Production:**
+- Node.js 18.0.0+ (for Next.js backend)
+- Convex cloud account (free/paid tier)
+- OpenClaw gateway (local or remote)
+- Optionally: PM2 for process management
+- Optionally: Docker for containerization
 
 ---
 
-*Integration audit: 2026-02-25*
+*Integration audit: 2026-02-26*

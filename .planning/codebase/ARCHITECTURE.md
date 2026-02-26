@@ -1,190 +1,186 @@
 # Architecture
 
-**Analysis Date:** 2025-02-25
+**Analysis Date:** 2026-02-26
 
 ## Pattern Overview
 
-**Overall:** Layered full-stack with Convex backend + Next.js frontend + distributed gateway communication.
+**Overall:** Monorepo Full-Stack with Layered Backend + Frontend Separation
 
 **Key Characteristics:**
-- Multi-workspace, single-instance SaaS architecture
-- Real-time agent orchestration with WebSocket communication
-- Reactive frontend powered by Convex hooks (useQuery, useMutation)
-- Kanban-based task management with dependency validation
-- Error standardization via ApiError wrapper
-- Gateway connection pooling to reduce WebSocket overhead
+- Monorepo structure (`npm workspaces`) with two isolated packages: `@mission-control/backend` (Convex) and `@mission-control/frontend` (Next.js)
+- Clear architectural boundary: frontend can only import from `@/convex/_generated/api` (typed API surface), NOT backend implementation
+- Three-tier backend: schema → queries/mutations → utility logic
+- Real-time sync via Convex with WebSocket connection pooling for gateway integrations
+- Multi-tenant workspace support with role-based access control
 
 ## Layers
 
-**Frontend (React/Next.js):**
-- Purpose: User-facing interface for workspace management, task boards, agent monitoring
-- Location: `src/app/`, `src/components/`, `src/hooks/`, `src/contexts/`
-- Contains: Page routes, UI components, custom hooks, context providers
-- Depends on: Convex queries/mutations, Next.js routing, TailwindCSS
-- Used by: Browser clients (no direct backend dependencies)
+**Backend (Convex):**
+- Purpose: Real-time database, server functions, authentication
+- Location: `backend/convex/`
+- Contains: Schema definitions, queries, mutations, actions, internal logic
+- Depends on: Convex SDK, Zod validators, utility modules
+- Used by: Frontend via Convex HTTP client, external agents via HTTP API
 
-**API Routes (Next.js Server Functions):**
-- Purpose: HTTP handlers that bridge frontend to Convex and external services (gateways, agents)
-- Location: `src/app/api/`
-- Contains: Route handlers for agents, tasks, gateway communication, admin operations
-- Depends on: Convex client, services (gatewayRpc, agentProvisioning, memory), WebSocket pools
-- Used by: Frontend fetch calls, external webhooks, agents via HTTP polling
+**Library Layer (Backend):**
+- Purpose: Shared utilities, validators, error handling, auth logic
+- Location: `backend/lib/`
+- Contains: `validators/`, `errors/`, `auth/`, `constants/`, `utils/`
+- Depends on: Convex types, Zod
+- Used by: All Convex functions for standardization
 
-**Backend Data Layer (Convex):**
-- Purpose: Real-time database with mutations and queries for single source of truth
-- Location: `convex/`
-- Contains: Schema definition, mutations, queries, utilities
-- Depends on: Zod validators, task transition rules, cycle detection
-- Used by: Frontend (via hooks), API routes (via HTTP client), migrations
+**Frontend (Next.js):**
+- Purpose: UI rendering, client state, user interactions
+- Location: `frontend/src/`
+- Contains: React components, pages, hooks, contexts, utility services
+- Depends on: Convex client, React, TailwindCSS, utility libraries
+- Used by: Browser clients, agents via API endpoints
 
-**Services (Shared Utilities):**
-- Purpose: Reusable logic for gateway communication, agent provisioning, error handling
-- Location: `lib/`, `src/services/`
-- Contains: Error handling (ApiError, retries), gateway RPC, agent provisioning, validators
-- Depends on: ws (WebSocket), Zod (validation)
-- Used by: API routes, Convex mutations, frontend hooks
+**Services Layer (Frontend):**
+- Purpose: Business logic, API integration, state synchronization
+- Location: `frontend/lib/services/` and `frontend/src/services/`
+- Contains: Task generation, execution scaling, strategic planning, calendar sync
+- Pattern: Service classes with methods for domain operations
 
-**Infrastructure & Configuration:**
-- TypeScript strict mode, path aliases (@/), module-level singletons (gatewayPool)
-- Convex schema as authority for data model
-- Workspace-scoped all mutations for multi-tenant isolation
+**API Routes (Frontend):**
+- Purpose: HTTP endpoints for agent integration, webhook handlers
+- Location: `frontend/src/app/api/`
+- Contains: Gateway integration, task execution, calendar operations, business logic
+- Pattern: Next.js dynamic routes with query parameter-based action dispatch
 
 ## Data Flow
 
-**User Creates Task:**
+**Mutation Flow (Task Creation):**
 
-1. Frontend: User fills task form in `src/components/dashboard/` → calls Convex `tasks.createTask` mutation
-2. Convex: `convex/tasks.ts` validates via `validateTaskInput()` → detects circular dependencies via `detectCycle()` → checks epic link → infers tags → writes to `tasks` table → logs to `activities`
-3. Frontend: Convex hook updates local cache → component re-renders with new task
+1. Frontend component calls `api.tasks.createTask()` via Convex client
+2. `backend/convex/tasks.ts:createTask` mutation handler receives validated input
+3. Validation via `backend/lib/validators/taskValidators.ts`
+4. Rate limit check via `backend/convex/utils/rateLimit.ts`
+5. Task document inserted into Convex database
+6. Activity logged via `backend/convex/utils/activityLogger.ts`
+7. Real-time subscription pushes update to all connected clients
+8. Frontend re-renders via Convex reactive hook
 
-**Agent Polls for Work:**
+**Agent Execution Flow (Gateway Sessions):**
 
-1. Backend: Agent makes HTTP GET to `src/app/api/agents/[agentId]/tasks/`
-2. API Route: Queries Convex for tasks assigned to agent via `api.tasks.getForAgent` → filters by status
-3. Frontend: Convex client returns task batch → agent webhook response includes work item
-4. Agent: Executes task → calls back via `/agents/[agentId]/tasks/[taskId]/status` to update status
+1. Frontend requests sessions: `GET /api/gateway/[gatewayId]?action=sessions`
+2. Route handler `frontend/src/app/api/gateway/[gatewayId]/route.ts`
+3. Connection pooled via `frontend/lib/services/gatewayConnectionPool.ts` (POOL_MAX_PER_KEY=3)
+4. Reuses WebSocket connection from `frontend/lib/services/gatewayRpc.ts`
+5. RPC call to gateway backend service
+6. Sessions array returned with timestamps
+7. Response cached and sent to frontend
+8. If timeout detected: `ws.terminate()` and pool releases connection
 
-**Gateway Session Management:**
+**Workflow Execution Flow (Multi-Agent):**
 
-1. Frontend: `useGatewaySessions` hook polls `/api/gateway/[gatewayId]?action=sessions` every 30s
-2. API Route: `handleGetSessions()` → acquires WebSocket from `gatewayPool` → calls `sessions.list` RPC
-3. Gateway: Returns active session list with `lastActivity` timestamp
-4. Frontend: Component renders sessions with dynamic status badges (active/idle/inactive) based on timestamp thresholds
+1. Workflow definition stored in `backend/convex/schema.ts:workflows.definition`
+2. DAG structure: `{ nodes: { [nodeId]: { agentId, taskTemplate } }, edges: { [fromNodeId]: [toNodeId] } }`
+3. Validation via `backend/convex/utils/workflowValidation.ts:validateWorkflowDefinition()`
+4. Execution tracked in `workflow_executions` table with node execution mapping
+5. Step advancement via `advanceWorkflowStep()` - auto-merges previous step's outputData into next inputData
+6. Multiple concurrent executions allowed per workflow (no serial blocking)
 
 **State Management:**
 
-- **Frontend State:** React useState for UI state (panels, selected tasks), Convex hooks for server state
-- **Backend State:** Convex tables (tasks, agents, workspaces) with automatic subscription via useQuery
-- **Cache:** Gateway WebSocket connection pool (60-second TTL) to avoid handshake overhead on 30-second polls
-- **Persistence:** All mutations write to Convex tables; migrations handle schema changes
+- Convex reactive queries: all components using `useQuery(api.*)` auto-sync with database
+- Local task optimizations: `frontend/lib/optimisticUpdates.ts` for instant UI feedback
+- Advanced caching: `frontend/lib/advancedCache.ts` with TTL and invalidation
+- Gateway session state: transient (not persisted), pooled across requests
 
 ## Key Abstractions
 
-**ApiError:**
-- Purpose: Standardized error responses with request IDs and error codes
-- Examples: `ApiError.notFound()`, `ApiError.validation()`, `ApiError.conflict()`
-- Pattern: Wrapped in `wrapConvexHandler` for mutations to auto-catch and format errors
-- Files: `lib/errors/ApiError.ts`, `lib/errors/convexErrorHandler.ts`
+**Agents:**
+- Purpose: 10-agent squad with distinct roles (lead, specialist, intern)
+- Examples: `backend/convex/agents.ts`, `backend/convex/agentLifecycle.ts`
+- Pattern: Document-based with session keys and heartbeat tracking
 
-**Task Validation:**
-- Purpose: Enforce title/description length, priority values, epic/assignee requirements
-- Pattern: Zod schemas (`CreateTaskSchema`, `UpdateTaskSchema`) applied before Convex writes
-- Files: `lib/validators/taskValidators.ts`
-- Ensures: No invalid data enters database; clear error messages on validation failure
+**Tasks:**
+- Purpose: Work items with epic grouping, tags, priorities
+- Examples: `backend/convex/tasks.ts`, `backend/lib/validators/taskValidators.ts`
+- Pattern: Kanban-style state machine (pending → in_progress → done/blocked)
 
-**Cycle Detection (Graph Validation):**
-- Purpose: Prevent circular task dependencies that would deadlock execution
-- Pattern: DFS algorithm in `detectCycle()` that traverses dependency graph
-- Files: `convex/utils/graphValidation.ts`, tests: `convex/utils/__tests__/graphValidation.test.ts`
-- When used: Before `tasks.createTask` and `updateDependencies` mutations
+**Epics:**
+- Purpose: Strategic initiatives grouping related tasks
+- Examples: `backend/convex/epics.ts`
+- Pattern: Workspace-scoped collections with task linkage
 
-**Gateway Connection Pool:**
-- Purpose: Reuse WebSocket connections across API requests to avoid 10-second handshake per request
-- Pattern: Module-level singleton `gatewayPool` with acquire/release lifecycle
-- Files: `src/services/gatewayConnectionPool.ts`
-- Benefits: Reduces latency for 30-second polling; max 3 concurrent connections per gateway config
+**Workflows:**
+- Purpose: Multi-agent pipelines with DAG execution
+- Examples: `backend/convex/utils/workflowValidation.ts`, schema at `backend/convex/schema.ts:workflows`
+- Pattern: Pure DAG validation + state machine for transitions
 
-**Workspace Scoping:**
-- Purpose: Multi-tenant isolation where all mutations require workspaceId
-- Pattern: Every mutation validates workspace exists before writing
-- Files: `convex/tasks.ts`, `convex/agents.ts`, `convex/workspaces.ts`
-- Ensures: Data from one workspace never leaks to another
+**Gateways:**
+- Purpose: External service connection management (OpenClaw, webhooks)
+- Examples: `backend/convex/gateways.ts`, `frontend/lib/services/gatewayConnectionPool.ts`
+- Pattern: Connection pooling with RPC communication
+
+**Executions:**
+- Purpose: Immutable audit trail of all agent actions
+- Examples: `backend/convex/executions.ts`, `backend/convex/utils/activityLogger.ts`
+- Pattern: Append-only event log with tokens/cost tracking
 
 ## Entry Points
 
-**Frontend:**
-- Location: `src/app/page.tsx`
-- Triggers: Browser navigation to `/`
-- Responsibilities: Redirects to default workspace overview via `useRouter`; shows loading skeleton while fetching workspace data
+**Backend - Convex Functions:**
+- Location: `backend/convex/` (39 root mutation/query files)
+- Triggers: Convex client calls from frontend, HTTP API from agents, scheduled cron jobs
+- Responsibilities: Data mutations, validation, authorization, audit logging
 
-**Layout Root:**
-- Location: `src/app/layout.tsx` (Server) → `src/app/ClientLayout.tsx` (Client)
-- Triggers: All page routes wrap in this layout
-- Responsibilities: Provider setup (Convex, Theme, Workspace), sidebar navigation, header with notifications
+**Frontend - Next.js App:**
+- Location: `frontend/src/app/`
+- Triggers: User browser navigation, WebSocket real-time updates
+- Responsibilities: Rendering UI, managing local state, calling Convex mutations
 
-**API Handlers:**
-- Location: `src/app/api/[resource]/[...routes]/route.ts`
-- Triggers: Frontend fetch calls, agent webhooks, external cron jobs
-- Responsibilities: Parse request → call Convex/services → return JSON response
+**Frontend - API Routes:**
+- Location: `frontend/src/app/api/`
+- Triggers: HTTP requests from agents, external webhooks
+- Responsibilities: Gateway integration, task execution, calendar sync
 
-**Convex Queries:**
-- Entry: `api.tasks.getForAgent`, `api.workspaces.getAll`, `api.agents.getAllAgents`
-- Called via: Frontend `useQuery` hooks, API routes via ConvexHttpClient
-- Returns: Filtered/sorted data for UI or webhook responses
+**Scheduled Tasks:**
+- Location: `backend/convex/cron.ts`
+- Triggers: Time-based via Convex cron
+- Responsibilities: Metrics aggregation, cleanup, workflow triggers
 
 ## Error Handling
 
-**Strategy:** Standardized ApiError wrapper with request IDs for traceability.
+**Strategy:** Standardized ApiError class with HTTP status mapping
 
 **Patterns:**
-
-1. **Validation Errors (HTTP 400):**
-   - Source: Zod schema failure in validators
-   - Response: `{ error: string, code: "VALIDATION_ERROR", fields: Record<string, string> }`
-   - Example: `convex/tasks.ts` line 92 validates input before mutation
-
-2. **Not Found Errors (HTTP 404):**
-   - Source: Agent/workspace/task lookup fails
-   - Response: `{ error: "Agent not found", code: "NOT_FOUND" }`
-   - Example: `convex/agents.ts` line 60 throws `ApiError.notFound("Agent")`
-
-3. **Circular Dependency Errors (HTTP 409):**
-   - Source: `detectCycle()` returns true before task creation
-   - Response: `{ error: "Circular dependency detected", code: "CONFLICT" }`
-   - Example: `convex/tasks.ts` calls cycle detection before write
-
-4. **Gateway Connection Errors (HTTP 503):**
-   - Source: WebSocket connection fails or timeout
-   - Fallback: Return cached data if pool has idle connection; retry with exponential backoff
-   - Pattern: `withRetry` wrapper in retryStrategy
-
-5. **Rate Limit Errors (HTTP 429):**
-   - Source: Agent heartbeat limit exceeded
-   - Pattern: `enforceRateLimit()` in `convex/utils/rateLimit.ts`
-   - Enforcement: Per-agent limits to prevent DOS
+- All Convex mutations wrapped with `wrapConvexHandler()` from `backend/lib/errors/index.ts`
+- Errors thrown as `ApiError` with codes: `VALIDATION_ERROR` (422), `NOT_FOUND` (404), `CONFLICT` (409), `FORBIDDEN` (403), `LIMIT_EXCEEDED` (429), `INTERNAL_ERROR` (500)
+- Each error includes unique `requestId` for tracing
+- Retryable errors marked (transient): `SERVICE_UNAVAILABLE`, `LIMIT_EXCEEDED`
+- API route handlers catch and serialize to JSON with error code + message + requestId
+- Frontend services catch errors and log via `frontend/lib/monitoring.ts`
 
 ## Cross-Cutting Concerns
 
 **Logging:**
-- Approach: Pino logger in backend (server) and console.log in frontend
-- Files: Backend uses Pino instances; frontend uses browser console
-- Pattern: `resolveActorName()` in `convex/utils/activityLogger.ts` logs who made the change (agent vs user)
+- Backend: Pino logger via `backend/convex/utils/activityLogger.ts` - logs agent actions as `activities` table documents
+- Frontend: Console logging + `frontend/lib/logger.ts` - debug logs with timestamps
 
 **Validation:**
-- Approach: Zod schemas at boundary (Convex mutations, API routes)
-- Files: `lib/validators/` exports CreateTaskSchema, UpdateTaskSchema, etc.
-- Pattern: `validateTaskInput()` called first in mutation before any database operations
+- Backend: Zod schemas in `backend/lib/validators/` - all inputs validated before mutations
+- Frontend: Same Zod schemas reused for form validation
+- Task validation: `taskValidators.ts`, agent task validation: `agentTaskValidators.ts`
 
 **Authentication:**
-- Approach: Agent API keys stored in `agents.apiKey` field; workspace isolation via parameter
-- Files: `lib/auth/` for middleware, agent key rotation via `/api/agents/[agentId]/rotate-key`
-- Pattern: No explicit user auth yet (system-to-system); workspace ID acts as scope boundary
+- Backend: API key auth for agents (`agents.apiKey` field), Convex HTTP client for frontend
+- Frontend: Session-based via Convex auth context
+- Route-level: `canDeleteTask()` permission check in `backend/lib/auth/permissions.ts`
 
-**Workspace Context:**
-- Approach: React Context API `WorkspaceProvider` wraps entire app
-- Files: `src/components/WorkspaceProvider.tsx` provides `useWorkspace()` hook
-- Pattern: Reads from URL params, localStorage, or defaults to first workspace; all routes include workspace in path: `/:workspaceSlug/:tab`
+**Rate Limiting:**
+- Backend: `backend/convex/utils/rateLimit.ts` with `enforceRateLimit()` (throws) and `checkRateLimitSilent()` (no error)
+- Examples: 10 tasks/min per creator, 6 heartbeats/min per agent
+- Stored as transient cache entries in Convex
+
+**Performance Optimization:**
+- Connection pooling: `gatewayConnectionPool.ts` (POOL_TTL_MS=60s, max 3 per cache key)
+- Query indexing: Multi-field indexes on frequently filtered columns (e.g., `by_agent_time`, `by_status_time`)
+- Denormalization: Agent names/roles stored in executions and metrics for N+1 prevention
+- Batch operations: `backend/convex/utils/batchDelete.ts` for cleanup
 
 ---
 
-*Architecture analysis: 2025-02-25*
+*Architecture analysis: 2026-02-26*

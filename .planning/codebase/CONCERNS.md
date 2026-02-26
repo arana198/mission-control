@@ -1,340 +1,250 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-02-25
+**Analysis Date:** 2026-02-26
 
 ## Tech Debt
 
-**Incomplete Memory Service Implementation:**
-- Issue: `MemoryService` class (`src/services/memory/MemoryService.ts`) has placeholder implementations for core features. Nine critical methods return empty arrays or mock data instead of real implementations
-- Files: `src/services/memory/MemoryService.ts` (lines 97, 149, 187, 220, 225, 230, 235, 240, 274, 285)
-- Methods affected: `getGoals()`, `getRelevantContext()`, `updateGoalProgress()`, `searchConversations()`, `searchDecisions()`, `searchResearch()`, `searchGoals()`, `getRecentDecisions()`, `storeDecision()`, `storeInsight()`
-- Impact: Any AI feature relying on goal context, historical decision search, or semantic memory will return zero results. Task generation and strategic planning cannot function properly
-- Fix approach: Connect to actual persistent memory storage system. Implement vector embeddings for semantic search. Add proper database queries instead of mock returns
-
-**Disabled Cron Job Scheduling:**
-- Issue: All cron job registrations are commented out in `convex/cron.ts` (lines 551-583)
-- Files: `convex/cron.ts` (lines 548-549, 551-583)
-- Impact: Auto-claim tasks, agent heartbeat monitoring, escalation checks, alert evaluation, and presence cleanup do not run automatically. System relies on manual triggers via `npm run auto-claim`
-- Cause: Type compatibility issue with Convex `SchedulableFunctionReference`
-- Fix approach: Resolve Convex SDK type issues by reviewing recent SDK updates or using internal mutations for scheduling. Create test harness to verify cron handlers before re-enabling
-
-**Execution Log Placeholder Logging:**
-- Issue: Task execution logging uses TODO comments instead of proper `executions` table entries in three route handlers
+### Incomplete Task Execution Logging (Phase 6A Placeholder)
+- Issue: Task execution logging uses TODO comments with conditional mutations disabled in three route handlers
 - Files:
-  - `src/app/api/tasks/[taskId]/route.ts` (line 173)
-  - `src/app/api/tasks/execute/route.ts` (lines 80, 96, 124)
-- Impact: Agent task execution is not logged to persistent audit trail. Observability of agent work is degraded. Phase 6A execution tracking is incomplete
-- Fix approach: Implement proper `executionLog.create()` mutations with full context (model, tokens, cost, latency). Create `executions` table entries as mentioned in schema
+  - `frontend/src/app/api/tasks/execute/route.ts` (lines 80-98, 124-128)
+  - `frontend/src/app/api/tasks/[taskId]/route.ts` (line 173)
+  - `frontend/lib/services/executionService.ts` (lines 235, 256)
+- Impact: Executions cannot be logged to persistent database; GET endpoint returns mock data; Phase 6A implementation not started
+- Fix approach: Implement proper execution logging by uncommenting and completing the Convex mutations that persist execution logs to the `executionLog` table; create Phase 6A subtasks for real HTTP dispatch and polling
 
-**Silent Error Swallowing in API Handlers:**
-- Issue: Five route handlers silently catch JSON parse errors with `.catch(() => ({}))`
-- Files:
-  - `src/app/api/tasks/generate-daily/route.ts` (line 41)
-  - `src/app/api/admin/migrations/agent-workspace-paths/route.ts` (line 19)
-  - `src/app/api/admin/agents/setup-workspace/route.ts` (line 19)
-  - `src/app/api/agents/[agentId]/route.ts` (line 88)
-  - `src/app/api/reports/route.ts` (line 71)
-- Impact: Invalid JSON requests return empty objects and proceed silently. Malformed requests from agents/clients fail without diagnostic information. Debugging becomes difficult
-- Fix approach: Log parse errors before returning empty object. Return 400 Bad Request with error message. Add request validation middleware
+### OpenClaw Sub-agent Integration Mocked
+- Issue: Task execution spawns OpenClaw sub-agents via mock function (`spawnOpenClawSubagent`); actual HTTP call is commented out
+- Files: `frontend/src/app/api/tasks/execute/route.ts` (lines 166-199, specifically lines 174-182)
+- Impact: Tasks execute with simulated results; no real autonomous execution; cannot verify agent integration without completing implementation
+- Fix approach: Activate real HTTP POST to `${OPENCLAW_GATEWAY_URL}/api/sessions/spawn`; add real-time polling for completion; integrate authorization headers for OpenClaw gateway
 
-**Silent Component Catch Blocks:**
-- Issue: Components swallow errors with empty catch blocks
-- Files:
-  - `src/components/EpicBoard.tsx` (line 622)
-  - `src/components/NotificationPanel.tsx` (lines 14, 113)
-- Impact: Component failures go unlogged. Bugs in dragging, loading notifications, or epic operations are invisible to error monitoring. Failed mutations don't surface to user or developer
-- Fix approach: Log errors to console or error tracking service. Display user-friendly error toast/notification. Preserve error context for debugging
+### Memory Service Returns Empty or Mock Data
+- Issue: MemoryService has 8 TODO comments; all search methods return empty arrays; goal retrieval returns hardcoded placeholder data
+- Files: `frontend/src/services/memory/MemoryService.ts` (lines 97-240)
+- Specific TODOs:
+  - Line 97: Goal retrieval not implemented
+  - Line 149: Semantic search across memory systems not implemented
+  - Line 187: Goal progress updates not persisted
+  - Line 220, 225, 230, 235: Conversation/decision/research/goal search all return []
+  - Line 240: getRecentDecisions returns []
+  - Line 274, 285: Decision and insight storage not persisted
+- Impact: AI agents cannot access historical context, decisions, or goals for task generation; strategic planning lacks real memory integration; all searches hit dead-end returns
+- Fix approach: Implement vector embedding integration for semantic search; connect to persistent memory storage layer; replace placeholder goal data with queries to actual memory tables; add storage implementations
+
+### Cron Job Scheduling Disabled
+- Issue: Internal mutation scheduling paused due to Convex internal issue
+- Files: `backend/convex/cron.ts` (line 549)
+- Impact: Auto-claim notifications, heartbeat monitoring, and escalation checks cannot run on schedule; manual intervention required or features silently fail
+- Fix approach: Re-enable cron job after resolving Convex internal mutation scheduling issue; add feature flag for graceful degradation
+
+### Logger Integration Unimplemented
+- Issue: External logging integration is TODO placeholder
+- Files: `frontend/lib/logger.ts` (line 109)
+- Impact: Logs stay in console only; no central log aggregation for production monitoring; errors not captured in external system
+- Fix approach: Implement integration with external logging service (Sentry, Datadog, CloudWatch, etc.)
 
 ## Known Bugs
 
-**Gateway Connection Pool Race Condition:**
-- Symptoms: Multiple concurrent requests to same gateway may create multiple connections despite pool caching
-- Files: `src/services/gatewayConnectionPool.ts` (lines 61-120)
-- Trigger: Rapid successive HTTP requests to same gateway within 60ms before first `release()` is called
-- Root cause: No mutex/lock protecting `acquire()` and `release()` operations on `this.pool` map
-- Workaround: Pool provides eventual consistency - second request will find socket within 60ms if first is slow
-- Test coverage: `src/services/__tests__/gatewayConnectionPool.test.ts` lacks race condition tests (concurrent acquire stress test needed)
+### Schema Migration Field Duplication (businessId ↔ workspaceId)
+- Symptoms: Both `businessId` (legacy string) and `workspaceId` (new ID type) coexist in schema; inconsistent field usage across codebase
+- Files: `backend/convex/schema.ts` (lines 149-150, 177-178, 280-281, 326-327, 437-438, 456-457, 616-617, 650-651, 663-664)
+- Trigger: Migration from single-workspace "businesses" table to multi-workspace "workspaces" table completed but legacy fields not removed; migration logic present but idempotent checks may miss partial migrations
+- Workaround: Always populate both fields in mutations; query logic must handle null/undefined for either field
+- Risk: Data inconsistency if some records have workspaceId and others don't; queries filtering on one field will miss records with the other; migration incomplete
 
-**TypeScript `as any` Casts Bypass Type Safety:**
-- Symptoms: Type errors hidden at runtime, incorrect assumptions about object shapes
+### Type Safety Gaps with `as any` Casts
+- Symptoms: Multiple `as any` type assertions bypass TypeScript checks
 - Files:
-  - `src/services/gatewayConnectionPool.ts` (line 201) - accessing private pool map
-  - `src/services/gatewayRpc.ts` (lines 98, 111, 151, 174) - WebSocket event handler casting
-  - `convex/activities.ts` (lines 23, 83, 162) - query index callback typing
-  - `convex/agents.ts` (lines 38, 45, 184, 415) - query builder typing
-  - 40+ additional locations across codebase
-- Impact: Type checker cannot catch shape mismatches. If schema changes, code breaks silently at runtime
-- Fix approach: Create proper TypeScript interfaces for query callbacks. Use generic types instead of `any`. Run strict TypeScript checks (`noImplicitAny`, `strict` mode)
+  - `frontend/src/app/settings/members/page.tsx` (workspaceId cast)
+  - `frontend/src/app/settings/invites/page.tsx` (workspaceId cast)
+  - `frontend/src/app/businesses/page.tsx` (business object, err catch)
+  - `frontend/src/app/workspaces/page.tsx` (multiple any casts in error handlers)
+  - `frontend/src/app/gateways/page.tsx` (workspaceId, gatewayId, sortOrder casts)
+- Impact: Hiding type errors; refactoring breaks go undetected; IDE autocomplete unavailable for casted values
+- Fix approach: Replace `as any` with proper type assertions or type guards; improve error handling to avoid `err: any`
 
-**Unsafe WebSocket Event Handler Registration:**
-- Symptoms: Messages lost if handler is removed before response arrives
-- Files: `src/services/gatewayRpc.ts` (lines 94-111, 155-174)
-- Problem: Event listener added for message reception, but timeout may fire before cleanup. Message handler removed by `removeEventListener` before checking response ID
-- Risk: High-latency responses may arrive after timeout fires, message discarded
-- Safe pattern exists in same file but not universally applied
-- Fix approach: Use WeakMap to track all pending requests. Central cleanup function. Consider request queue pattern
+### RPC Timeout Detection via String Matching
+- Symptoms: Error handling checks `error.message.includes('RPC call timeout')` for timeout detection
+- Files: `frontend/src/app/api/gateway/[gatewayId]/route.ts` (lines 214, 280, 351, 503)
+- Impact: Fragile; error message changes break timeout logic; other errors containing 'RPC call timeout' are mis-classified; no standardized error codes
+- Fix approach: Create standardized error types with error codes instead of message matching
 
 ## Security Considerations
 
-**Insecure TLS Disabled for Gateway Connections:**
-- Risk: Man-in-the-middle attacks possible when `allowInsecureTls` flag is enabled
-- Files: `src/services/gatewayRpc.ts` (line 64)
-- Current mitigation: Flag is opt-in (`disableDevicePairing` default false). Used only for local development/testing
+### API Key Auth Layer Not Enforced on All Endpoints
+- Risk: Agent API endpoints allow requests without API key validation on some routes
+- Files: `frontend/src/app/api/agents/route.ts`, `frontend/src/app/api/tasks/execute/route.ts`
+- Current mitigation: POST /api/agents has auth check; POST /api/tasks/execute has no auth check
 - Recommendations:
-  - Only enable in non-production environments. Add compile-time check to reject in production builds
-  - Document that `allowInsecureTls: true` should never be used in production
-  - Add warning log when insecure TLS is enabled
-  - Consider using environment-based feature flags
+  - Add API key validation to task execution endpoint
+  - Create middleware wrapper for auth-required routes
+  - Log auth failures to audit trail (already in agent-auth.ts)
 
-**Missing API Authentication on Gateway Endpoints:**
-- Risk: Any client can call `POST /api/gateway/[gatewayId]?action=provision` to set up agents without authorization checks
-- Files: `src/app/api/gateway/[gatewayId]/route.ts` (lines 119, 200-350)
-- Current state: No auth guard before `handleProvision()`. No workspace permission checks
-- Impact: Unauthorized users can provision agents, create workspace agents, modify gateway configuration
+### AllowInsecureTls Flag in Gateway Connections
+- Risk: `allowInsecureTls` disables TLS cert validation; if compromised, enables MITM attacks on WebSocket gateway connections
+- Files: `frontend/src/services/gatewayRpc.ts` (line 64), `frontend/src/services/gatewayConnectionPool.ts` (line 32)
+- Current mitigation: Flag must be explicitly passed; defaults to false (secure)
 - Recommendations:
-  - Add `verifyAuth()` check at start of GET/POST handlers
-  - Verify requester has admin permission in target workspace
-  - Log all provision/sync operations with user ID
-  - Rate-limit provision endpoint to prevent abuse
+  - Log when allowInsecureTls=true (compliance/audit)
+  - Document when this is required vs optional
+  - Add timeout safeguard if TLS verification fails
 
-**Environment Variable Exposure Risk:**
-- Issue: `NEXT_PUBLIC_CONVEX_URL` is public, but actual Convex API keys and gateway tokens may be in environment
-- Files: `src/app/api/gateway/[gatewayId]/route.ts` (line 21)
-- Current: Code correctly checks for presence, but no validation that secrets are stored safely
+### Environment Configuration
+- Risk: OPENCLAW_GATEWAY_URL not validated; NEXT_PUBLIC_CONVEX_URL errors silently with generic throw
+- Files: `frontend/src/app/api/tasks/execute/route.ts` (lines 14-18)
 - Recommendations:
-  - Audit `.env` files for unencrypted secrets
-  - Use Convex's built-in secret management
-  - Never log gateway tokens or API keys
-  - Rotate gateway tokens on schedule
+  - Add startup validation for required env vars
+  - Use proper configuration validator (zod/yup)
+  - Fail fast on missing critical config
 
 ## Performance Bottlenecks
 
-**MemoryService Keyword Matching is O(n×m):**
-- Problem: `getGoalAlignment()` method performs linear scan of all goals with substring matching
-- Files: `src/services/memory/MemoryService.ts` (lines 197-203)
-- Cause: No indexing, full text search, or caching of goal metadata
-- Current: Works fine for <100 goals. With 1000+ goals per workspace, becomes noticeably slow
-- Improvement path:
-  - Add search index on goal title/description (Convex full-text search)
-  - Cache goal metadata in memory with TTL
-  - Use semantic embeddings instead of keyword matching (requires vector DB)
+### Large Component Files Without Memoization
+- Problem: Components with 600+ lines lack `React.memo()` or `useMemo()` for expensive renders
+- Files:
+  - `frontend/src/components/EpicBoard.tsx` (852 lines)
+  - `frontend/src/components/BrainHub.tsx` (791 lines)
+  - `frontend/src/components/TaskDetailModal.tsx` (590 lines)
+  - `frontend/src/components/CalendarView.tsx` (572 lines)
+  - `frontend/src/components/AgentWorkload.tsx` (563 lines)
+  - `frontend/src/components/DraggableTaskBoard.tsx` (457 lines)
+- Cause: No code splitting; all modal logic in single component; re-renders entire tree on minor state changes
+- Improvement path: Split into smaller memoized sub-components; implement composition; use Suspense for heavy data loads
 
-**Cron Handler Load on Ready Tasks Query:**
-- Problem: `autoClaimCronHandler` fetches ALL ready tasks every 60 seconds, then iterates all assignees
-- Files: `convex/cron.ts` (lines 40-44, 55-60)
-- Impact: Scales as O(ready_tasks × assignees_per_task). With 100 ready tasks × 5 assignees = 500 notifications per run
-- Scaling limit: Beyond 500 active ready tasks, cron handler may timeout before completing
-- Improvement path:
-  - Page results using batch queries
-  - Add index on task status to speed initial fetch
-  - Debounce notifications (don't notify if agent already has wake request pending)
-  - Consider pub/sub model instead of polling
+### Gateway Connection Handshake on Every Poll
+- Problem: Sessions polling (30s interval) spawns new WebSocket with 10-second handshake before connection pool was implemented
+- Files: `frontend/src/services/gatewayConnectionPool.ts` (Phase 9A addresses this)
+- Current status: **FIXED** - Pool keeps connections alive for 60s; now reused within polling window
+- Residual concern: Pool TTL=60s means first poll after 60s idle still triggers full handshake; consider extending TTL during off-hours
 
-**Large Component Re-renders Not Memoized:**
-- Problem: `EpicBoard.tsx` (852 lines), `BrainHub.tsx` (791 lines), `CreateTaskModal.tsx` (606 lines) render without memoization
-- Files: `src/components/EpicBoard.tsx`, `src/components/BrainHub.tsx`, `src/components/CreateTaskModal.tsx`
-- Impact: Parent re-renders cause full child re-render. Modal dialogs flash/stutter on state updates
-- Scaling limit: With 500+ tasks and 20+ agents, board becomes sluggish (>200ms rerender)
-- Improvement path:
-  - Wrap components with `React.memo()` where props are stable
-  - Use `useMemo()` for computed lists (filtered, sorted tasks)
-  - Split into smaller components with stable keys
-  - Add render profiling to identify hot paths
+### Task Mutations Without Workspace Filtering
+- Problem: Large tables (tasks, epics, activities) queried without workspace filter can become slow as data grows
+- Files: `backend/convex/tasks.ts`, `backend/convex/schema.ts` (indices exist but must be used)
+- Improvement path: Enforce workspace filtering in all queries; add index usage enforcement in code review; monitor query latency
 
-**Migration Batch Processing Not Paginated:**
-- Problem: `migrationMultiSupport()` calls `.collect()` on entire task/epic/activity tables
-- Files: `convex/migrations.ts` (lines 54, 66, 78, 90)
-- Impact: Collects all rows into memory at once. With 100,000 tasks, causes OOM or timeout
-- Scaling limit: Maximum ~50,000 documents before timeout/memory issues
-- Fix approach: Use pagination with batch size. Process in chunks of 1000. Add progress tracking
+### OpenAPI Spec Generation is 1400+ Lines
+- Problem: Single large file (`frontend/lib/openapi/spec-generator.ts`, 1427 lines) with 120+ `.meta()` calls for schema definitions
+- Cause: No abstraction for schema generation; manual specification of every endpoint
+- Improvement path: Extract schema generators into separate modules; create DSL for route→schema mapping; use code generation
 
 ## Fragile Areas
 
-**Task Completion Flow (High Risk):**
-- Files: `convex/tasks.ts` (1981 lines), `src/app/api/tasks/[taskId]/route.ts` (453 lines), `convex/utils/executionLogic.ts` (565 lines)
+### Gateway Route Handler State Management
+- Files: `frontend/src/app/api/gateway/[gatewayId]/route.ts` (591 lines)
 - Why fragile:
-  - Epic/task sync logic (`syncEpicTaskLink()`) called without comprehensive tests
-  - Status transition validation uses simple string comparison, not state machine
-  - Completion notes stored in separate field; if not synced, historical context lost
-- Safe modification:
-  - Add E2E test for complete task workflow: create task → assign → claim → complete
-  - Add validation for status transitions before mutation
-  - Mock external dependencies (epic sync, execution log) in unit tests
-- Test coverage gaps:
-  - No test for completing task with time tracking
-  - No test for task completion triggering epic progress update
-  - No test for concurrent completion attempts (race condition)
+  - Multiple handlers (sessions, history, message, provision, status, validate) share WebSocket/pool acquisition logic
+  - RPC timeout detection is string-based
+  - Connection pool is global singleton (no isolation per gateway)
+  - Error handling duplicated across handlers
+- Safe modification: Extract shared try/catch/finally logic into wrapper function; create handler factory; add structured error types
+- Test coverage: 70/70 route + pool tests passing (Phase 9A); E2E tests exist but require gateway config
 
-**Gateway RPC Message Handling (High Risk):**
-- Files: `src/services/gatewayRpc.ts` (200+ lines)
+### Task State Machine Implementation
+- Files: `backend/convex/utils/workflowValidation.ts` (367 lines, 7 exported functions)
 - Why fragile:
-  - Message handler closure captures variables in nested Promise scopes
-  - No deduplication if response comes after timeout
-  - WebSocket event listeners not cleaned up if connection dies between calls
-  - Manual UUID generation fallback if crypto.randomUUID unavailable
-- Safe modification:
-  - Add comprehensive logging of all RPC calls/responses
-  - Test timeout scenarios: response arrives after timeout fires
-  - Test connection drop during in-flight RPC call
-  - Mock WebSocket to simulate all edge cases
-- Test coverage gaps:
-  - No test for timeout scenario
-  - No test for connection drop mid-call
-  - No test for overlapping requests with same handler
+  - Workflow and step state transitions defined separately
+  - Cycle detection via DFS could be O(V+E) expensive on large DAGs
+  - Topological sort assumes acyclic input (detects cycles but doesn't fail gracefully)
+- Safe modification: Add input validation; document assumptions; consider algebraic data types for states
+- Test coverage: 44/44 tests passing (Phase 10 Step 1)
 
-**Schema Migrations (Critical Risk):**
-- Files: `convex/migrations.ts` (1568 lines), `convex/schema.ts` (1375 lines)
+### Migration System with Idempotent Checks
+- Files: `backend/convex/migrations.ts` (1533 lines)
 - Why fragile:
-  - `migrationMultiSupport()` is idempotent but no rollback mechanism
-  - Batch processing uses client-side filtering instead of server-side query indexing
-  - No validation that migration succeeded (e.g., workspaceId exists on all records after migration)
-  - Changes to schema require corresponding migration logic
-- Safe modification:
-  - Create dry-run mode that logs changes without persisting
-  - Add post-migration validation queries
-  - Create rollback function that reverts fields to previous values
-  - Document migration impact before running
-- Test coverage gaps:
-  - No test for partial migration (failure mid-batch)
-  - No test for data consistency after migration (missing workspaceId)
-  - No test for migration with concurrent mutations happening
+  - Idempotent by checking if table has entries (not checking field population)
+  - Partial migrations (some tasks have workspaceId, others don't) will halt re-run
+  - No rollback mechanism if migration partially fails
+- Safe modification: Add pre-migration validation; use feature flags; implement checkpointing; add post-migration verification
+- Test coverage: No migration-specific tests present
 
-**Gateway Provisioning Flow (High Risk):**
-- Files: `src/app/api/gateway/[gatewayId]/route.ts` (554 lines), `src/services/agentProvisioning.ts`
+### MemoryService Singleton with Empty Implementations
+- Files: `frontend/src/services/memory/MemoryService.ts` (287 lines)
 - Why fragile:
-  - `handleProvision()` calls 7-step setup without transaction guarantees
-  - Network failure between steps leaves partial state (agent created but files not uploaded)
-  - No timeout or heartbeat during long provisioning operations
-  - No rollback if setup fails partway through
-- Safe modification:
-  - Add comprehensive error handling with cleanup steps
-  - Create idempotent provision operation (check what's already done before repeating)
-  - Add provisioning state machine with explicit state transitions
-  - Test each step in isolation
-- Test coverage gaps:
-  - No test for network failure mid-provision
-  - No test for idempotent provision (calling twice with same params)
-  - No test for provision with existing agent (should skip or update)
+  - Promises empty return values (`return []`, `return null`)
+  - Calling code assumes results but gets empty collections; no error propagation
+  - Hard-coded placeholder goal will cause confusion
+- Safe modification: Implement actual storage; add proper error handling; remove placeholders; consider lazy initialization
+- Test coverage: No unit tests for MemoryService
 
 ## Scaling Limits
 
-**WebSocket Connection Pool Resource Exhaustion:**
-- Current capacity: 3 concurrent connections per gateway config (POOL_MAX_PER_KEY)
-- Limit: If 4+ clients hit same gateway simultaneously, 4th client opens new connection instead of reusing
-- Scaling path:
-  - Increase POOL_MAX_PER_KEY to 5-10 (measure connection overhead)
-  - Implement connection queuing instead of fixed max
-  - Add metrics to track pool utilization and connection reuse rates
+### Workspace-Scoped Data Isolation Incomplete
+- Current capacity: Schema supports multiple workspaces; migration logic exists; but businessId/workspaceId dualism creates query confusion
+- Limit: Queries may return incorrect cross-workspace results if filtering on wrong field
+- Scaling path: Complete businessId removal; enforce workspaceId in all queries via query builder or type system; add workspace-level rate limiting
 
-**Execution Audit Trail Growth:**
-- Current: Every task completion creates an execution log entry
-- Limit: With 1000 tasks/day, 365,000 rows/year. Query performance degrades around 1M rows
-- Scaling path:
-  - Implement log archival (move old entries to cold storage quarterly)
-  - Add TTL to execution logs (keep 90 days, archive 1 year)
-  - Use separate database for execution logs (time-series DB like ClickHouse)
-  - Add aggregation table for daily execution stats
+### WebSocket Connection Pool Per Gateway
+- Current capacity: POOL_MAX_PER_KEY=3 concurrent connections per gateway config
+- Limit: Hard-coded max; no dynamic adjustment based on load
+- Scaling path: Monitor pool utilization; add metrics; make POOL_MAX_PER_KEY configurable per environment; implement backpressure
 
-**In-Memory Component State:**
-- Current: Large components (EpicBoard, BrainHub) keep full task/epic/agent lists in React state
-- Limit: Beyond 500 agents × 1000 tasks = 500K state objects, memory pressure becomes visible
-- Scaling path:
-  - Virtualize lists (render only visible items)
-  - Move state to server cache (Convex queries with pagination)
-  - Implement infinite scroll instead of loading all at once
-  - Use IndexedDB for local caching of large datasets
-
-**Notification Queue:**
-- Current: Cron creates 1 notification per (task, assignee) pair
-- Limit: Beyond 500 ready tasks × 20 assignees = 10K notifications/minute, queue backs up
-- Scaling path:
-  - Batch notifications by agent
-  - Implement notification digest instead of individual messages
-  - Add queue system (Bull, RabbitMQ) for async processing
-  - Implement notification deduplication (don't notify for same task twice in 5 minutes)
+### Convex Database Query Load
+- Current capacity: Cron jobs (auto-claim, heartbeat, escalation) run every 60-300s against potentially large result sets
+- Limit: `.collect()` loads all records into memory; no pagination on cron queries
+- Scaling path: Implement cursor-based pagination in cron handlers; add index coverage analysis; monitor query latency
 
 ## Dependencies at Risk
 
-**Convex SDK Type Compatibility:**
-- Risk: Cron job scheduling disabled due to type mismatch with `SchedulableFunctionReference`
-- Current version: ^1.32.0
-- Impact: Automated background tasks non-functional. Manual triggers required
-- Migration plan: Contact Convex support for type issue. Upgrade to latest SDK. If issue persists, use internalActions with manual scheduling instead of cronJobs
+### Convex Internal Mutation Scheduling Issue
+- Risk: Cron job scheduling (line 549 in cron.ts) paused due to "Convex internal mutation scheduling" problem
+- Impact: Core background tasks blocked indefinitely
+- Migration plan: Track Convex issue resolution; implement alternative scheduling via external cron service if needed
 
-**WebSocket (ws) Library Security:**
-- Current: ^8.18.0
-- Risk: Old versions had CVEs. Verify current version is up-to-date
-- Recommendations: `npm audit` before each release. Update to ^8.18.0+ if available. Monitor security advisories
-
-**Next.js 15 App Router Stability:**
-- Current: ^15.1.6
-- Risk: App Router is relatively new. Edge cases possible in dynamic routes and streaming
-- Recommendations: Comprehensive E2E tests for all routes. Monitor issue tracker. Have rollback plan to Next.js 14
+### OpenClaw Integration Incomplete
+- Risk: Sub-agent spawning is mocked; actual endpoint URL and auth not verified
+- Impact: Task autonomy feature cannot be validated
+- Migration plan: Activate real HTTP dispatch; add integration tests with test gateway
 
 ## Missing Critical Features
 
-**Semantic Memory Search:**
-- Problem: MemoryService cannot find relevant goals/decisions by meaning
-- Blocks: AI task generation cannot understand goal context. Strategic planning guesses at priorities
-- Required for:
-  - Smart task suggestions aligned with business goals
-  - Automated escalation based on goal priority
-  - Intelligent agent assignment based on goal alignment
+### Execution Logging Infrastructure
+- Problem: Tasks execute but logs are disabled (TODO Phase 6A)
+- Blocks: Cannot track what agents have done; no audit trail for executed tasks; cannot replay executions
+- Implementation: Create `executionLog` table mutations; add polling endpoint; integrate with task status updates
 
-**Execution Cost Tracking:**
-- Problem: `calculateCostLogic()` exists but never called. Cost calculations missing from execution logs
-- Blocks: Cannot track agent operational costs. No cost attribution by goal/epic. Billing features impossible
-- Required for:
-  - Cost-per-task visibility
-  - Budget alerts
-  - ROI analysis for goals
+### Memory System Persistence
+- Problem: All memory searches return empty; goal data is hardcoded
+- Blocks: AI agents cannot make context-aware decisions; strategic planning without historical data; task generation not goal-aligned
+- Implementation: Connect to persistent vector database; implement embeddings; migrate hardcoded goals to real storage
 
-**Agent Skill Matching:**
-- Problem: Task assignment is manual or random (by priority/availability). No skill-based routing
-- Blocks: Senior agents waste time on intern-level tasks. Complex tasks assigned to inexperienced agents
-- Required for:
-  - Automatic task-to-agent matching
-  - Skill development tracking
-  - Optimal resource allocation
-
-**Real-Time Presence and Typing Indicators:**
-- Problem: No live user presence. Cannot see who's editing task, working on epic, etc.
-- Blocks: Concurrent editing causes conflicts. Users don't know who's active
-- Required for:
-  - Collaborative task management
-  - Lock-free simultaneous editing
-  - Live activity feed accuracy
+### Real-time Collaboration
+- Problem: No WebSocket subscriptions for live updates; polling only (30s interval on sessions)
+- Blocks: Multiple users see stale task state; notifications delayed; no presence indicators
+- Implementation: Add Convex subscriptions; real-time comment/task updates; presence system
 
 ## Test Coverage Gaps
 
-**Gateway RPC Error Scenarios Untested:**
-- What's not tested: Connection timeout, malformed response, partial message, network drop during RPC
-- Files: `src/services/gatewayRpc.ts`, test file `src/app/api/gateway/[gatewayId]/__tests__/sessions.test.ts`
-- Risk: Timeout bugs, message corruption, hanging requests go undetected until production
-- Priority: High - Production deployments depend on gateway stability
-- Add tests for: 30s timeout scenario, JSON.parse failure, connection close during handler
+### MemoryService Untested
+- What's not tested: All 8 search methods; goal alignment scoring; decision storage; insight generation
+- Files: `frontend/src/services/memory/MemoryService.ts`
+- Risk: Placeholder implementations masked by lack of tests; refactoring breaks silently
+- Priority: High (used by task generation and strategic planning engines)
 
-**Migration Idempotency Not Verified:**
-- What's not tested: Running migration twice returns same result. Partial migration doesn't corrupt data
-- Files: `convex/migrations.ts`
-- Risk: Repeated migration runs cause data duplication or loss. Rollback impossible
-- Priority: Critical - Schema changes affect entire database
-- Add tests for: Run migration, verify state. Run again, verify unchanged. Simulate failure mid-batch
+### Cron Job Execution Not Tested
+- What's not tested: Auto-claim notification flow; heartbeat monitoring; escalation checks
+- Files: `backend/convex/cron.ts`
+- Risk: Cron jobs are disabled; when re-enabled, failures unknown until production
+- Priority: High (affects all background task automation)
 
-**Large Component Rendering Performance:**
-- What's not tested: EpicBoard with 500+ tasks renders within <200ms. Dragging is smooth. No memory leaks
-- Files: `src/components/EpicBoard.tsx`, `src/components/BrainHub.tsx`
-- Risk: Board becomes unusable as data grows. Users cannot drag tasks. Memory leak causes app crash
-- Priority: Medium - Affects day-to-day usability
-- Add tests for: Render 100/500/1000 tasks. Measure render time. Test drag performance. Memory profiling
+### OpenClaw Integration Mocked in Tests
+- What's not tested: Real sub-agent spawning; task result polling; error handling for real gateway
+- Files: `frontend/src/app/api/tasks/execute/route.ts`
+- Risk: Feature appears to work in tests; fails silently in production
+- Priority: High (critical path for autonomous execution)
 
-**API Error Handling Consistency:**
-- What's not tested: Invalid JSON, missing required fields, auth failure returns consistent error format
-- Files: All `src/app/api/**` route files
-- Risk: Frontend error handling breaks. Inconsistent error messages confuse users and developers
-- Priority: Medium - Affects debugging and UX
-- Add tests for: Each handler with malformed input, missing params, auth failures
+### Gateway Connection Pool Edge Cases
+- What's not tested: Socket connection errors mid-request; pool expiration during active requests; concurrent acquisition of same cache key
+- Files: `frontend/src/services/gatewayConnectionPool.ts`
+- Risk: Race conditions in high-load scenarios; pool corruption if socket dies mid-release
+- Priority: Medium (Phase 9A tests cover nominal path; edge cases untested)
+
+### Workspace Migration Data Consistency
+- What's not tested: Partial migration scenarios; query correctness when businessId/workspaceId both null
+- Files: `backend/convex/migrations.ts`
+- Risk: Silent data loss during migration; queries return incomplete results
+- Priority: High (affects all multi-workspace data)
 
 ---
 
-*Concerns audit: 2026-02-25*
+*Concerns audit: 2026-02-26*
