@@ -310,6 +310,64 @@ function generateOpenAPISpec() {
     },
   });
 
+  // Example: Agent Poll for Work endpoint
+  addRoute(doc, {
+    path: "/api/v1/workspaces/{workspaceId}/agents/{agentId}/poll",
+    method: "GET",
+    summary: "Poll for Work",
+    description: "Poll for pending work/tasks assigned to the agent",
+    tags: ["Agents"],
+    parameters: [
+      pathParams.workspaceId,
+      {
+        ...pathParams.resourceId,
+        name: "agentId",
+        description: "Agent ID",
+      },
+      {
+        name: "timeout",
+        in: "query",
+        description: "Long-poll timeout in milliseconds (1000-60000)",
+        schema: { type: "number", example: 30000 },
+      },
+      {
+        name: "filter",
+        in: "query",
+        description: "Task filter criteria",
+        schema: { type: "string", example: "priority:high" },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Pending work item or null if none available",
+        content: {
+          "application/json": {
+            schema: successResponseSchema({
+              oneOf: [
+                {
+                  type: "object",
+                  properties: {
+                    taskId: { type: "string", example: "task-123" },
+                    type: { type: "string", example: "task" },
+                    priority: {
+                      type: "string",
+                      enum: ["low", "normal", "high"],
+                      example: "high",
+                    },
+                    payload: { type: "object" },
+                    assignedAt: { type: "string", format: "date-time" },
+                  },
+                },
+                { type: "null", example: null },
+              ],
+            }),
+          },
+        },
+      },
+      ...standardErrorResponses(),
+    },
+  });
+
   return doc;
 }
 
