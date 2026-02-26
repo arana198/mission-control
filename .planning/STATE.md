@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 5 (Data Foundation)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-26 — Phase 01.1 Plan 01 complete: API audit, REST compliance matrix, standardization recommendations
+Plan: 2 of 2 in current phase (Phase 01.1 complete)
+Status: In progress — Phase 01.1 complete, moving to Phase 01.2 or next phase
+Last activity: 2026-02-26 — Phase 01.1 Plan 02 complete: OpenAPI spec generator + refactoring roadmap
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [██░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 8 min
-- Total execution time: 8 min
+- Total plans completed: 2
+- Average duration: 9 min
+- Total execution time: 18 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01.1-rest-api-analysis | 1 | 8 min | 8 min |
+| 01.1-rest-api-analysis | 2 | 18 min | 9 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min
-- Trend: —
+- Last 5 plans: 8 min, 10 min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -50,6 +50,10 @@ Recent decisions affecting current work:
 - [Phase 01.1-01]: Auth migration requires two-phase grace period — accept old and new form ~2 weeks to handle continuously-running agents
 - [Phase 01.1-01]: Gateway ?action= refactor deferred to Phase 3 — align with execution engine redesign, 70+ tests to rewrite
 - [Phase 01.1-01]: CRITICAL security gap — admin endpoints have no auth guard; must fix before other Phase 1.1 work
+- [Phase 01.1-02]: zod-openapi v5 uses .meta() not .openapi() — v5 changed API, no extendZodWithOpenApi() needed
+- [Phase 01.1-02]: Old lib/openapi-generator.ts kept intact — new generator parallel, wiring to route is roadmap Task R-05
+- [Phase 01.1-02]: Task URL renames deferred to Phase 2 — align with execution engine work to do once not twice
+- [Phase 01.1-02]: Gateway decomposition remains Phase 3 — 70+ test rewrites align with gateway redesign
 
 ### Research Flags (for planning)
 
@@ -67,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01.1-01-PLAN.md — API audit, compliance matrix, standardization recommendations
+Stopped at: Completed 01.1-02-PLAN.md — OpenAPI spec generator, 93 tests, refactoring roadmap
 Resume file: None
