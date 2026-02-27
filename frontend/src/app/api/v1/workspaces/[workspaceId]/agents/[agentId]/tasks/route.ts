@@ -42,7 +42,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  */
 export async function GET(
   request: NextRequest,
-  context: { params: { workspaceId: string; agentId: string } }
+  context: any
 ): Promise<NextResponse> {
   const requestId = generateRequestId();
   const pathname = new URL(request.url).pathname;
@@ -221,7 +221,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  context: { params: { workspaceId: string; agentId: string } }
+  context: any
 ): Promise<NextResponse> {
   const requestId = generateRequestId();
   const pathname = new URL(request.url).pathname;

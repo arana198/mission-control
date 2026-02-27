@@ -25,7 +25,6 @@ import {
 import { createLogger } from "@/lib/utils/logger";
 import { validateAgentTaskInput, AddCommentSchema } from "@/lib/validators/agentTaskValidators";
 import { verifyAgent } from "@/lib/agent-auth";
-import { HTTP_HEADERS } from "@/lib/constants/business";
 
 const log = createLogger("api:agents:tasks:comments");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);

@@ -37,6 +37,7 @@ export interface RouteDefinition {
     in: "query" | "path" | "header";
     required?: boolean;
     schema: Record<string, any>;
+    description?: string;
   }>;
   requestBody?: {
     required?: boolean;
@@ -331,7 +332,7 @@ export function createPathParameters() {
   return {
     workspaceId: {
       name: "workspaceId",
-      in: "path",
+      in: "path" as const,
       required: true,
       schema: {
         type: "string",
@@ -342,7 +343,7 @@ export function createPathParameters() {
     },
     resourceId: {
       name: "resourceId",
-      in: "path",
+      in: "path" as const,
       required: true,
       schema: {
         type: "string",
@@ -361,7 +362,7 @@ export function createQueryParameters() {
   return {
     limit: {
       name: "limit",
-      in: "query",
+      in: "query" as const,
       required: false,
       schema: {
         type: "integer",
@@ -374,7 +375,7 @@ export function createQueryParameters() {
     },
     cursor: {
       name: "cursor",
-      in: "query",
+      in: "query" as const,
       required: false,
       schema: {
         type: "string",

@@ -51,7 +51,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  */
 export async function POST(
   request: NextRequest,
-  context: { params: { workspaceId: string; agentId: string } }
+  context: any
 ): Promise<NextResponse> {
   const requestId = generateRequestId();
   const pathname = new URL(request.url).pathname;
@@ -99,7 +99,7 @@ export async function POST(
     }
 
     // Parse optional request body
-    let body = {};
+    let body: any = {};
     try {
       const text = await request.text();
       if (text) {
