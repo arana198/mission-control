@@ -81,9 +81,8 @@ export async function GET(
     }
 
     // Query memory from Convex
-    const memory = await convex.query(api.memory.getMemory, {
-      workspaceId,
-      memoryId,
+    const memory = await convex.query(api.memoryIndex.getMemory, {
+      memoryId: memoryId as any,
     });
 
     if (!memory) {
@@ -112,11 +111,13 @@ export async function GET(
         success: true,
         data: {
           id: memory._id,
-          title: memory.title,
-          content: memory.content,
-          type: memory.type,
-          createdAt: memory._creationTime,
-          updatedAt: memory._creationTime,
+          entityType: memory.entityType,
+          entityId: memory.entityId,
+          memoryPath: memory.memoryPath,
+          keywords: memory.keywords,
+          relatedMemoryPaths: memory.relatedMemoryPaths,
+          lastSynced: memory.lastSynced,
+          createdAt: new Date(memory._creationTime).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),
@@ -309,12 +310,10 @@ export async function PUT(
     }
 
     // Call Convex — update memory entry
-    const memory = await convex.mutation(api.memory.updateMemory, {
-      workspaceId,
-      memoryId,
-      title: body.title || undefined,
+    const memory = await convex.mutation(api.memoryIndex.updateMemory, {
+      memoryId: memoryId as any,
       content: body.content || undefined,
-      type: body.type !== undefined ? body.type : undefined,
+      keywords: body.keywords || undefined,
     });
 
     if (!memory) {
@@ -343,11 +342,13 @@ export async function PUT(
         success: true,
         data: {
           id: memory._id,
-          title: memory.title,
-          content: memory.content,
-          type: memory.type,
-          createdAt: memory._creationTime,
-          updatedAt: memory._creationTime,
+          entityType: memory.entityType,
+          entityId: memory.entityId,
+          memoryPath: memory.memoryPath,
+          keywords: memory.keywords,
+          relatedMemoryPaths: memory.relatedMemoryPaths,
+          lastSynced: memory.lastSynced,
+          createdAt: new Date(memory._creationTime).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),
@@ -480,9 +481,8 @@ export async function DELETE(
     }
 
     // Call Convex — delete memory entry
-    const deleted = await convex.mutation(api.memory.deleteMemory, {
-      workspaceId,
-      memoryId,
+    const deleted = await convex.mutation(api.memoryIndex.deleteMemory, {
+      memoryId: memoryId as any,
     });
 
     if (!deleted) {

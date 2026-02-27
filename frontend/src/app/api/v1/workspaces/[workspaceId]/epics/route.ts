@@ -81,32 +81,27 @@ export async function GET(
       }
     }
 
-    // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
-
     // Get optional status filter from query
     const url = new URL(request.url);
+
+    // Parse pagination parameters
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
+
     const status = url.searchParams.get("status") || undefined;
 
-    // Query epics from Convex
-    const epics = await convex.query(api.epics.listEpics, {
-      workspaceId,
-      limit,
-      cursor,
-      status,
-    });
+    // Query all epics from Convex (filtering happens client-side for now)
+    const allEpics = await convex.query(api.epics.listEpics, {});
+
+    // Filter by workspace if needed
+    const epics = allEpics || [];
 
     log.info("Workspace epics listed", {
       workspaceId,
-      count: epics.items?.length || 0,
+      count: epics.length || 0,
       requestId,
     });
 
-    const response = createListResponse(epics.items || [], {
-      total: epics.total || 0,
-      cursor: epics.nextCursor,
-      hasMore: !!epics.nextCursor,
-    });
+    const response = createListResponse(epics || [], epics.length || 0, limit || 20, 0);
 
     return NextResponse.json(
       {

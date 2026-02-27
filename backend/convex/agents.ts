@@ -1,5 +1,6 @@
 import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { api } from "./_generated/api";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
 import { checkRateLimitSilent } from "./utils/rateLimit";
 
@@ -652,4 +653,48 @@ export const updateAgentTask = mutation({
     const updated = await ctx.db.get(taskId);
     return { success: true, task: updated };
   }),
+});
+
+// Alias: createAgentTask -> create task (for agent context)
+export const createAgentTask = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+    workspaceId: convexVal.id("workspaces"),
+    title: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.string()),
+    dueDate: convexVal.optional(convexVal.number()),
+    tags: convexVal.optional(convexVal.array(convexVal.string())),
+  },
+  handler: wrapConvexHandler(
+    async (ctx: any, { agentId, workspaceId, title, description, priority, dueDate, tags }: any): Promise<string> => {
+      // Get the first epic for the workspace (fallback)
+      const epics = await ctx.db
+        .query("epics")
+        .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
+        .take(1);
+
+      if (epics.length === 0) {
+        throw ApiError.validationError("No epics found for workspace", { workspaceId });
+      }
+
+      const epicId = epics[0]._id;
+
+      // Call the tasks.createTask mutation
+      const taskId: string = await ctx.runMutation(api.tasks.createTask, {
+        workspaceId,
+        title,
+        description: description || "",
+        priority: priority || "P2",
+        createdBy: agentId,
+        source: "agent",
+        assigneeIds: [agentId],
+        tags: tags || [],
+        dueDate,
+        epicId,
+      });
+
+      return taskId;
+    }
+  ),
 });

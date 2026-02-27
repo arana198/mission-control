@@ -287,21 +287,36 @@ export async function POST(
       throw new ValidationError("Invalid priority value", pathname);
     }
 
+    // Map priority from API format to internal format
+    const priorityMap: { [key: string]: string } = {
+      low: "P3",
+      normal: "P2",
+      high: "P1",
+    };
+    const internalPriority = body.priority ? priorityMap[body.priority] : "P2";
+
     // Call Convex — create task
-    const result = await convex.mutation(api.agents.createAgentTask, {
+    const taskId = await convex.mutation(api.agents.createAgentTask, {
       agentId,
       workspaceId,
       title: body.title,
       description: body.description || undefined,
-      priority: body.priority || "normal",
+      priority: internalPriority,
       dueDate: body.dueDate || undefined,
       tags: body.tags || [],
     });
 
+    // Fetch the created task to return full details
+    const task = await convex.query(api.tasks.getTask, { taskId: taskId as any });
+
+    if (!task) {
+      throw new NotFoundError("Created task not found", pathname);
+    }
+
     log.info("Agent task created", {
       workspaceId,
       agentId,
-      taskId: result._id,
+      taskId,
       requestId,
     });
 
@@ -309,13 +324,13 @@ export async function POST(
       {
         success: true,
         data: {
-          id: result._id,
-          title: result.title,
-          description: result.description,
-          status: "pending",
-          priority: result.priority,
-          dueDate: result.dueDate,
-          createdAt: new Date().toISOString(),
+          id: task._id,
+          title: task.title,
+          description: task.description,
+          status: task.status || "pending",
+          priority: task.priority,
+          dueDate: task.dueDate,
+          createdAt: new Date(task.createdAt).toISOString(),
         },
         timestamp: new Date().toISOString(),
         requestId,

@@ -81,32 +81,39 @@ export async function GET(
       }
     }
 
-    // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
-
-    // Get optional date filter from query
+    // Get optional filters from query
     const url = new URL(request.url);
-    const date = url.searchParams.get("date") || undefined;
+
+    // Parse pagination parameters
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
+
+    const date = url.searchParams.get("date");
+    const taskId = url.searchParams.get("taskId");
+
+    // Convert date to startTime and endTime if provided
+    let startTime: number | undefined;
+    let endTime: number | undefined;
+    if (date) {
+      const dateObj = new Date(date);
+      startTime = dateObj.getTime();
+      endTime = new Date(dateObj.getTime() + 24 * 60 * 60 * 1000).getTime();
+    }
 
     // Query calendar slots from Convex
-    const slots = await convex.query(api.calendar.listSlots, {
-      workspaceId,
+    const slots = await convex.query(api.calendarEvents.listSlots, {
+      startTime,
+      endTime,
+      taskId: taskId ? (taskId as any) : undefined,
       limit,
-      cursor,
-      date,
     });
 
     log.info("Calendar slots listed", {
       workspaceId,
-      count: slots.items?.length || 0,
+      count: slots.length || 0,
       requestId,
     });
 
-    const response = createListResponse(slots.items || [], {
-      total: slots.total || 0,
-      cursor: slots.nextCursor,
-      hasMore: !!slots.nextCursor,
-    });
+    const response = createListResponse(slots || [], slots.length || 0, limit || 20, 0);
 
     return NextResponse.json(
       {
@@ -268,14 +275,32 @@ export async function POST(
       throw new ValidationError("Invalid slot type", pathname);
     }
 
+    // Convert date and time strings to timestamps
+    const [startHour, startMinute] = body.startTime.split(":").map(Number);
+    const [endHour, endMinute] = body.endTime.split(":").map(Number);
+    const dateObj = new Date(body.date);
+    const startTimestamp = new Date(
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate(),
+      startHour,
+      startMinute
+    ).getTime();
+    const endTimestamp = new Date(
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate(),
+      endHour,
+      endMinute
+    ).getTime();
+
     // Call Convex — create slot
-    const slot = await convex.mutation(api.calendar.createSlot, {
-      workspaceId,
-      date: body.date,
-      startTime: body.startTime,
-      endTime: body.endTime,
-      capacity: body.capacity,
-      type: body.type || null,
+    const slot = await convex.mutation(api.calendarEvents.createSlot, {
+      title: `Calendar Slot - ${body.type || "availability"}`,
+      startTime: startTimestamp,
+      endTime: endTimestamp,
+      workspaceId: workspaceId as any,
+      description: body.description || undefined,
     });
 
     if (!slot) {
@@ -304,12 +329,12 @@ export async function POST(
         success: true,
         data: {
           id: slot._id,
-          date: slot.date,
+          title: slot.title,
           startTime: slot.startTime,
           endTime: slot.endTime,
-          capacity: slot.capacity,
-          type: slot.type,
-          createdAt: slot._creationTime,
+          timezone: slot.timezone,
+          description: slot.description,
+          createdAt: new Date(slot.createdAt).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),

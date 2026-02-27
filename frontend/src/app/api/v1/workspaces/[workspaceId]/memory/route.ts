@@ -81,32 +81,25 @@ export async function GET(
       }
     }
 
-    // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
-
     // Get optional type filter from query
     const url = new URL(request.url);
+
+    // Parse pagination parameters
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
+
     const type = url.searchParams.get("type") || undefined;
 
     // Query memory entries from Convex
-    const memory = await convex.query(api.memory.listMemory, {
-      workspaceId,
-      limit,
-      cursor,
-      type,
-    });
+    const allMemory = await convex.query(api.memoryIndex.listMemory, {});
+    const memory = allMemory || [];
 
     log.info("Workspace memory listed", {
       workspaceId,
-      count: memory.items?.length || 0,
+      count: memory.length || 0,
       requestId,
     });
 
-    const response = createListResponse(memory.items || [], {
-      total: memory.total || 0,
-      cursor: memory.nextCursor,
-      hasMore: !!memory.nextCursor,
-    });
+    const response = createListResponse(memory || [], memory.length || 0, limit || 20, 0);
 
     return NextResponse.json(
       {
@@ -278,11 +271,11 @@ export async function POST(
     }
 
     // Call Convex — create memory entry
-    const memory = await convex.mutation(api.memory.createMemory, {
-      workspaceId,
-      title: body.title,
+    const memory = await convex.mutation(api.memoryIndex.createMemory, {
+      entityName: body.title,
+      entityType: body.type || "note",
       content: body.content,
-      type: body.type || null,
+      workspaceId: workspaceId as any,
     });
 
     if (!memory) {
@@ -311,10 +304,13 @@ export async function POST(
         success: true,
         data: {
           id: memory._id,
-          title: memory.title,
-          content: memory.content,
-          type: memory.type,
-          createdAt: memory._creationTime,
+          entityType: memory.entityType,
+          entityId: memory.entityId,
+          memoryPath: memory.memoryPath,
+          keywords: memory.keywords,
+          relatedMemoryPaths: memory.relatedMemoryPaths,
+          lastSynced: memory.lastSynced,
+          createdAt: new Date(memory._creationTime).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),

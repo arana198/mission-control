@@ -78,9 +78,8 @@ export async function GET(
     }
 
     // Query report from Convex
-    const report = await convex.query(api.reports.getReport, {
-      workspaceId,
-      reportId,
+    const report = await convex.query(api.strategicReports.getReport, {
+      reportId: reportId as any,
     });
 
     if (!report) {
@@ -109,11 +108,12 @@ export async function GET(
         success: true,
         data: {
           id: report._id,
-          title: report.title,
-          type: report.type,
-          description: report.description,
-          createdAt: report._creationTime,
-          updatedAt: report._creationTime,
+          week: report.week,
+          year: report.year,
+          taskMetrics: report.taskMetrics,
+          insights: report.insights,
+          recommendations: report.recommendations,
+          createdAt: new Date(report.createdAt).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),
@@ -305,13 +305,10 @@ export async function PUT(
     }
 
     // Call Convex — update report
-    const report = await convex.mutation(api.reports.updateReport, {
-      workspaceId,
-      reportId,
+    const report = await convex.mutation(api.strategicReports.updateReport, {
+      reportId: reportId as any,
       title: body.title || undefined,
-      type: body.type || undefined,
-      description:
-        body.description !== undefined ? body.description : undefined,
+      content: body.content || undefined,
     });
 
     if (!report) {
@@ -340,11 +337,12 @@ export async function PUT(
         success: true,
         data: {
           id: report._id,
-          title: report.title,
-          type: report.type,
-          description: report.description,
-          createdAt: report._creationTime,
-          updatedAt: report._creationTime,
+          week: report.week,
+          year: report.year,
+          taskMetrics: report.taskMetrics,
+          insights: report.insights,
+          recommendations: report.recommendations,
+          createdAt: new Date(report.createdAt).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),

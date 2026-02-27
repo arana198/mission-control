@@ -80,8 +80,7 @@ export async function GET(
 
     // Query epic from Convex
     const epic = await convex.query(api.epics.getEpic, {
-      workspaceId,
-      epicId,
+      epicId: epicId as any,
     });
 
     if (!epic) {
@@ -296,12 +295,17 @@ export async function PUT(
     }
 
     // Call Convex — update epic
-    const epic = await convex.mutation(api.epics.updateEpic, {
+    const updateResult = await convex.mutation(api.epics.updateEpic, {
       workspaceId,
-      epicId,
+      epicId: epicId as any,
       title: body.title || undefined,
       description: body.description !== undefined ? body.description : undefined,
       status: body.status || undefined,
+    });
+
+    // Fetch the updated epic
+    const epic = await convex.query(api.epics.getEpic, {
+      epicId: epicId as any,
     });
 
     if (!epic) {
