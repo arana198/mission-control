@@ -101,17 +101,15 @@ export async function GET(
       workspaceId,
       agentId,
       taskId,
-      count: comments.items?.length || 0,
+      count: Array.isArray(comments) ? comments.length : 0,
       requestId,
     });
 
     const response = createListResponse(
-      comments.items || [],
-      {
-        total: comments.total || 0,
-        cursor: comments.nextCursor,
-        hasMore: !!comments.nextCursor,
-      }
+      Array.isArray(comments) ? comments : [],
+      Array.isArray(comments) ? comments.length : 0,
+      limit || 20,
+      0
     );
 
     return NextResponse.json(
