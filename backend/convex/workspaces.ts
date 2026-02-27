@@ -1,7 +1,9 @@
 import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { ConvexError } from "convex/server";
 import { batchDelete } from "./utils/batchDelete";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
+import { requireRole } from "./organizationMembers";
 
 /**
  * es Module
@@ -80,8 +82,18 @@ export const create = mutation({
     emoji: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
     missionStatement: convexVal.string(), // Required: workspace purpose/problem being solved
+    callerId: convexVal.string(), // system admin ID performing the creation
   },
-  handler: wrapConvexHandler(async (ctx, { name, slug, color, emoji, description, missionStatement }) => {
+  handler: wrapConvexHandler(async (ctx, { name, slug, color, emoji, description, missionStatement, callerId }) => {
+    // Check that caller is a system admin
+    const sysAdmin = await ctx.db
+      .query("systemAdmins")
+      .withIndex("by_user", (q: any) => q.eq("userId", callerId))
+      .first();
+    if (!sysAdmin) {
+      throw new ConvexError("NOT_FOUND");
+    }
+
     // Validate slug format: lowercase, alphanumeric, hyphens only
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
@@ -139,6 +151,7 @@ export const create = mutation({
       isDefault,
       createdAt: now,
       updatedAt: now,
+      createdBy: callerId,
     });
 
     // Initialize per-workspace settings (taskCounter starts at 0)
@@ -192,8 +205,14 @@ export const update = mutation({
  * Idempotent: calling with already-default workspace is no-op
  */
 export const setDefault = mutation({
-  args: { workspaceId: convexVal.id("workspaces") },
-  handler: wrapConvexHandler(async (ctx, { workspaceId }) => {
+  args: {
+    workspaceId: convexVal.id("workspaces"),
+    callerId: convexVal.string(),
+  },
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId }) => {
+    // Check that caller has admin role in this workspace
+    await requireRole(ctx, workspaceId, callerId, "admin");
+
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace) {
       throw ApiError.notFound("Workspace", { workspaceId });
@@ -217,6 +236,38 @@ export const setDefault = mutation({
 
     // Set new default
     await ctx.db.patch(workspaceId, { isDefault: true, updatedAt: Date.now() });
+    return await ctx.db.get(workspaceId);
+  }),
+});
+
+/**
+ * Mutation: Set workspace budget
+ * Only workspace admins can set budget
+ */
+export const setBudget = mutation({
+  args: {
+    workspaceId: convexVal.id("workspaces"),
+    callerId: convexVal.string(),
+    monthlyTokenLimit: convexVal.number(),
+    alertThreshold: convexVal.optional(convexVal.number()),
+  },
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId, monthlyTokenLimit, alertThreshold }) => {
+    // Check that caller has admin role in this workspace
+    await requireRole(ctx, workspaceId, callerId, "admin");
+
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) {
+      throw ApiError.notFound("Workspace", { workspaceId });
+    }
+
+    await ctx.db.patch(workspaceId, {
+      budget: {
+        monthlyTokenLimit,
+        alertThreshold,
+      },
+      updatedAt: Date.now(),
+    });
+
     return await ctx.db.get(workspaceId);
   }),
 });

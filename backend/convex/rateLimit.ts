@@ -9,6 +9,8 @@ import { RateLimitState, RateLimitCheckResult } from "./types";
 
 const DEFAULT_TOKENS_PER_HOUR = 1000;
 const DEFAULT_TOKENS_PER_DAY = 10000;
+const ADMIN_TOKENS_PER_HOUR = 5000;
+const ADMIN_TOKENS_PER_DAY = 50000;
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -56,8 +58,16 @@ function calculateRefillTokens(
  * Implements token bucket: returns whether request is allowed and remaining quota
  */
 export const checkAndDecrement = mutation({
-  args: { apiKeyId: convexVal.string() },
-  handler: async (ctx, { apiKeyId }): Promise<RateLimitCheckResult> => {
+  args: {
+    apiKeyId: convexVal.string(),
+    roleTier: convexVal.optional(
+      convexVal.union(
+        convexVal.literal("admin"),
+        convexVal.literal("standard")
+      )
+    ),
+  },
+  handler: async (ctx, { apiKeyId, roleTier }): Promise<RateLimitCheckResult> => {
     const now = Date.now();
     const { db } = ctx;
 
@@ -71,11 +81,15 @@ export const checkAndDecrement = mutation({
 
     if (!existing) {
       // Initialize new quota record (first request for this API key)
+      // Use role-based limits: admin tier gets higher limits
+      const tokensPerHour = roleTier === "admin" ? ADMIN_TOKENS_PER_HOUR : DEFAULT_TOKENS_PER_HOUR;
+      const tokensPerDay = roleTier === "admin" ? ADMIN_TOKENS_PER_DAY : DEFAULT_TOKENS_PER_DAY;
+
       record = {
         apiKeyId,
-        tokensRemaining: DEFAULT_TOKENS_PER_HOUR - 1, // Use 1 token for this request
-        tokensPerHour: DEFAULT_TOKENS_PER_HOUR,
-        tokensPerDay: DEFAULT_TOKENS_PER_DAY,
+        tokensRemaining: tokensPerHour - 1, // Use 1 token for this request
+        tokensPerHour,
+        tokensPerDay,
         hourlyResetAt: now + HOUR_MS,
         dailyResetAt: now + DAY_MS,
         createdAt: now,

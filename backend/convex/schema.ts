@@ -21,6 +21,11 @@ export default defineSchema({
     isDefault: convexVal.boolean(),                // Exactly one default at all times
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
+    createdBy: convexVal.optional(convexVal.string()), // userId of system admin who created this workspace
+    budget: convexVal.optional(convexVal.object({
+      monthlyTokenLimit: convexVal.number(),
+      alertThreshold: convexVal.optional(convexVal.number()),
+    })), // Per-workspace monthly budget
   })
     .index("by_slug", ["slug"])
     .index("by_default", ["isDefault"]),
