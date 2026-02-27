@@ -472,9 +472,8 @@ export async function DELETE(
     }
 
     // Call Convex — delete report
-    const deleted = await convex.mutation(api.reports.deleteReport, {
-      workspaceId,
-      reportId,
+    const deleted = await convex.mutation(api.strategicReports.deleteReport, {
+      reportId: reportId as any,
     });
 
     if (!deleted) {

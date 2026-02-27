@@ -81,32 +81,25 @@ export async function GET(
       }
     }
 
-    // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
-
     // Get optional type filter from query
     const url = new URL(request.url);
+
+    // Parse pagination parameters
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
+
     const type = url.searchParams.get("type") || undefined;
 
     // Query reports from Convex
-    const reports = await convex.query(api.reports.listReports, {
-      workspaceId,
-      limit,
-      cursor,
-      type,
-    });
+    const allReports = await convex.query(api.strategicReports.listReports, {});
+    const reports = allReports || [];
 
     log.info("Workspace reports listed", {
       workspaceId,
-      count: reports.items?.length || 0,
+      count: reports.length || 0,
       requestId,
     });
 
-    const response = createListResponse(reports.items || [], {
-      total: reports.total || 0,
-      cursor: reports.nextCursor,
-      hasMore: !!reports.nextCursor,
-    });
+    const response = createListResponse(reports || [], reports.length || 0, limit || 20, 0);
 
     return NextResponse.json(
       {
@@ -273,11 +266,9 @@ export async function POST(
     }
 
     // Call Convex — create report
-    const report = await convex.mutation(api.reports.createReport, {
-      workspaceId,
+    const report = await convex.mutation(api.strategicReports.createReport, {
       title: body.title,
-      type: body.type,
-      description: body.description || null,
+      content: body.content || undefined,
     });
 
     if (!report) {
@@ -307,9 +298,9 @@ export async function POST(
         data: {
           id: report._id,
           title: report.title,
-          type: report.type,
-          description: report.description,
-          createdAt: report._creationTime,
+          week: report.week,
+          year: report.year,
+          createdAt: new Date(report.createdAt).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),
