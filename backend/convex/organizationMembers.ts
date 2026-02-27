@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import type { QueryBuilder } from "convex/server";
+import { checkRateLimitSilent } from "./utils/rateLimit";
 
 /**
  * Organization Members - RBAC (Role-Based Access Control)
@@ -79,15 +80,44 @@ export async function requireRole(
     )
     .first();
 
-  // Return 404 per locked decision (security through obscurity, not 403)
+  let permissionDenied = false;
+
   if (!member) {
-    throw new ConvexError("NOT_FOUND");
+    permissionDenied = true;
+  } else {
+    // Use new userRole if available, fall back to legacy role mapping
+    const effectiveRole = (member.userRole ?? mapLegacyRole(member.role)) as UserRole;
+
+    if (!hasRequiredRole(effectiveRole, requiredRole)) {
+      permissionDenied = true;
+    }
   }
 
-  // Use new userRole if available, fall back to legacy role mapping
-  const effectiveRole = (member.userRole ?? mapLegacyRole(member.role)) as UserRole;
+  if (permissionDenied) {
+    // Rate limit check: 5 failures per user+workspace per minute (per locked decision)
+    // Note: we do NOT return 429 even if rate limited — still return 404
+    // The rate limiting is for logging/detection, not changing the response
+    const failKey = `perm_fail:${userId}:${workspaceId}`;
+    const underLimit = await checkRateLimitSilent(ctx, failKey, 5, 60_000);
 
-  if (!hasRequiredRole(effectiveRole, requiredRole)) {
+    // Log failure to activities table (always log, even when rate limit exceeded)
+    // This creates the audit trail per locked decision
+    await ctx.db.insert("activities", {
+      type: "permission_denied",
+      workspaceId,
+      agentId: "system",
+      agentName: "system",
+      message: `Permission denied for user ${userId}: requires ${requiredRole}${!underLimit ? " (rate limited)" : ""}`,
+      oldValue: undefined,
+      newValue: JSON.stringify({
+        userId,
+        requiredRole,
+        rateLimited: !underLimit,
+      }),
+      createdAt: Date.now(),
+    });
+
+    // Always 404, never 403 (locked decision: security through obscurity)
     throw new ConvexError("NOT_FOUND");
   }
 }

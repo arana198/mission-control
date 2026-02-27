@@ -350,7 +350,8 @@ export default defineSchema({
       convexVal.literal("anomaly_detected"),
       convexVal.literal("anomaly_resolved"),
       convexVal.literal("approval_requested"),
-      convexVal.literal("approval_resolved")
+      convexVal.literal("approval_resolved"),
+      convexVal.literal("permission_denied")
     ),
 
     // Actor (denormalized for speed)
