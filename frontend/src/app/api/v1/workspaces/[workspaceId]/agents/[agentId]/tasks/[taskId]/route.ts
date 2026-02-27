@@ -88,7 +88,6 @@ export async function GET(
     const task = await convex.query(api.agents.getAgentTask, {
       taskId,
       agentId,
-      workspaceId,
     });
 
     if (!task) {
@@ -119,11 +118,11 @@ export async function GET(
       description: task.description,
       status: task.status,
       priority: task.priority,
-      dueDate: task.dueDate || null,
-      progress: task.progress || 0,
-      metrics: task.metrics || {},
-      createdAt: task._creationTime,
-      updatedAt: task._creationTime,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+      createdAt: new Date(task.createdAt).toISOString(),
+      updatedAt: new Date(task.updatedAt).toISOString(),
+      tags: task.tags || [],
+      assignees: task.assigneeIds || [],
     });
 
     return NextResponse.json(
@@ -316,15 +315,15 @@ export async function PUT(
       requestId,
     });
 
+    const task = result.task || result;
     const response = createSuccessResponseObject({
-      id: result._id,
-      title: result.title,
-      description: result.description,
-      status: result.status,
-      priority: result.priority,
-      dueDate: result.dueDate || null,
-      progress: result.progress || 0,
-      updatedAt: new Date().toISOString(),
+      id: task._id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+      updatedAt: new Date(task.updatedAt).toISOString(),
     });
 
     return NextResponse.json(

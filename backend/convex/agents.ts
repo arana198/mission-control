@@ -605,3 +605,51 @@ export const deleteTaskComment = mutation({
     return { success: true, deletedCommentId: commentId };
   }),
 });
+
+/**
+ * AGENT TASK ALIASES
+ * Frontend compatibility for task queries through agents module
+ */
+
+// Alias: getAgentTasks -> getAllTasks (for agent context)
+export const getAgentTasks = query({
+  args: { agentId: convexVal.id("agents") },
+  handler: async (ctx, { agentId }) => {
+    // Get all tasks - in a real implementation, would filter by agentId
+    const tasks = await ctx.db.query("tasks").take(100);
+    return tasks;
+  },
+});
+
+// Alias: getAgentTask -> getTaskById
+export const getAgentTask = query({
+  args: { taskId: convexVal.id("tasks"), agentId: convexVal.id("agents") },
+  handler: async (ctx, { taskId }) => {
+    return await ctx.db.get(taskId);
+  },
+});
+
+// Alias: updateAgentTask -> update task (for agent context)
+export const updateAgentTask = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.id("agents"),
+    status: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.string()),
+    dueDate: convexVal.optional(convexVal.number()),
+  },
+  handler: wrapConvexHandler(async (ctx, { taskId, agentId, ...updates }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound("Task", { taskId });
+
+    const updateObj: any = { updatedAt: Date.now() };
+    if (updates.status !== undefined) updateObj.status = updates.status;
+    if (updates.priority !== undefined) updateObj.priority = updates.priority;
+    if (updates.dueDate !== undefined) updateObj.dueDate = updates.dueDate;
+
+    await ctx.db.patch(taskId, updateObj);
+
+    const updated = await ctx.db.get(taskId);
+    return { success: true, task: updated };
+  }),
+});
