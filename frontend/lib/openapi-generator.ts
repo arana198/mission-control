@@ -2173,6 +2173,369 @@ export function generateOpenAPISpec(): OpenAPISpec {
         },
       },
     },
+
+    // ============= V1 API - Workspace Tasks (Routes 14-18) =============
+    '/api/v1/workspaces/{workspaceId}/tasks': {
+      get: {
+        tags: ['V1 Workspace Tasks'],
+        summary: 'List workspace tasks',
+        description: 'Retrieve all tasks in a workspace with pagination and optional status filtering',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+            description: 'Number of tasks per page (default 20)',
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Pagination cursor for next page',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['pending', 'in_progress', 'completed'] },
+            description: 'Optional status filter',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Tasks retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          priority: { type: 'string', enum: ['low', 'normal', 'high'] },
+                          status: { type: 'string', enum: ['pending', 'in_progress', 'completed'] },
+                          createdAt: { type: 'number' },
+                        },
+                      },
+                    },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'integer' },
+                        cursor: { type: 'string' },
+                        hasMore: { type: 'boolean' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Workspace not found',
+          },
+        },
+      },
+      post: {
+        tags: ['V1 Workspace Tasks'],
+        summary: 'Create task',
+        description: 'Create a new task in a workspace',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                  title: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 200,
+                    description: 'Task title (required, 1-200 chars)',
+                  },
+                  description: {
+                    type: 'string',
+                    maxLength: 5000,
+                    description: 'Task description (optional, max 5000 chars)',
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'normal', 'high'],
+                    default: 'normal',
+                    description: 'Task priority level (optional, default "normal")',
+                  },
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'in_progress', 'completed'],
+                    default: 'pending',
+                    description: 'Task status (optional, default "pending")',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Task created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        priority: { type: 'string' },
+                        status: { type: 'string' },
+                        createdAt: { type: 'number' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Validation error - Invalid request body',
+          },
+          '404': {
+            description: 'Workspace not found',
+          },
+        },
+      },
+    },
+
+    '/api/v1/workspaces/{workspaceId}/tasks/{taskId}': {
+      get: {
+        tags: ['V1 Workspace Tasks'],
+        summary: 'Get task detail',
+        description: 'Retrieve a specific task from a workspace',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Task identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Task details retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        priority: { type: 'string' },
+                        status: { type: 'string' },
+                        createdAt: { type: 'number' },
+                        updatedAt: { type: 'number' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Task or workspace not found',
+          },
+        },
+      },
+      put: {
+        tags: ['V1 Workspace Tasks'],
+        summary: 'Update task',
+        description: 'Update task properties (title, description, priority, status)',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Task identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 200,
+                    description: 'Task title (1-200 chars)',
+                  },
+                  description: {
+                    type: 'string',
+                    maxLength: 5000,
+                    description: 'Task description (max 5000 chars)',
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'normal', 'high'],
+                    description: 'Task priority level',
+                  },
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'in_progress', 'completed'],
+                    description: 'Task status',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Task updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        priority: { type: 'string' },
+                        status: { type: 'string' },
+                        createdAt: { type: 'number' },
+                        updatedAt: { type: 'number' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Validation error - Invalid request body',
+          },
+          '404': {
+            description: 'Task or workspace not found',
+          },
+        },
+      },
+      delete: {
+        tags: ['V1 Workspace Tasks'],
+        summary: 'Delete task',
+        description: 'Remove a task from a workspace',
+        parameters: [
+          {
+            name: 'workspaceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Workspace identifier',
+          },
+          {
+            name: 'taskId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Task identifier',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Task deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        deleted: { type: 'boolean' },
+                        taskId: { type: 'string' },
+                      },
+                    },
+                    requestId: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          '404': {
+            description: 'Task or workspace not found',
+          },
+        },
+      },
+    },
   };
 
   // Merge all path builders
