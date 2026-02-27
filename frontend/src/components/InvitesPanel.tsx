@@ -91,8 +91,8 @@ export function InvitesPanel({ workspaceId }: InvitesPanelProps) {
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className="w-4 h-4 text-warning" />
                       <h4 className="font-semibold text-white">{invite.email}</h4>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.role)}`}>
-                        {invite.role}
+                      <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.userRole || invite.role || "viewer")}`}>
+                        {invite.userRole || invite.role || "viewer"}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -145,8 +145,8 @@ export function InvitesPanel({ workspaceId }: InvitesPanelProps) {
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="w-4 h-4 text-success" />
                       <h4 className="font-semibold text-white">{invite.email}</h4>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.role)}`}>
-                        {invite.role}
+                      <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(invite.userRole || invite.role || "viewer")}`}>
+                        {invite.userRole || invite.role || "viewer"}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">

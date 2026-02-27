@@ -426,6 +426,7 @@ export default defineSchema({
     .index("by_recipient", ["recipientId"])
     .index("by_read", ["recipientId", "read"])
     .index("by_created_at", ["createdAt"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_task", ["taskId"]),
 
   /**
@@ -1265,11 +1266,19 @@ export default defineSchema({
     userId: convexVal.string(),
     userEmail: convexVal.optional(convexVal.string()),
     userName: convexVal.optional(convexVal.string()),
-    role: convexVal.union(
+    // Legacy role field (optional for migration)
+    role: convexVal.optional(convexVal.union(
       convexVal.literal("owner"),
       convexVal.literal("admin"),
       convexVal.literal("member")
-    ),
+    )),
+    // New 4-level role field (optional during migration, required after MIG-18)
+    userRole: convexVal.optional(convexVal.union(
+      convexVal.literal("admin"),
+      convexVal.literal("agent"),
+      convexVal.literal("collaborator"),
+      convexVal.literal("viewer")
+    )),
     allBoardsRead: convexVal.boolean(),
     allBoardsWrite: convexVal.boolean(),
     createdAt: convexVal.number(),
@@ -1294,11 +1303,19 @@ export default defineSchema({
     workspaceId: convexVal.optional(convexVal.id("workspaces")),
     token: convexVal.string(),
     email: convexVal.string(),
-    role: convexVal.union(
+    // Legacy role field (optional for migration)
+    role: convexVal.optional(convexVal.union(
       convexVal.literal("owner"),
       convexVal.literal("admin"),
       convexVal.literal("member")
-    ),
+    )),
+    // New 4-level role field (optional during migration, required after MIG-18)
+    userRole: convexVal.optional(convexVal.union(
+      convexVal.literal("admin"),
+      convexVal.literal("agent"),
+      convexVal.literal("collaborator"),
+      convexVal.literal("viewer")
+    )),
     allBoardsRead: convexVal.boolean(),
     allBoardsWrite: convexVal.boolean(),
     invitedBy: convexVal.string(),
@@ -1372,6 +1389,16 @@ export default defineSchema({
     createdAt: convexVal.number(),
     updatedAt: convexVal.number(),
   }).index("by_workspace", ["workspaceId"]),
+
+  /**
+   * SYSTEM ADMINS - Global Administrative Access
+   * Users with system-wide administrative privileges (bypass workspace membership checks)
+   */
+  systemAdmins: defineTable({
+    userId: convexVal.string(),
+    createdAt: convexVal.number(),
+  })
+    .index("by_user", ["userId"]),
 
   /**
    * API KEY QUOTA - Rate Limiting Tracking

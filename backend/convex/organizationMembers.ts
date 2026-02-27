@@ -11,8 +11,86 @@ import type { QueryBuilder } from "convex/server";
  * - Member queries (by workspace, by user)
  * - Member mutations (add, update, remove)
  * - Board-level access control
- * - Permission checks (requireAdmin, requireOwner)
+ * - Permission checks (requireRole, requireAdmin, requireOwner)
+ * - 4-level role hierarchy: admin (4) > agent (3) > collaborator (2) > viewer (1)
  */
+
+/**
+ * ROLE_LEVELS - 4-level role hierarchy
+ * admin (4) > agent (3) > collaborator (2) > viewer (1)
+ */
+export const ROLE_LEVELS = {
+  admin: 4,
+  agent: 3,
+  collaborator: 2,
+  viewer: 1,
+} as const;
+
+/**
+ * UserRole type - the 4-level role system
+ */
+export type UserRole = keyof typeof ROLE_LEVELS;
+
+/**
+ * Check if a user's role satisfies a required role
+ * Returns true if userRole >= requiredRole (hierarchy-based)
+ */
+export function hasRequiredRole(userRole: UserRole, requiredRole: UserRole): boolean {
+  return ROLE_LEVELS[userRole] >= ROLE_LEVELS[requiredRole];
+}
+
+/**
+ * Map legacy roles (owner/admin/member) to new 4-level roles
+ * Used during migration period when both role and userRole fields exist
+ */
+function mapLegacyRole(role: string | undefined): UserRole {
+  const mapping: Record<string, UserRole> = {
+    owner: "admin",
+    admin: "collaborator",
+    member: "viewer",
+  };
+  return mapping[role ?? ""] ?? "viewer";
+}
+
+/**
+ * Require a specific role for a user in a workspace
+ * Throws ConvexError("NOT_FOUND") if user doesn't have the required role
+ * System admins bypass this check (they have all roles in all workspaces)
+ */
+export async function requireRole(
+  ctx: any,
+  workspaceId: Id<"workspaces">,
+  userId: string,
+  requiredRole: UserRole
+): Promise<void> {
+  // Check if system admin (bypasses workspace membership)
+  const sysAdmin = await ctx.db
+    .query("systemAdmins")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+
+  if (sysAdmin) return;
+
+  // Look up workspace membership
+  const member = await ctx.db
+    .query("organizationMembers")
+    .withIndex("by_workspace_user", (q: any) =>
+      q.eq("workspaceId", workspaceId).eq("userId", userId)
+    )
+    .first();
+
+  // Return 404 per locked decision (security through obscurity, not 403)
+  if (!member) {
+    throw new ConvexError("NOT_FOUND");
+  }
+
+  // Use new userRole if available, fall back to legacy role mapping
+  const effectiveRole = (member.userRole ?? mapLegacyRole(member.role)) as UserRole;
+
+  if (!hasRequiredRole(effectiveRole, requiredRole)) {
+    throw new ConvexError("NOT_FOUND");
+  }
+}
 
 /**
  * Get all members for a workspace with their roles
@@ -49,13 +127,21 @@ export const getMemberByUser = query({
 
 /**
  * Check if user has required access (returns boolean, no throw)
+ * Supports both legacy 3-role and new 4-level role systems during migration
  */
 export const hasAccess = query({
   args: {
     workspaceId: convexVal.id("workspaces"),
     userId: convexVal.string(),
     requiredRole: convexVal.optional(
-      convexVal.union(convexVal.literal("owner"), convexVal.literal("admin"), convexVal.literal("member"))
+      convexVal.union(
+        convexVal.literal("owner"),
+        convexVal.literal("admin"),
+        convexVal.literal("member"),
+        convexVal.literal("agent"),
+        convexVal.literal("collaborator"),
+        convexVal.literal("viewer")
+      )
     ),
   },
   async handler(ctx, args) {
@@ -70,9 +156,24 @@ export const hasAccess = query({
 
     if (!args.requiredRole) return true;
 
-    // Role hierarchy: owner > admin > member
-    const roleHierarchy = { owner: 3, admin: 2, member: 1 };
-    return roleHierarchy[member.role] >= roleHierarchy[args.requiredRole];
+    // Support both legacy 3-role and new 4-level role systems
+    const roleHierarchy: Record<string, number> = {
+      // New 4-level system
+      admin: 4,
+      agent: 3,
+      collaborator: 2,
+      viewer: 1,
+      // Legacy 3-level system (mapped to new system)
+      owner: 4,      // maps to admin
+      member: 1,     // maps to viewer
+    };
+
+    // Get effective role (prefer new userRole, fall back to legacy role)
+    const effectiveRole = member.userRole ?? (member.role ? mapLegacyRole(member.role) : undefined);
+
+    if (!effectiveRole) return false;
+
+    return roleHierarchy[effectiveRole] >= roleHierarchy[args.requiredRole];
   },
 });
 
@@ -146,7 +247,8 @@ export const updateMember = mutation({
 });
 
 /**
- * Remove member from business
+ * Remove member mutation
+ * Prevents removing the last admin of a workspace
  */
 export const removeMember = mutation({
   args: {
@@ -158,23 +260,33 @@ export const removeMember = mutation({
       throw new ConvexError("Member not found");
     }
 
-    // Don't allow removing the last owner
-    if (member.role === "owner") {
-      const ownerCount = await ctx.db
+    // Check if this is an admin (either new userRole or legacy role)
+    const isAdmin =
+      member.userRole === "admin" || member.role === "owner";
+
+    // Don't allow removing the last admin
+    if (isAdmin) {
+      const allMembers = await ctx.db
         .query("organizationMembers")
-        .withIndex("by_workspace", (q) => q.eq("workspaceId", member.workspaceId))
+        .withIndex("by_workspace", (q: any) =>
+          q.eq("workspaceId", member.workspaceId)
+        )
         .collect();
 
-      const ownerMembers = ownerCount.filter((m) => m.role === "owner");
-      if (ownerMembers.length <= 1) {
-        throw new ConvexError("Cannot remove the last owner");
+      // Count admins (check both new and legacy role fields)
+      const adminMembers = allMembers.filter(
+        (m: any) => m.userRole === "admin" || m.role === "owner"
+      );
+
+      if (adminMembers.length <= 1) {
+        throw new ConvexError("Must have at least one admin");
       }
     }
 
     // Delete associated board access records
     const boardAccess = await ctx.db
       .query("boardAccess")
-      .withIndex("by_member", (q) => q.eq("memberId", args.memberId))
+      .withIndex("by_member", (q: any) => q.eq("memberId", args.memberId))
       .collect();
 
     for (const access of boardAccess) {

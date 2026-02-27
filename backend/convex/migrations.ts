@@ -1531,3 +1531,61 @@ export const migrateFixBusinessIdToWorkspaceId = mutation({
  *    - Verify executions.workspaceId backfilled correctly
  */
 
+
+/**
+ * MIG-18: Role Hierarchy Migration - Phase 2 (2026-02-27)
+ *
+ * Migrates organizationMembers.role (owner/admin/member) → userRole (admin/agent/collaborator/viewer)
+ * - owner → admin
+ * - admin → collaborator
+ * - member → viewer
+ *
+ * Also migrates invites.role with same mapping.
+ * Idempotent: skips records that already have userRole set.
+ *
+ * IMPORTANT: This mutation migrates ALL records in a single operation using .collect()
+ * (no batchSize — locked decision: "immediate data migration in a single operation").
+ * Convex mutations are limited to ~8MB document read/write budget. If organizationMembers
+ * grows beyond ~50,000 rows, this single-pass approach may hit Convex's per-mutation limits.
+ * At that scale, migrate in a separate task queue job. For Phase 2, single-pass is correct.
+ */
+export const migrationRoleHierarchy = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const roleMapping: Record<string, "admin" | "agent" | "collaborator" | "viewer"> = {
+      owner: "admin",
+      admin: "collaborator",
+      member: "viewer",
+    };
+
+    // Collect ALL records atomically — no batching, per locked decision
+    const members = await ctx.db.query("organizationMembers").collect();
+    let migrated = 0;
+
+    for (const member of members) {
+      if (!member.userRole && member.role) {
+        const newRole = (roleMapping[member.role] ?? "viewer") as "admin" | "agent" | "collaborator" | "viewer";
+        // Write userRole and clear legacy role field in the same patch
+        await ctx.db.patch(member._id, { userRole: newRole, role: undefined });
+        migrated++;
+      }
+    }
+
+    const invites = await ctx.db.query("invites").collect();
+    let invitesMigrated = 0;
+    for (const invite of invites) {
+      if (!invite.userRole && invite.role) {
+        const newRole = (roleMapping[invite.role] ?? "viewer") as "admin" | "agent" | "collaborator" | "viewer";
+        // Write userRole and clear legacy role field in the same patch
+        await ctx.db.patch(invite._id, { userRole: newRole, role: undefined });
+        invitesMigrated++;
+      }
+    }
+
+    return {
+      migrated,
+      invitesMigrated,
+      message: `MIG-18: Migrated ${migrated} members and ${invitesMigrated} invites to 4-level role hierarchy`,
+    };
+  },
+});

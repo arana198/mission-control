@@ -163,10 +163,10 @@ export function MembersPanel({ workspaceId }: MembersPanelProps) {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    {getRoleIcon(member.role)}
+                    {getRoleIcon(member.userRole || member.role || "viewer")}
                     <h3 className="font-semibold text-white">{member.userName || member.userId}</h3>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(member.role)}`}>
-                      {member.role}
+                    <span className={`px-2 py-1 text-xs rounded-full ${getRoleBadgeColor(member.userRole || member.role || "viewer")}`}>
+                      {member.userRole || member.role || "viewer"}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">{member.userEmail || "No email"}</p>
