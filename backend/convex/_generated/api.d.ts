@@ -56,6 +56,7 @@ import type * as utils_ticketId from "../utils/ticketId.js";
 import type * as utils_workflowValidation from "../utils/workflowValidation.js";
 import type * as wake from "../wake.js";
 import type * as wiki from "../wiki.js";
+import type * as workflows from "../workflows.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "utils/workflowValidation": typeof utils_workflowValidation;
   wake: typeof wake;
   wiki: typeof wiki;
+  workflows: typeof workflows;
   workspaces: typeof workspaces;
 }>;
 

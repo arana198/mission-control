@@ -165,7 +165,6 @@ export const createMemory = mutation({
     const memoryId = await ctx.db.insert("memoryIndex", {
       entityType,
       entityId: entityId || "",
-      content,
       keywords,
       memoryPath: memoryPath || `${entityType}/${entityName}`,
       relatedMemoryPaths: [],

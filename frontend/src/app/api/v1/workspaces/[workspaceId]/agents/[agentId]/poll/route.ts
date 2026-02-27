@@ -123,12 +123,24 @@ export async function GET(
       timeout = parsedTimeout;
     }
 
-    // Call Convex — poll for work
-    const work = await convex.query(api.agents.pollWork, {
+    // Call Convex — poll for work (get agent with current task)
+    const agent = await convex.query(api.agents.getWithCurrentTask, {
       agentId,
-      workspaceId,
-      filter,
     });
+
+    let work = null;
+    if (agent?.currentTaskId) {
+      // Fetch task details
+      const task = await convex.query(api.tasks.getTask, {
+        taskId: agent.currentTaskId,
+      });
+      work = task ? {
+        _id: task._id,
+        type: "task",
+        priority: task.priority || "normal",
+        payload: task,
+      } : null;
+    }
 
     log.info("Agent polled for work", {
       workspaceId,

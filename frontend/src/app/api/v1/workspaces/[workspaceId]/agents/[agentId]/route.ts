@@ -100,7 +100,6 @@ export async function GET(
     // Query agent from Convex
     const agent = await convex.query(api.agents.getAgent, {
       agentId,
-      workspaceId,
     });
 
     if (!agent) {
@@ -282,9 +281,8 @@ export async function PUT(
 
     // Call Convex — update agent
     const result = await convex.mutation(api.agents.updateAgent, {
-      agentId,
-      workspaceId,
       ...input,
+      agentId,
     });
 
     if (!result) {

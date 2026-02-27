@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v as convexVal } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { ApiError, wrapConvexHandler } from "../lib/errors";
 
 /**
  * Strategic Reports API
@@ -114,19 +115,21 @@ export const listReports = query({
 // Alias: createReport -> create (with compatibility args)
 export const createReport = mutation({
   args: {
-    title: v.string(),
-    content: v.optional(v.string()),
-    week: v.optional(v.number()),
-    year: v.optional(v.number()),
+    title: convexVal.string(),
+    content: convexVal.optional(convexVal.string()),
+    week: convexVal.optional(convexVal.number()),
+    year: convexVal.optional(convexVal.number()),
   },
   handler: wrapConvexHandler(async (ctx, { title, content, week, year }) => {
     const now = Date.now();
     const date = new Date();
+    // Calculate ISO week number
+    const weekNum = Math.ceil((date.getDate() + new Date(date.getFullYear(), 0, 1).getDay()) / 7);
 
     const reportId = await ctx.db.insert("strategicReports", {
       title,
       content: content || "",
-      week: week || date.getWeek?.() || 1,
+      week: week || weekNum,
       year: year || date.getFullYear(),
       createdAt: now,
       updatedAt: now,
@@ -139,7 +142,7 @@ export const createReport = mutation({
 
 // Alias: getReport -> getLatest (or by ID)
 export const getReport = query({
-  args: { reportId: v.optional(v.id("strategicReports")) },
+  args: { reportId: convexVal.optional(convexVal.id("strategicReports")) },
   handler: async (ctx, { reportId }) => {
     if (reportId) {
       return await ctx.db.get(reportId);
@@ -155,9 +158,9 @@ export const getReport = query({
 // Add: updateReport (missing in original)
 export const updateReport = mutation({
   args: {
-    reportId: v.id("strategicReports"),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
+    reportId: convexVal.id("strategicReports"),
+    title: convexVal.optional(convexVal.string()),
+    content: convexVal.optional(convexVal.string()),
   },
   handler: wrapConvexHandler(async (ctx, { reportId, title, content }) => {
     const report = await ctx.db.get(reportId);
@@ -176,7 +179,7 @@ export const updateReport = mutation({
 
 // Alias: deleteReport -> generic delete (not deleteByWeek)
 export const deleteReport = mutation({
-  args: { reportId: v.id("strategicReports") },
+  args: { reportId: convexVal.id("strategicReports") },
   handler: wrapConvexHandler(async (ctx, { reportId }) => {
     const report = await ctx.db.get(reportId);
     if (!report) throw ApiError.notFound("Report", { reportId });

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
 
@@ -15,12 +15,13 @@ import { ApiError, wrapConvexHandler } from "../lib/errors";
  */
 export const listWorkflows = query({
   handler: async (ctx) => {
-    const workflows = await ctx.db.query("executions").take(100);
+    const workflows = await ctx.db.query("workflows").take(100);
     return workflows.map((wf: any) => ({
       _id: wf._id,
       _creationTime: wf._creationTime,
-      name: wf.workflowName || "Untitled Workflow",
-      status: wf.status,
+      name: wf.name || "Untitled Workflow",
+      description: wf.description,
+      isActive: wf.isActive,
       createdAt: wf.createdAt,
       updatedAt: wf.updatedAt,
     }));
@@ -31,7 +32,7 @@ export const listWorkflows = query({
  * Get single workflow details
  */
 export const getWorkflow = query({
-  args: { workflowId: v.id("executions") },
+  args: { workflowId: convexVal.id("workflows") },
   handler: async (ctx, { workflowId }) => {
     const workflow = await ctx.db.get(workflowId);
     if (!workflow) return null;
@@ -39,9 +40,10 @@ export const getWorkflow = query({
     return {
       _id: workflow._id,
       _creationTime: workflow._creationTime,
-      name: workflow.workflowName || "Untitled Workflow",
-      status: workflow.status,
+      name: workflow.name || "Untitled Workflow",
+      description: workflow.description,
       definition: workflow.definition,
+      isActive: workflow.isActive,
       createdAt: workflow.createdAt,
       updatedAt: workflow.updatedAt,
     };
@@ -54,18 +56,20 @@ export const getWorkflow = query({
  */
 export const createWorkflow = mutation({
   args: {
-    name: v.string(),
-    definition: v.optional(v.any()),
-    workspaceId: v.optional(v.id("workspaces")),
+    name: convexVal.string(),
+    description: convexVal.optional(convexVal.string()),
+    definition: convexVal.optional(convexVal.any()),
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),
   },
-  handler: wrapConvexHandler(async (ctx, { name, definition, workspaceId }) => {
+  handler: wrapConvexHandler(async (ctx, { name, description, definition, workspaceId }) => {
     const now = Date.now();
 
-    const workflowId = await ctx.db.insert("executions", {
-      workflowName: name,
+    const workflowId = await ctx.db.insert("workflows", {
+      name,
+      description: description || "",
       definition: definition || { nodes: [], edges: [] },
-      workspaceId: workspaceId || null,
-      status: "pending",
+      workspaceId: workspaceId || undefined,
+      isActive: true,
       createdAt: now,
       updatedAt: now,
     });
@@ -80,16 +84,18 @@ export const createWorkflow = mutation({
  */
 export const updateWorkflow = mutation({
   args: {
-    workflowId: v.id("executions"),
-    name: v.optional(v.string()),
-    definition: v.optional(v.any()),
+    workflowId: convexVal.id("workflows"),
+    name: convexVal.optional(convexVal.string()),
+    description: convexVal.optional(convexVal.string()),
+    definition: convexVal.optional(convexVal.any()),
   },
-  handler: wrapConvexHandler(async (ctx, { workflowId, name, definition }) => {
+  handler: wrapConvexHandler(async (ctx, { workflowId, name, description, definition }) => {
     const workflow = await ctx.db.get(workflowId);
     if (!workflow) throw ApiError.notFound("Workflow", { workflowId });
 
     const updates: any = { updatedAt: Date.now() };
-    if (name !== undefined) updates.workflowName = name;
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
     if (definition !== undefined) updates.definition = definition;
 
     await ctx.db.patch(workflowId, updates);
@@ -103,7 +109,7 @@ export const updateWorkflow = mutation({
  * Delete a workflow
  */
 export const deleteWorkflow = mutation({
-  args: { workflowId: v.id("executions") },
+  args: { workflowId: convexVal.id("workflows") },
   handler: wrapConvexHandler(async (ctx, { workflowId }) => {
     const workflow = await ctx.db.get(workflowId);
     if (!workflow) throw ApiError.notFound("Workflow", { workflowId });

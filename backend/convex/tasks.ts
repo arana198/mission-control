@@ -1995,7 +1995,7 @@ export const listTasks = query({
 
 // Alias: getTask -> getTaskById
 export const getTask = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: convexVal.id("tasks") },
   handler: async (ctx, { taskId }) => {
     return await ctx.db.get(taskId);
   },
@@ -2004,14 +2004,14 @@ export const getTask = query({
 // Alias: updateTask -> update
 export const updateTask = mutation({
   args: {
-    taskId: v.id("tasks"),
-    title: v.optional(v.string()),
-    description: v.optional(v.string()),
-    status: v.optional(v.string()),
-    priority: v.optional(v.string()),
-    assigneeIds: v.optional(v.array(v.id("agents"))),
-    tags: v.optional(v.array(v.string())),
-    dueDate: v.optional(v.number()),
+    taskId: convexVal.id("tasks"),
+    title: convexVal.optional(convexVal.string()),
+    description: convexVal.optional(convexVal.string()),
+    status: convexVal.optional(convexVal.string()),
+    priority: convexVal.optional(convexVal.string()),
+    assigneeIds: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+    tags: convexVal.optional(convexVal.array(convexVal.string())),
+    dueDate: convexVal.optional(convexVal.number()),
   },
   handler: wrapConvexHandler(async (ctx, { taskId, ...updates }) => {
     const task = await ctx.db.get(taskId);

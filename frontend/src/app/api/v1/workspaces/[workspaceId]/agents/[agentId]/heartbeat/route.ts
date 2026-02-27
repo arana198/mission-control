@@ -149,7 +149,7 @@ export async function POST(
 
     const response = createSuccessResponseObject({
       agentId,
-      status: result.status,
+      status: body.status || "active",
       lastHeartbeat: new Date().toISOString(),
       nextHeartbeatIn: 30000, // Expected next heartbeat in 30 seconds (milliseconds)
     });
