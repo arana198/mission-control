@@ -154,22 +154,22 @@ export const getMemory = query({
 export const createMemory = mutation({
   args: {
     entityName: convexVal.string(),
-    entityType: convexVal.string(),
+    entityType: convexVal.union(convexVal.literal("task"), convexVal.literal("event"), convexVal.literal("note")),
     content: convexVal.string(),
+    entityId: convexVal.optional(convexVal.string()),
     keywords: convexVal.optional(convexVal.array(convexVal.string())),
     memoryPath: convexVal.optional(convexVal.string()),
     workspaceId: convexVal.optional(convexVal.id("workspaces")),
   },
-  handler: async (ctx, { entityName, entityType, content, keywords = [], memoryPath, workspaceId }) => {
+  handler: async (ctx, { entityName, entityType, content, entityId, keywords = [], memoryPath, workspaceId }) => {
     const memoryId = await ctx.db.insert("memoryIndex", {
-      entityName,
       entityType,
+      entityId: entityId || "",
       content,
       keywords,
       memoryPath: memoryPath || `${entityType}/${entityName}`,
-      workspaceId: workspaceId || null,
       relatedMemoryPaths: [],
-      lastUpdated: Date.now(),
+      lastSynced: Date.now(),
     });
 
     return await ctx.db.get(memoryId);
