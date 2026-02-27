@@ -97,8 +97,6 @@ export async function GET(
     // Query tasks from Convex
     const tasks = await convex.query(api.agents.getAgentTasks, {
       agentId,
-      workspaceId,
-      status: statusFilter,
     });
 
     // Filter and sanitize task list
