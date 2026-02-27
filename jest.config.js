@@ -42,6 +42,7 @@ module.exports = {
     '^@/services/(.*)$': '<rootDir>/frontend/src/services/$1',
     '^@/app/(.*)$': '<rootDir>/frontend/src/app/$1',
     '^@/(.*)$': '<rootDir>/frontend/$1',
+    '\\./_generated/(.*)$': '<rootDir>/jest.mocks/generated/$1.js',
   },
 
   // TypeScript configuration for ts-jest
@@ -55,6 +56,11 @@ module.exports = {
       },
     },
   },
+
+  // Allow transformation of backend/convex/_generated files
+  transformIgnorePatterns: [
+    'node_modules/(?!(convex)/)',
+  ],
 
   // Files to collect coverage from
   collectCoverageFrom: [

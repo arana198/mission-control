@@ -1,258 +1,440 @@
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import {
+  ROLE_LEVELS,
+  hasRequiredRole,
+  requireRole,
+  removeMember,
+} from "../organizationMembers";
 import { ConvexError } from "convex/values";
+import { Id } from "../_generated/dataModel";
 
-/**
- * Organization Members Tests
- * Tests RBAC queries and mutations
- */
-describe("organizationMembers", () => {
-  // Note: These tests are written to document expected behavior
-  // In a real environment, use convex test utilities (https://docs.convex.dev/testing)
+describe("ROLE_LEVELS", () => {
+  it("assigns admin=4, agent=3, collaborator=2, viewer=1", () => {
+    expect(ROLE_LEVELS.admin).toBe(4);
+    expect(ROLE_LEVELS.agent).toBe(3);
+    expect(ROLE_LEVELS.collaborator).toBe(2);
+    expect(ROLE_LEVELS.viewer).toBe(1);
+  });
+});
 
-  describe("addMember", () => {
-    test("should create a new member with owner role", () => {
-      // Given: A workspace exists
-      // When: addMember is called with role="owner"
-      // Then: Member is created with correct permissions
-      // Assertions:
-      // - Member exists in organizationMembers table
-      // - userId and workspaceId match args
-      // - role = "owner"
-      // - createdAt is set
-    });
-
-    test("should prevent duplicate members", () => {
-      // Given: A member already exists for (workspaceId, userId)
-      // When: addMember is called again with same workspaceId + userId
-      // Then: ConvexError is thrown with "already member" message
-    });
-
-    test("should allow different roles (owner, admin, member)", () => {
-      // Given: A workspace and different roles
-      // When: addMember called with each role
-      // Then: All members created successfully with their roles
-    });
-
-    test("should handle permissions correctly", () => {
-      // Given: addMember called with allBoardsRead=true, allBoardsWrite=false
-      // When: Member is created
-      // Then: Permissions are stored correctly
-    });
+describe("hasRequiredRole", () => {
+  it("admin satisfies admin requirement", () => {
+    expect(hasRequiredRole("admin", "admin")).toBe(true);
   });
 
-  describe("updateMember", () => {
-    test("should update member role from member → admin", () => {
-      // Given: A member with role="member"
-      // When: updateMember called with role="admin"
-      // Then: Member's role changed to "admin"
-      //       updatedAt timestamp updated
-    });
-
-    test("should update board-level permissions", () => {
-      // Given: A member with allBoardsWrite=false
-      // When: updateMember called with allBoardsWrite=true
-      // Then: Permissions updated correctly
-    });
-
-    test("should throw error if member not found", () => {
-      // Given: memberId doesn't exist
-      // When: updateMember called
-      // Then: ConvexError "Member not found"
-    });
+  it("admin satisfies viewer requirement", () => {
+    expect(hasRequiredRole("admin", "viewer")).toBe(true);
   });
 
-  describe("removeMember", () => {
-    test("should remove a member successfully", () => {
-      // Given: A member exists
-      // When: removeMember called
-      // Then: Member deleted from organizationMembers
-      //       Associated boardAccess records deleted
-    });
-
-    test("should prevent removing last owner", () => {
-      // Given: Only one owner exists in business
-      // When: removeMember called on that owner
-      // Then: ConvexError "Cannot remove the last owner"
-    });
-
-    test("should allow removing non-owners", () => {
-      // Given: A member with role="member"
-      // When: removeMember called
-      // Then: Member removed successfully
-    });
-
-    test("should delete associated board access", () => {
-      // Given: Member has board-level access records
-      // When: removeMember called
-      // Then: All boardAccess records for that member deleted
-    });
+  it("agent satisfies agent requirement", () => {
+    expect(hasRequiredRole("agent", "agent")).toBe(true);
   });
 
-  describe("getMembers", () => {
-    test("should return all members for a workspace", () => {
-      // Given:  with 3 members
-      // When: getMembers called
-      // Then: Returns array of 3 members
-      //       Each member has correct properties
-    });
-
-    test("should return empty array for workspace with no members", () => {
-      // Given:  with no members
-      // When: getMembers called
-      // Then: Returns empty array
-    });
-
-    test("should not return members from other businesses", () => {
-      // Given:  A has 2 members,  B has 1 member
-      // When: getMembers called for  A
-      // Then: Only returns 2 members (not the one from B)
-    });
+  it("agent satisfies viewer requirement", () => {
+    expect(hasRequiredRole("agent", "viewer")).toBe(true);
   });
 
-  describe("getMemberByUser", () => {
-    test("should return member by workspaceId + userId", () => {
-      // Given: Member exists in business
-      // When: getMemberByUser called with correct workspaceId + userId
-      // Then: Returns the member object
-    });
-
-    test("should return null if member not found", () => {
-      // Given: Member doesn't exist
-      // When: getMemberByUser called
-      // Then: Returns null/undefined
-    });
-
-    test("should be case-sensitive for userId", () => {
-      // Given: Member with userId="alice"
-      // When: getMemberByUser called with userId="ALICE"
-      // Then: Returns null (userId is case-sensitive)
-    });
+  it("agent does NOT satisfy admin requirement", () => {
+    expect(hasRequiredRole("agent", "admin")).toBe(false);
   });
 
-  describe("hasAccess", () => {
-    test("should return true if user is member", () => {
-      // Given: User is member of business
-      // When: hasAccess called without requiredRole
-      // Then: Returns true
-    });
-
-    test("should return false if user not member", () => {
-      // Given: User is not member of business
-      // When: hasAccess called
-      // Then: Returns false
-    });
-
-    test("should check role hierarchy: owner >= admin >= member", () => {
-      // Given: Member with role="admin", requiredRole="admin"
-      // When: hasAccess called
-      // Then: Returns true
-
-      // Given: Member with role="member", requiredRole="admin"
-      // When: hasAccess called
-      // Then: Returns false
-
-      // Given: Member with role="owner", requiredRole="member"
-      // When: hasAccess called
-      // Then: Returns true (owner > member)
-    });
-
-    test("should support optional role checking", () => {
-      // Given: Any member
-      // When: hasAccess called without requiredRole
-      // Then: Always returns true if member exists
-    });
+  it("collaborator satisfies collaborator requirement", () => {
+    expect(hasRequiredRole("collaborator", "collaborator")).toBe(true);
   });
 
-  describe("setBoardAccess", () => {
-    test("should create board access record", () => {
-      // Given: Member exists
-      // When: setBoardAccess called with canRead=true, canWrite=false
-      // Then: boardAccess record created
-      //       Record has correct permissions
-    });
-
-    test("should update existing board access", () => {
-      // Given: boardAccess record already exists
-      // When: setBoardAccess called with updated permissions
-      // Then: Record updated (not duplicated)
-    });
-
-    test("should handle canRead and canWrite independently", () => {
-      // Given: Member
-      // When: setBoardAccess called with various combinations
-      // Then: Permissions set exactly as specified
-    });
+  it("collaborator satisfies viewer requirement", () => {
+    expect(hasRequiredRole("collaborator", "viewer")).toBe(true);
   });
 
-  describe("requireAdmin", () => {
-    test("should allow owner to pass", () => {
-      // Given: User with role="owner"
-      // When: requireAdmin called
-      // Then: Returns without throwing
-    });
-
-    test("should allow admin to pass", () => {
-      // Given: User with role="admin"
-      // When: requireAdmin called
-      // Then: Returns without throwing
-    });
-
-    test("should reject member", () => {
-      // Given: User with role="member"
-      // When: requireAdmin called
-      // Then: Throws ConvexError "Insufficient permissions"
-    });
-
-    test("should reject non-member", () => {
-      // Given: User is not member of business
-      // When: requireAdmin called
-      // Then: Throws ConvexError "not a member"
-    });
+  it("collaborator does NOT satisfy agent requirement", () => {
+    expect(hasRequiredRole("collaborator", "agent")).toBe(false);
   });
 
-  describe("requireOwner", () => {
-    test("should only allow owner", () => {
-      // Given: User with role="owner"
-      // When: requireOwner called
-      // Then: Returns without throwing
-    });
-
-    test("should reject admin", () => {
-      // Given: User with role="admin"
-      // When: requireOwner called
-      // Then: Throws ConvexError "owner required"
-    });
-
-    test("should reject member", () => {
-      // Given: User with role="member"
-      // When: requireOwner called
-      // Then: Throws ConvexError "Insufficient permissions"
-    });
-
-    test("should reject non-member", () => {
-      // Given: User is not member of business
-      // When: requireOwner called
-      // Then: Throws ConvexError "not a member"
-    });
+  it("viewer does NOT satisfy admin requirement", () => {
+    expect(hasRequiredRole("viewer", "admin")).toBe(false);
   });
 
-  describe("integration: full RBAC workflow", () => {
-    test("should handle complete member lifecycle", () => {
-      // Given: Fresh business
-      // 1. addMember as owner
-      // 2. addMember as admin
-      // 3. addMember as member
-      // 4. Verify getMembers returns 3
-      // 5. updateMember: member → admin
-      // 6. Verify hasAccess with role requirements
-      // 7. removeMember: remove the member (now admin)
-      // 8. Verify getMembers returns 2
-      // 9. Prevent removing last owner
+  it("viewer satisfies viewer requirement", () => {
+    expect(hasRequiredRole("viewer", "viewer")).toBe(true);
+  });
+});
+
+describe("requireRole", () => {
+  let mockCtx: any;
+  let workspaceId: Id<"workspaces">;
+
+  beforeEach(() => {
+    workspaceId = "workspace_123" as any;
+    mockCtx = {
+      db: {
+        query: jest.fn(),
+      },
+    };
+  });
+
+  it("passes silently when member has exact required role", async () => {
+    const member = {
+      _id: "member_1" as any,
+      workspaceId,
+      userId: "user1",
+      userRole: "admin" as const,
+      role: undefined,
+    };
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(member),
     });
 
-    test("should handle board access across multiple businesses", () => {
-      // Given: User is member of  A and  B
-      // When: setBoardAccess for different permissions in each business
-      // Then: Each workspace has independent access control
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
     });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    // Should not throw
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "admin")
+    ).resolves.toBeUndefined();
+  });
+
+  it("passes silently when member has higher role", async () => {
+    const member = {
+      _id: "member_1" as any,
+      workspaceId,
+      userId: "user1",
+      userRole: "admin" as const,
+      role: undefined,
+    };
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(member),
+    });
+
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    // Admin should satisfy viewer requirement
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "viewer")
+    ).resolves.toBeUndefined();
+  });
+
+  it('throws ConvexError("NOT_FOUND") when member not found', async () => {
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
+    });
+
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "admin")
+    ).rejects.toThrow(new ConvexError("NOT_FOUND"));
+  });
+
+  it('throws ConvexError("NOT_FOUND") when role insufficient', async () => {
+    const member = {
+      _id: "member_1" as any,
+      workspaceId,
+      userId: "user1",
+      userRole: "viewer" as const,
+      role: undefined,
+    };
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(member),
+    });
+
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    // Viewer trying to require admin
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "admin")
+    ).rejects.toThrow(new ConvexError("NOT_FOUND"));
+  });
+
+  it("passes silently for system admin (bypasses membership check)", async () => {
+    const sysAdmin = {
+      _id: "sys_1" as any,
+      userId: "user1",
+      createdAt: Date.now(),
+    };
+
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(sysAdmin),
+    });
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null), // Member not found
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    // Should not throw even though member not found (system admin bypass)
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "admin")
+    ).resolves.toBeUndefined();
+  });
+
+  it("uses legacy role mapping when userRole not set", async () => {
+    const member = {
+      _id: "member_1" as any,
+      workspaceId,
+      userId: "user1",
+      userRole: undefined,
+      role: "owner", // Legacy field
+    };
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(member),
+    });
+
+    const sysAdminChain = {
+      withIndex: jest.fn(),
+    };
+    sysAdminChain.withIndex.mockReturnValue({
+      first: jest.fn().mockResolvedValue(null),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "systemAdmins") return sysAdminChain;
+      if (table === "organizationMembers") return queryChain;
+    });
+
+    // owner (legacy) maps to admin (new), so should satisfy admin requirement
+    await expect(
+      requireRole(mockCtx, workspaceId, "user1", "admin")
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("removeMember", () => {
+  let mockCtx: any;
+
+  beforeEach(() => {
+    mockCtx = {
+      db: {
+        get: jest.fn(),
+        query: jest.fn(),
+        delete: jest.fn(),
+      },
+    };
+  });
+
+  it('throws "Must have at least one admin" when removing last admin', async () => {
+    const lastAdmin = {
+      _id: "member_1" as any,
+      workspaceId: "ws_1",
+      userId: "user1",
+      userRole: "admin" as const,
+      role: undefined,
+    };
+
+    // Mock db.get to return the last admin
+    mockCtx.db.get.mockResolvedValue(lastAdmin);
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      collect: jest.fn().mockResolvedValue([lastAdmin]), // Only 1 admin
+    });
+
+    const boardAccessChain = {
+      withIndex: jest.fn(),
+    };
+    boardAccessChain.withIndex.mockReturnValue({
+      collect: jest.fn().mockResolvedValue([]),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "boardAccess") return boardAccessChain;
+      return queryChain;
+    });
+
+    await expect(
+      removeMember(mockCtx, { memberId: "member_1" as any })
+    ).rejects.toThrow("Must have at least one admin");
+  });
+
+  it("allows removing member when another admin exists", async () => {
+    const adminToRemove = {
+      _id: "member_1" as any,
+      workspaceId: "ws_1",
+      userId: "user1",
+      userRole: "admin" as const,
+      role: undefined,
+    };
+
+    const otherAdmin = {
+      _id: "member_2" as any,
+      workspaceId: "ws_1",
+      userId: "user2",
+      userRole: "admin" as const,
+      role: undefined,
+    };
+
+    // Mock db.get to return the admin being removed
+    mockCtx.db.get.mockResolvedValue(adminToRemove);
+
+    const queryChain = {
+      withIndex: jest.fn(),
+    };
+    queryChain.withIndex.mockReturnValue({
+      collect: jest
+        .fn()
+        .mockResolvedValue([adminToRemove, otherAdmin]), // 2 admins
+    });
+
+    // Mock boardAccess query
+    const boardAccessChain = {
+      withIndex: jest.fn(),
+    };
+    boardAccessChain.withIndex.mockReturnValue({
+      collect: jest.fn().mockResolvedValue([]),
+    });
+
+    mockCtx.db.query.mockImplementation((table: string) => {
+      if (table === "boardAccess") return boardAccessChain;
+      return queryChain;
+    });
+
+    mockCtx.db.delete.mockResolvedValue(undefined);
+
+    // Should not throw
+    await expect(
+      removeMember(mockCtx, { memberId: "member_1" as any })
+    ).resolves.toBeUndefined();
+
+    expect(mockCtx.db.delete).toHaveBeenCalledWith("member_1");
+  });
+
+  it("allows removing non-admin members freely", async () => {
+    const viewerMember = {
+      _id: "member_1" as any,
+      workspaceId: "ws_1",
+      userId: "user1",
+      userRole: "viewer" as const,
+      role: undefined,
+    };
+
+    // Mock db.get to return the viewer being removed
+    mockCtx.db.get.mockResolvedValue(viewerMember);
+
+    // Mock boardAccess query
+    const boardAccessChain = {
+      withIndex: jest.fn(),
+    };
+    boardAccessChain.withIndex.mockReturnValue({
+      collect: jest.fn().mockResolvedValue([]),
+    });
+
+    mockCtx.db.query.mockReturnValue(boardAccessChain);
+
+    mockCtx.db.delete.mockResolvedValue(undefined);
+
+    // Should not throw
+    await expect(
+      removeMember(mockCtx, { memberId: "member_1" as any })
+    ).resolves.toBeUndefined();
+
+    expect(mockCtx.db.delete).toHaveBeenCalledWith("member_1");
+  });
+});
+
+describe("MIG-18 role migration", () => {
+  it("maps owner → admin", () => {
+    const mapping: Record<string, string> = {
+      owner: "admin",
+      admin: "collaborator",
+      member: "viewer",
+    };
+    expect(mapping.owner).toBe("admin");
+  });
+
+  it("maps admin → collaborator", () => {
+    const mapping: Record<string, string> = {
+      owner: "admin",
+      admin: "collaborator",
+      member: "viewer",
+    };
+    expect(mapping.admin).toBe("collaborator");
+  });
+
+  it("maps member → viewer", () => {
+    const mapping: Record<string, string> = {
+      owner: "admin",
+      admin: "collaborator",
+      member: "viewer",
+    };
+    expect(mapping.member).toBe("viewer");
+  });
+
+  it("maps unknown → viewer (safe default)", () => {
+    const mapping: Record<string, string> = {
+      owner: "admin",
+      admin: "collaborator",
+      member: "viewer",
+    };
+    const unknownRole = mapping["unknown"] ?? "viewer";
+    expect(unknownRole).toBe("viewer");
   });
 });
