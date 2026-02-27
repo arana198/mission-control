@@ -119,9 +119,8 @@ export async function POST(
     }
 
     // Call Convex — record heartbeat
-    const result = await convex.mutation(api.agents.recordHeartbeat, {
+    const result = await convex.mutation(api.agents.heartbeat, {
       agentId,
-      workspaceId,
       status: body.status || "active",
       metrics: body.metrics || undefined,
     });
