@@ -306,15 +306,16 @@ export async function PUT(
       requestId,
     });
 
+    const agent = result.agent || result;
     const response = createSuccessResponseObject({
-      id: result._id,
-      name: result.name,
-      role: result.role,
-      level: result.level,
-      status: result.status,
-      capabilities: result.capabilities || [],
-      model: result.model || null,
-      personality: result.personality || null,
+      id: agent._id,
+      name: agent.name,
+      role: agent.role,
+      level: agent.level,
+      status: agent.status,
+      capabilities: agent.capabilities || [],
+      model: agent.model || null,
+      personality: agent.personality || null,
       updatedAt: new Date().toISOString(),
     });
 

@@ -89,15 +89,12 @@ export async function GET(
     }
 
     // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
+    const { limit, cursor } = parsePaginationFromRequest(request.nextUrl.searchParams);
 
     // Query comments from Convex
     const comments = await convex.query(api.agents.getTaskComments, {
       taskId,
-      agentId,
-      workspaceId,
       limit,
-      cursor,
     });
 
     log.info("Task comments listed", {

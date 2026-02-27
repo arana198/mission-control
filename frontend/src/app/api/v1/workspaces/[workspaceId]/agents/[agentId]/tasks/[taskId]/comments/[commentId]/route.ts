@@ -94,9 +94,6 @@ export async function GET(
     // Query comment from Convex
     const comment = await convex.query(api.agents.getTaskComment, {
       commentId,
-      taskId,
-      agentId,
-      workspaceId,
     });
 
     if (!comment) {
@@ -128,9 +125,10 @@ export async function GET(
         data: {
           id: comment._id,
           content: comment.content,
-          authorId: comment.authorId,
-          createdAt: comment._creationTime,
-          updatedAt: comment._creationTime,
+          authorId: comment.agentId,
+          authorName: comment.agentName,
+          createdAt: new Date(comment.createdAt).toISOString(),
+          updatedAt: new Date(comment.updatedAt).toISOString(),
         },
         requestId,
         timestamp: new Date().toISOString(),
