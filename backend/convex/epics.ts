@@ -190,3 +190,33 @@ export const recalculateEpicProgress = mutation({
     await ctx.db.patch(epicId, patch);
   },
 });
+
+/**
+ * FRONTEND COMPATIBILITY ALIASES
+ * These aliases map frontend route expectations to actual backend implementations
+ * Phase 1: Convex API alignment (1% final verification)
+ */
+
+// Alias: listEpics -> getAllEpics
+export const listEpics = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("epics").take(200);
+  },
+});
+
+// Alias: getEpic -> getEpicWithDetails
+export const getEpic = query({
+  args: { epicId: convexVal.id("epics") },
+  handler: async (ctx, { epicId }) => {
+    const epic = await ctx.db.get(epicId);
+    if (!epic) return null;
+
+    // Get related tasks
+    const tasks = await ctx.db
+      .query("tasks")
+      .filter((q) => q.eq(q.field("epicId"), epicId))
+      .collect();
+
+    return { ...epic, tasks };
+  },
+});

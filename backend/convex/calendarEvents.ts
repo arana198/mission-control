@@ -315,3 +315,63 @@ export const getExecutionHistory = query(async (ctx, args: {
     )
     .collect();
 });
+
+/**
+ * FRONTEND COMPATIBILITY ALIASES
+ * These aliases map frontend route expectations to actual backend implementations
+ * Phase 1: Convex API alignment (1% final verification)
+ */
+
+// Alias: createSlot -> createHumanEvent (simplified wrapper)
+export const createSlot = mutation(async (ctx, args: {
+  title: string;
+  startTime: number;
+  endTime: number;
+  taskId?: Id<'tasks'>;
+  workspaceId?: Id<'workspaces'>;
+  timezone?: string;
+  description?: string;
+}) => {
+  const now = Date.now();
+  const eventId = await ctx.db.insert('calendarEvents', {
+    title: args.title,
+    description: args.description,
+    startTime: args.startTime,
+    endTime: args.endTime,
+    timezone: args.timezone || 'UTC',
+    taskId: args.taskId,
+    workspaceId: args.workspaceId,
+    type: 'human',
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return await ctx.db.get(eventId);
+});
+
+// Alias: listSlots -> findFreeSlots + all events
+export const listSlots = query(async (ctx, args: {
+  startTime?: number;
+  endTime?: number;
+  taskId?: Id<'tasks'>;
+  limit?: number;
+}) => {
+  let q = ctx.db.query('calendarEvents');
+
+  if (args.taskId) {
+    q = q.filter((query) => query.eq(query.field('taskId'), args.taskId));
+  }
+
+  const events = await q.take(args.limit || 50);
+
+  // Filter by time range if provided
+  if (args.startTime || args.endTime) {
+    return (events as any[]).filter(e => {
+      if (args.startTime && e.endTime < args.startTime) return false;
+      if (args.endTime && e.startTime > args.endTime) return false;
+      return true;
+    });
+  }
+
+  return events;
+});

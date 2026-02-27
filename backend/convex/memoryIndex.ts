@@ -114,14 +114,96 @@ export const findRelated = query({
   handler: async (ctx, args) => {
     const all = await ctx.db.query("memoryIndex").take(200);
     const target = all.find(m => m.memoryPath === args.memoryPath);
-    
+
     if (!target) return [];
-    
+
     return all
       .filter(m => m.memoryPath !== args.memoryPath && (
         m.keywords.some(k => target.keywords.includes(k)) ||
         m.relatedMemoryPaths.includes(args.memoryPath)
       ))
       .slice(0, 10);
+  },
+});
+
+/**
+ * FRONTEND COMPATIBILITY ALIASES
+ * These aliases map frontend route expectations to actual backend implementations
+ * Phase 1: Convex API alignment (1% final verification)
+ */
+
+// Alias: listMemory -> getAll
+export const listMemory = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("memoryIndex").take(200);
+  },
+});
+
+// Alias: getMemory -> getByEntity (or single by ID)
+export const getMemory = query({
+  args: { memoryId: convexVal.optional(convexVal.id("memoryIndex")) },
+  handler: async (ctx, { memoryId }) => {
+    if (memoryId) {
+      return await ctx.db.get(memoryId);
+    }
+    return null;
+  },
+});
+
+// Add: createMemory (missing in original)
+export const createMemory = mutation({
+  args: {
+    entityName: convexVal.string(),
+    entityType: convexVal.string(),
+    content: convexVal.string(),
+    keywords: convexVal.optional(convexVal.array(convexVal.string())),
+    memoryPath: convexVal.optional(convexVal.string()),
+    workspaceId: convexVal.optional(convexVal.id("workspaces")),
+  },
+  handler: async (ctx, { entityName, entityType, content, keywords = [], memoryPath, workspaceId }) => {
+    const memoryId = await ctx.db.insert("memoryIndex", {
+      entityName,
+      entityType,
+      content,
+      keywords,
+      memoryPath: memoryPath || `${entityType}/${entityName}`,
+      workspaceId: workspaceId || null,
+      relatedMemoryPaths: [],
+      lastUpdated: Date.now(),
+    });
+
+    return await ctx.db.get(memoryId);
+  },
+});
+
+// Add: updateMemory (missing in original)
+export const updateMemory = mutation({
+  args: {
+    memoryId: convexVal.id("memoryIndex"),
+    content: convexVal.optional(convexVal.string()),
+    keywords: convexVal.optional(convexVal.array(convexVal.string())),
+  },
+  handler: async (ctx, { memoryId, content, keywords }) => {
+    const memory = await ctx.db.get(memoryId);
+    if (!memory) return null;
+
+    const updates: any = { lastUpdated: Date.now() };
+    if (content !== undefined) updates.content = content;
+    if (keywords !== undefined) updates.keywords = keywords;
+
+    await ctx.db.patch(memoryId, updates);
+    return await ctx.db.get(memoryId);
+  },
+});
+
+// Add: deleteMemory (missing in original)
+export const deleteMemory = mutation({
+  args: { memoryId: convexVal.id("memoryIndex") },
+  handler: async (ctx, { memoryId }) => {
+    const memory = await ctx.db.get(memoryId);
+    if (!memory) return { success: false, error: "Memory not found" };
+
+    await ctx.db.delete(memoryId);
+    return { success: true, deletedMemoryId: memoryId };
   },
 });

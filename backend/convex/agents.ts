@@ -430,3 +430,178 @@ export const deleteAgent = mutation({
     return { success: true, deletedAgent: agent.name };
   }),
 });
+
+/**
+ * FRONTEND COMPATIBILITY ALIASES
+ * These aliases map frontend route expectations to actual backend implementations
+ * Phase 1: Convex API alignment (1% final verification)
+ */
+
+// Alias: getAgent -> getAgentById
+export const getAgent = query({
+  args: { agentId: convexVal.id("agents") },
+  handler: async (ctx, { agentId }) => {
+    return await ctx.db.get(agentId);
+  },
+});
+
+// Alias: rotateApiKey -> rotateKey
+export const rotateApiKey = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+  },
+  handler: wrapConvexHandler(async (ctx, { agentId }) => {
+    // Delegate to rotateKey mutation
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw ApiError.notFound("Agent", { agentId });
+
+    // Generate new key
+    const newApiKey = `sk-${Math.random().toString(36).substring(2, 15)}`;
+    const now = Date.now();
+    const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+
+    await ctx.db.patch(agentId, {
+      previousApiKey: agent.apiKey,
+      previousKeyExpiresAt: now + 24 * 60 * 60 * 1000, // 24 hour grace period
+      apiKey: newApiKey,
+      keyRotatedAt: now,
+      keyExpiresAt: now + oneYearMs,
+    });
+
+    return { success: true, newApiKey, previousKeyGracePeriodMs: 24 * 60 * 60 * 1000 };
+  }),
+});
+
+// Alias: updateAgent -> updateDetails
+export const updateAgent = mutation({
+  args: {
+    agentId: convexVal.id("agents"),
+    agentName: convexVal.optional(convexVal.string()),
+    role: convexVal.optional(convexVal.string()),
+    level: convexVal.optional(convexVal.union(convexVal.literal("lead"), convexVal.literal("specialist"), convexVal.literal("intern"))),
+    capabilities: convexVal.optional(convexVal.array(convexVal.string())),
+    model: convexVal.optional(convexVal.string()),
+    personality: convexVal.optional(convexVal.string()),
+  },
+  handler: wrapConvexHandler(async (ctx, { agentId, ...updates }) => {
+    const agent = await ctx.db.get(agentId);
+    if (!agent) throw ApiError.notFound("Agent", { agentId });
+
+    const updateObj: any = {};
+    if (updates.agentName) updateObj.name = updates.agentName;
+    if (updates.role !== undefined) updateObj.role = updates.role;
+    if (updates.level !== undefined) updateObj.level = updates.level;
+    if (updates.capabilities !== undefined) updateObj.capabilities = updates.capabilities;
+    if (updates.model !== undefined) updateObj.model = updates.model;
+    if (updates.personality !== undefined) updateObj.personality = updates.personality;
+
+    await ctx.db.patch(agentId, updateObj);
+
+    const updated = await ctx.db.get(agentId);
+    return { success: true, agent: updated };
+  }),
+});
+
+/**
+ * TASK COMMENT ROUTING
+ * Frontend expects api.agents.* for task comments, delegate to taskComments module
+ */
+
+// Router: createTaskComment -> taskComments.createComment
+export const createTaskComment = mutation({
+  args: {
+    taskId: convexVal.id("tasks"),
+    agentId: convexVal.id("agents"),
+    agentName: convexVal.string(),
+    workspaceId: convexVal.id("workspaces"),
+    content: convexVal.string(),
+    parentCommentId: convexVal.optional(convexVal.id("taskComments")),
+    mentions: convexVal.optional(convexVal.array(convexVal.id("agents"))),
+  },
+  handler: wrapConvexHandler(async (ctx, args) => {
+    const now = Date.now();
+    const commentId = await ctx.db.insert("taskComments", {
+      workspaceId: args.workspaceId,
+      taskId: args.taskId,
+      agentId: args.agentId,
+      agentName: args.agentName,
+      content: args.content,
+      parentCommentId: args.parentCommentId || null,
+      mentions: args.mentions || [],
+      reactions: {},
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const comment = await ctx.db.get(commentId);
+    return comment;
+  }),
+});
+
+// Router: getTaskComments -> taskComments.getTaskComments
+export const getTaskComments = query({
+  args: {
+    taskId: convexVal.id("tasks"),
+    limit: convexVal.optional(convexVal.number()),
+  },
+  handler: async (ctx, { taskId, limit = 50 }) => {
+    return await ctx.db
+      .query("taskComments")
+      .withIndex("by_task_created_at", (q: any) => q.eq("taskId", taskId))
+      .order("desc")
+      .take(limit);
+  },
+});
+
+// Router: getTaskComment -> single comment getter
+export const getTaskComment = query({
+  args: { commentId: convexVal.id("taskComments") },
+  handler: async (ctx, { commentId }) => {
+    return await ctx.db.get(commentId);
+  },
+});
+
+// Router: updateTaskComment -> taskComments.editComment
+export const updateTaskComment = mutation({
+  args: {
+    commentId: convexVal.id("taskComments"),
+    content: convexVal.string(),
+  },
+  handler: wrapConvexHandler(async (ctx, { commentId, content }) => {
+    const comment = await ctx.db.get(commentId);
+    if (!comment) throw ApiError.notFound("Comment", { commentId });
+
+    await ctx.db.patch(commentId, {
+      content,
+      updatedAt: Date.now(),
+      edited: true,
+    });
+
+    const updated = await ctx.db.get(commentId);
+    return updated;
+  }),
+});
+
+// Router: deleteTaskComment -> taskComments.deleteComment
+export const deleteTaskComment = mutation({
+  args: { commentId: convexVal.id("taskComments") },
+  handler: wrapConvexHandler(async (ctx, { commentId }) => {
+    const comment = await ctx.db.get(commentId);
+    if (!comment) throw ApiError.notFound("Comment", { commentId });
+
+    // Delete all replies to this comment (thread cleanup)
+    const replies = await ctx.db
+      .query("taskComments")
+      .withIndex("by_parent", (q: any) => q.eq("parentCommentId", commentId))
+      .collect();
+
+    for (const reply of replies) {
+      await ctx.db.delete(reply._id);
+    }
+
+    // Delete the comment itself
+    await ctx.db.delete(commentId);
+
+    return { success: true, deletedCommentId: commentId };
+  }),
+});

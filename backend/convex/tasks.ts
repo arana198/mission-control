@@ -1979,3 +1979,56 @@ export const getStatusOverview = query({
     };
   },
 });
+
+/**
+ * FRONTEND COMPATIBILITY ALIASES
+ * These aliases map frontend route expectations to actual backend implementations
+ * Phase 1: Convex API alignment (1% final verification)
+ */
+
+// Alias: listTasks -> getAllTasks
+export const listTasks = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("tasks").take(500);
+  },
+});
+
+// Alias: getTask -> getTaskById
+export const getTask = query({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, { taskId }) => {
+    return await ctx.db.get(taskId);
+  },
+});
+
+// Alias: updateTask -> update
+export const updateTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    assigneeIds: v.optional(v.array(v.id("agents"))),
+    tags: v.optional(v.array(v.string())),
+    dueDate: v.optional(v.number()),
+  },
+  handler: wrapConvexHandler(async (ctx, { taskId, ...updates }) => {
+    const task = await ctx.db.get(taskId);
+    if (!task) throw ApiError.notFound("Task", { taskId });
+
+    const updateObj: any = {};
+    if (updates.title !== undefined) updateObj.title = updates.title;
+    if (updates.description !== undefined) updateObj.description = updates.description;
+    if (updates.status !== undefined) updateObj.status = updates.status;
+    if (updates.priority !== undefined) updateObj.priority = updates.priority;
+    if (updates.assigneeIds !== undefined) updateObj.assigneeIds = updates.assigneeIds;
+    if (updates.tags !== undefined) updateObj.tags = updates.tags;
+    if (updates.dueDate !== undefined) updateObj.dueDate = updates.dueDate;
+
+    await ctx.db.patch(taskId, updateObj);
+
+    const updated = await ctx.db.get(taskId);
+    return { success: true, task: updated };
+  }),
+});
