@@ -83,7 +83,6 @@ export async function GET(
 
     // Query workflow from Convex
     const workflow = await convex.query(api.workflows.getWorkflow, {
-      workspaceId,
       workflowId,
     });
 

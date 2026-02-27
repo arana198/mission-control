@@ -155,7 +155,7 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
             title="In Progress"
             icon={Clock}
             color="blue"
-            tasks={inboxData.myTasks}
+            tasks={inboxData.myTasks as Task[]}
             onTaskClick={setSelectedTask}
             defaultOpen={true}
           />
@@ -163,7 +163,7 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
             title="Ready"
             icon={CheckCircle2}
             color="green"
-            tasks={inboxData.ready}
+            tasks={inboxData.ready as Task[]}
             onTaskClick={setSelectedTask}
             defaultOpen={true}
           />
@@ -171,7 +171,7 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
             title="Blocked"
             icon={AlertTriangle}
             color="amber"
-            tasks={inboxData.blocked}
+            tasks={inboxData.blocked as Task[]}
             onTaskClick={setSelectedTask}
             defaultOpen={true}
           />
@@ -179,7 +179,7 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
             title="In Review"
             icon={Eye}
             color="purple"
-            tasks={inboxData.inReview}
+            tasks={inboxData.inReview as Task[]}
             onTaskClick={setSelectedTask}
             defaultOpen={false}
           />
@@ -187,7 +187,7 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
             title="Completed"
             icon={CheckCircle2}
             color="gray"
-            tasks={inboxData.done}
+            tasks={inboxData.done as Task[]}
             onTaskClick={setSelectedTask}
             defaultOpen={false}
           />
@@ -200,9 +200,9 @@ export function AgentInbox({ agents, workspaceId }: AgentInboxProps) {
       {selectedTask && (
         <TaskDetailModal
           task={selectedTask}
-          agents={allAgents || []}
-          epics={allEpics || []}
-          tasks={allTasks || []}
+          agents={(allAgents || []) as unknown as Agent[]}
+          epics={(allEpics || []) as unknown as Epic[]}
+          tasks={(allTasks || []) as unknown as Task[]}
           onClose={() => setSelectedTask(null)}
         />
       )}

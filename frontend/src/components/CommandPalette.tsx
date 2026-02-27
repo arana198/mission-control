@@ -158,7 +158,7 @@ export function CommandPalette({ onCreateTask, onNavigate }: CommandPaletteProps
 
       // Search agents
       if (agents) {
-        const matchedAgents = (agents as Agent[])
+        const matchedAgents = (agents as unknown as Agent[])
           .filter((a) => a.name.toLowerCase().includes(q))
           .slice(0, 2)
           .map((a) => ({

@@ -82,31 +82,33 @@ export async function GET(
     }
 
     // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
+    const url = new URL(request.url);
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
 
     // Get optional status filter from query
-    const url = new URL(request.url);
     const status = url.searchParams.get("status") || undefined;
 
     // Query workflows from Convex
-    const workflows = await convex.query(api.workflows.listWorkflows, {
-      workspaceId,
-      limit,
-      cursor,
-      status,
-    });
+    const allWorkflows = await convex.query(api.workflows.listWorkflows);
+
+    // Filter and apply pagination locally
+    let filteredWorkflows = allWorkflows as any[];
+    if (status) {
+      filteredWorkflows = filteredWorkflows.filter((w: any) => w.status === status);
+    }
+
+    // Apply pagination
+    const pageLimit = limit || 20;
+    const offset = cursor ? parseInt(atob(cursor).split(":")[1]) : 0;
+    const paginatedWorkflows = filteredWorkflows.slice(offset * pageLimit, offset * pageLimit + pageLimit);
 
     log.info("Workspace workflows listed", {
       workspaceId,
-      count: workflows.items?.length || 0,
+      count: paginatedWorkflows.length || 0,
       requestId,
     });
 
-    const response = createListResponse(workflows.items || [], {
-      total: workflows.total || 0,
-      cursor: workflows.nextCursor,
-      hasMore: !!workflows.nextCursor,
-    });
+    const response = createListResponse(paginatedWorkflows || [], filteredWorkflows.length || 0, pageLimit, offset);
 
     return NextResponse.json(
       {

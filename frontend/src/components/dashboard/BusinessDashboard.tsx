@@ -10,6 +10,9 @@ import { CardGridSkeleton, LoadingSkeleton, KanbanSkeleton } from "../LoadingSke
 import { DocumentPanel } from "../DocumentPanel";
 import { SettingsPanel } from "../BusinessSettingsPanel";
 import { AutomationsPanel } from "../AutomationsPanel";
+import { Task } from "@/types/task";
+import { Agent } from "@/types/agent";
+import { Epic } from "@/types/epic";
 
 const EpicBoard = lazy(() => import("../EpicBoard").then(m => ({ default: m.EpicBoard })));
 const WikiDocs = lazy(() => import("../wiki/WikiDocs").then(m => ({ default: m.WikiDocs })));
@@ -101,9 +104,9 @@ export function Dashboard({
           <ErrorBoundary>
             <Suspense fallback={<KanbanSkeleton />}>
               <TaskBoard
-                tasks={tasks}
-                agents={agents}
-                epics={epics || []}
+                tasks={tasks as Task[]}
+                agents={agents as unknown as Agent[]}
+                epics={(epics || []) as unknown as Epic[]}
                 workspaceId={workspaceId}
               />
             </Suspense>

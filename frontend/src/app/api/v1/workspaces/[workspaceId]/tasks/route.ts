@@ -83,19 +83,29 @@ export async function GET(
     }
 
     // Parse pagination parameters
-    const { limit, cursor } = parsePaginationFromRequest(request);
+    const url = new URL(request.url);
+    const { limit, cursor } = parsePaginationFromRequest(url.searchParams);
 
     // Get optional status filter from query
-    const url = new URL(request.url);
     const status = url.searchParams.get("status") || undefined;
 
     // Query tasks from Convex
-    const tasks = await convex.query(api.tasks.listTasks, {
-      workspaceId,
-      limit,
-      cursor,
-      status,
-    });
+    const allTasks = await convex.query(api.tasks.listTasks);
+
+    // Filter and apply pagination locally
+    let filteredTasks = allTasks as any[];
+    if (status) {
+      filteredTasks = filteredTasks.filter((t: any) => t.status === status);
+    }
+
+    // Apply pagination
+    const pageLimit = limit || 20;
+    const startIndex = pageLimit * (cursor ? parseInt(atob(cursor).split(":")[1]) : 0);
+    const paginatedTasks = filteredTasks.slice(startIndex, startIndex + pageLimit);
+    const tasks = {
+      items: paginatedTasks,
+      total: filteredTasks.length,
+    };
 
     log.info("Workspace tasks listed", {
       workspaceId,
@@ -103,11 +113,8 @@ export async function GET(
       requestId,
     });
 
-    const response = createListResponse(tasks.items || [], {
-      total: tasks.total || 0,
-      cursor: tasks.nextCursor,
-      hasMore: !!tasks.nextCursor,
-    });
+    const offset = cursor ? parseInt(atob(cursor).split(":")[1]) : 0;
+    const response = createListResponse(tasks.items || [], tasks.total || 0, pageLimit, offset);
 
     return NextResponse.json(
       {

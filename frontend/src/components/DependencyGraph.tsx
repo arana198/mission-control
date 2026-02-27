@@ -65,8 +65,8 @@ export function DependencyGraph({
   const renderNode = (nodeTask: Task, onClick: () => void) => {
     const taskNumber = nodeTask._id.toString().slice(-3);
     const shortTitle = nodeTask.title.substring(0, 20);
-    const colorClasses = STATUS_COLORS[nodeTask.status] || STATUS_COLORS.ready;
-    const dotColor = STATUS_DOT_COLORS[nodeTask.status] || STATUS_DOT_COLORS.ready;
+    const colorClasses = STATUS_COLORS[(nodeTask.status as any) || 'ready'] || STATUS_COLORS.ready;
+    const dotColor = STATUS_DOT_COLORS[(nodeTask.status as any) || 'ready'] || STATUS_DOT_COLORS.ready;
 
     return (
       <button

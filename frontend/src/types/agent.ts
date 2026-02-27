@@ -11,6 +11,7 @@ export interface Agent {
   role: string;
   level?: string;
   status?: 'active' | 'idle' | 'blocked';
+  emoji?: string;
   apiKey?: string;
   lastHeartbeat?: number;
   metadata?: Record<string, any>;

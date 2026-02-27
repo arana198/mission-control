@@ -80,7 +80,6 @@ export async function GET(
 
     // Query task from Convex
     const task = await convex.query(api.tasks.getTask, {
-      workspaceId,
       taskId,
     });
 
@@ -318,13 +317,17 @@ export async function PUT(
     }
 
     // Call Convex — update task
-    const task = await convex.mutation(api.tasks.updateTask, {
-      workspaceId,
+    const updateResult = await convex.mutation(api.tasks.updateTask, {
       taskId,
       title: body.title || undefined,
       description: body.description !== undefined ? body.description : undefined,
       priority: body.priority || undefined,
       status: body.status || undefined,
+    });
+
+    // Fetch updated task after mutation
+    const task = await convex.query(api.tasks.getTask, {
+      taskId,
     });
 
     if (!task) {
@@ -352,13 +355,13 @@ export async function PUT(
       {
         success: true,
         data: {
-          id: task._id,
+          id: (task as any)._id,
           title: task.title,
           description: task.description,
           priority: task.priority,
           status: task.status,
-          createdAt: task._creationTime,
-          updatedAt: task._creationTime,
+          createdAt: (task as any)._creationTime,
+          updatedAt: (task as any)._creationTime,
         },
         requestId,
         timestamp: new Date().toISOString(),
@@ -489,8 +492,8 @@ export async function DELETE(
 
     // Call Convex — delete task
     const deleted = await convex.mutation(api.tasks.deleteTask, {
-      workspaceId,
       taskId,
+      deletedBy: "user",
     });
 
     if (!deleted) {

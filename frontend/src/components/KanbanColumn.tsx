@@ -181,9 +181,11 @@ function KanbanColumnComponent({
                       Blocked
                     </span>
                   )}
-                  <span className={getPriorityBadgeClass(task.priority)}>
-                    {task.priority}
-                  </span>
+                  {task.priority && (
+                    <span className={getPriorityBadgeClass(task.priority)}>
+                      {task.priority}
+                    </span>
+                  )}
                   {task.timeEstimate && (
                     <span className={getTimeEstimateBadgeClass(
                       task.timeEstimate

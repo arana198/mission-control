@@ -3,6 +3,14 @@
  * Represents a task in the Mission Control system
  */
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  completedBy?: string;
+  completedAt?: number;
+}
+
 export interface Task {
   _id: string;
   _creationTime: number;
@@ -14,6 +22,14 @@ export interface Task {
   assignedTo?: string;
   assigneeIds: string[];
   epicId?: string;
+  createdAt?: number;
   createdBy?: string;
+  blockedBy?: string[];
+  blocks?: string[];
+  ticketNumber?: string;
+  timeEstimate?: string;
+  dueDate?: number;
+  subtaskIds?: string[];
+  doneChecklist?: ChecklistItem[];
   metadata?: Record<string, any>;
 }

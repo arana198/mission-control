@@ -256,8 +256,8 @@ export function TaskDetailModal({
               <div className="mb-4">
                 {/* Dependency Graph Visualization */}
                 <DependencyGraph
-                  task={currentTask}
-                  allTasks={tasks}
+                  task={currentTask as any}
+                  allTasks={(tasks as any) || []}
                   onTaskClick={() => {
                     // Node clicked - in future, could open task in new modal
                     // For now, visualization is the primary feature
@@ -349,14 +349,14 @@ export function TaskDetailModal({
                   <button
                     onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
                     disabled={isUpdatingPriority}
-                    className={`w-full badge badge-priority-${task.priority.toLowerCase()} text-sm px-3 py-2 flex items-center justify-between hover:shadow-md transition-all cursor-pointer disabled:opacity-50`}
+                    className={`w-full badge badge-priority-${(task.priority || 'P2').toLowerCase()} text-sm px-3 py-2 flex items-center justify-between hover:shadow-md transition-all cursor-pointer disabled:opacity-50`}
                     aria-label="Click to change priority"
                   >
                     {isUpdatingPriority ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
                       <>
-                        <span>{task.priority}</span>
+                        <span>{task.priority || 'P2'}</span>
                         <ChevronDown className="w-3 h-3 opacity-50" />
                       </>
                     )}
@@ -394,7 +394,7 @@ export function TaskDetailModal({
                       <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
                       <>
-                        <span>{getStatusLabel(task.status)}</span>
+                        <span>{getStatusLabel(task.status || 'backlog')}</span>
                         <ChevronDown className="w-3 h-3 opacity-50" />
                       </>
                     )}
@@ -558,7 +558,7 @@ export function TaskDetailModal({
             <div className="p-4 rounded-lg border border-border bg-card">
               <HelpRequestButton
                 taskId={task._id as any}
-                taskStatus={task.status}
+                taskStatus={task.status || 'backlog'}
                 currentAgentId="user"
                 currentAgentName="You"
                 agents={agents}

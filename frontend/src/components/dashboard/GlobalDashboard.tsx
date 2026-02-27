@@ -11,6 +11,8 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { Suspense, lazy } from "react";
 import { CardGridSkeleton, LoadingSkeleton } from "../LoadingSkeletons";
 import { WorkspaceFilter } from "../WorkspaceFilter";
+import { Agent } from "@/types/agent";
+import { Task } from "@/types/task";
 
 const CalendarView = lazy(() => import("../CalendarView").then(m => ({ default: m.CalendarView })));
 const BrainHub = lazy(() => import("../BrainHub").then(m => ({ default: m.BrainHub })));
@@ -71,8 +73,8 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
         return (
           <ErrorBoundary>
             <AgentSquad
-              agents={agents || []}
-              tasks={filteredTasks || []}
+              agents={(agents || []) as any}
+              tasks={(filteredTasks || []) as any}
             />
           </ErrorBoundary>
         );
@@ -144,7 +146,7 @@ export function GlobalDashboard({ tab }: GlobalDashboardProps) {
           <ErrorBoundary>
             <Suspense fallback={<LoadingSkeleton />}>
               <AgentInbox
-                agents={agents || []}
+                agents={(agents || []) as any}
                 workspaceId={selectedWorkspaceFilter || ""}
               />
             </Suspense>
