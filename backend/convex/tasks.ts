@@ -10,6 +10,7 @@ import { canDeleteTask } from "../lib/auth/permissions";
 import { syncEpicTaskLink } from "./utils/epicTaskSync";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
 import { enforceRateLimit, checkRateLimitSilent } from "./utils/rateLimit";
+import { requireRole } from "./organizationMembers";
 
 /**
  * Task Management
@@ -60,6 +61,7 @@ function inferTagsFromContent(title: string, description: string): string[] {
 export const createTask = mutation({
   args: {
     workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
+    callerId: convexVal.string(),
     title: convexVal.string(),
     description: convexVal.string(),
     priority: convexVal.optional(convexVal.union(convexVal.literal("P0"), convexVal.literal("P1"), convexVal.literal("P2"), convexVal.literal("P3"))),
@@ -75,6 +77,7 @@ export const createTask = mutation({
     ctx,
     {
       workspaceId,
+      callerId,
       title,
       description,
       priority = "P2",
@@ -87,6 +90,9 @@ export const createTask = mutation({
       epicId,
     }
   ) => {
+    // Check permission: collaborator+ role required to create tasks
+    await requireRole(ctx, workspaceId, callerId, "collaborator");
+
     // Validate input (M-01 fix: wire validators into mutations)
     try {
       validateTaskInput(CreateTaskSchema, {
@@ -624,6 +630,8 @@ export const getWithDetails = query({
 // Update task (generic update)
 export const update = mutation({
   args: {
+    workspaceId: convexVal.id("workspaces"),
+    callerId: convexVal.string(),
     id: convexVal.id("tasks"),
     title: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
@@ -646,7 +654,10 @@ export const update = mutation({
     dueDate: convexVal.optional(convexVal.number()),
     epicId: convexVal.optional(convexVal.id("epics")),
   },
-  handler: wrapConvexHandler(async (ctx, { id, ...updates }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId, id, ...updates }) => {
+    // Check permission: collaborator+ role required to update tasks
+    await requireRole(ctx, workspaceId, callerId, "collaborator");
+
     const task = await ctx.db.get(id);
     if (!task) throw ApiError.notFound("Task", { taskId: id });
 
@@ -1233,10 +1244,15 @@ export const getWithSubtasks = query({
 // Delete task (only creator or admin can delete)
 export const deleteTask = mutation({
   args: {
+    workspaceId: convexVal.id("workspaces"),
+    callerId: convexVal.string(),
     taskId: convexVal.id("tasks"),
     deletedBy: convexVal.string(), // User ID or agent ID
   },
-  handler: async (ctx, { taskId, deletedBy }) => {
+  handler: async (ctx, { workspaceId, callerId, taskId, deletedBy }) => {
+    // Check permission: admin role required to delete tasks
+    await requireRole(ctx, workspaceId, callerId, "admin");
+
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("Task not found");
 

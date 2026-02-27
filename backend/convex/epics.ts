@@ -2,6 +2,7 @@ import { v as convexVal } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
+import { requireRole } from "./organizationMembers";
 
 /**
  * Epic Management
@@ -59,11 +60,15 @@ export const getEpicWithDetails = query({
 export const createEpic = mutation({
   args: {
     workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
+    callerId: convexVal.string(),
     title: convexVal.string(),
     description: convexVal.string(),
     ownerId: convexVal.optional(convexVal.id("agents")),
   },
-  handler: wrapConvexHandler(async (ctx, { workspaceId, title, description, ownerId }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId, title, description, ownerId }) => {
+    // Check permission: collaborator+ role required to create epics
+    await requireRole(ctx, workspaceId, callerId, "collaborator");
+
     const epicId = await ctx.db.insert("epics", {
       workspaceId,  // ADD: workspace scoping
       title,
@@ -97,12 +102,16 @@ export const createEpic = mutation({
 export const updateEpic = mutation({
   args: {
     workspaceId: convexVal.id("workspaces"),  // REQUIRED: workspace scoping
+    callerId: convexVal.string(),
     epicId: convexVal.id("epics"),
     title: convexVal.optional(convexVal.string()),
     description: convexVal.optional(convexVal.string()),
     status: convexVal.optional(convexVal.union(convexVal.literal("planning"), convexVal.literal("active"), convexVal.literal("completed"))),
   },
-  handler: wrapConvexHandler(async (ctx, { workspaceId, epicId, ...updates }) => {
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId, epicId, ...updates }) => {
+    // Check permission: collaborator+ role required to update epics
+    await requireRole(ctx, workspaceId, callerId, "collaborator");
+
     const epic = await ctx.db.get(epicId);
     if (!epic) throw ApiError.notFound("Epic", { epicId });
 
@@ -136,8 +145,15 @@ export const updateEpic = mutation({
 
 // Delete epic
 export const deleteEpic = mutation({
-  args: { epicId: convexVal.id("epics") },
-  handler: wrapConvexHandler(async (ctx, { epicId }) => {
+  args: {
+    workspaceId: convexVal.id("workspaces"),
+    callerId: convexVal.string(),
+    epicId: convexVal.id("epics"),
+  },
+  handler: wrapConvexHandler(async (ctx, { workspaceId, callerId, epicId }) => {
+    // Check permission: admin role required to delete epics
+    await requireRole(ctx, workspaceId, callerId, "admin");
+
     const epic = await ctx.db.get(epicId);
     if (!epic) throw ApiError.notFound("Epic", { epicId });
 
