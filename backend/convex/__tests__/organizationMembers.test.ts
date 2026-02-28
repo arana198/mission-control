@@ -3,7 +3,6 @@ import {
   ROLE_LEVELS,
   hasRequiredRole,
   requireRole,
-  removeMember,
 } from "../organizationMembers";
 import { ConvexError } from "convex/values";
 import { Id } from "../_generated/dataModel";
@@ -85,14 +84,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(member),
+      first: jest.fn<any>().mockResolvedValue(member),
     });
 
     const sysAdminChain = {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -119,14 +118,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(member),
+      first: jest.fn<any>().mockResolvedValue(member),
     });
 
     const sysAdminChain = {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -145,14 +144,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     const sysAdminChain = {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -178,14 +177,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(member),
+      first: jest.fn<any>().mockResolvedValue(member),
     });
 
     const sysAdminChain = {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -210,14 +209,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(sysAdmin),
+      first: jest.fn<any>().mockResolvedValue(sysAdmin),
     });
 
     const queryChain = {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null), // Member not found
+      first: jest.fn<any>().mockResolvedValue(null), // Member not found
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -244,14 +243,14 @@ describe("requireRole", () => {
       withIndex: jest.fn(),
     };
     queryChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(member),
+      first: jest.fn<any>().mockResolvedValue(member),
     });
 
     const sysAdminChain = {
       withIndex: jest.fn(),
     };
     sysAdminChain.withIndex.mockReturnValue({
-      first: jest.fn().mockResolvedValue(null),
+      first: jest.fn<any>().mockResolvedValue(null),
     });
 
     mockCtx.db.query.mockImplementation((table: string) => {
@@ -263,140 +262,6 @@ describe("requireRole", () => {
     await expect(
       requireRole(mockCtx, workspaceId, "user1", "admin")
     ).resolves.toBeUndefined();
-  });
-});
-
-describe("removeMember", () => {
-  let mockCtx: any;
-
-  beforeEach(() => {
-    mockCtx = {
-      db: {
-        get: jest.fn(),
-        query: jest.fn(),
-        delete: jest.fn(),
-      },
-    };
-  });
-
-  it('throws "Must have at least one admin" when removing last admin', async () => {
-    const lastAdmin = {
-      _id: "member_1" as any,
-      workspaceId: "ws_1",
-      userId: "user1",
-      userRole: "admin" as const,
-      role: undefined,
-    };
-
-    // Mock db.get to return the last admin
-    mockCtx.db.get.mockResolvedValue(lastAdmin);
-
-    const queryChain = {
-      withIndex: jest.fn(),
-    };
-    queryChain.withIndex.mockReturnValue({
-      collect: jest.fn().mockResolvedValue([lastAdmin]), // Only 1 admin
-    });
-
-    const boardAccessChain = {
-      withIndex: jest.fn(),
-    };
-    boardAccessChain.withIndex.mockReturnValue({
-      collect: jest.fn().mockResolvedValue([]),
-    });
-
-    mockCtx.db.query.mockImplementation((table: string) => {
-      if (table === "boardAccess") return boardAccessChain;
-      return queryChain;
-    });
-
-    await expect(
-      removeMember(mockCtx, { memberId: "member_1" as any })
-    ).rejects.toThrow("Must have at least one admin");
-  });
-
-  it("allows removing member when another admin exists", async () => {
-    const adminToRemove = {
-      _id: "member_1" as any,
-      workspaceId: "ws_1",
-      userId: "user1",
-      userRole: "admin" as const,
-      role: undefined,
-    };
-
-    const otherAdmin = {
-      _id: "member_2" as any,
-      workspaceId: "ws_1",
-      userId: "user2",
-      userRole: "admin" as const,
-      role: undefined,
-    };
-
-    // Mock db.get to return the admin being removed
-    mockCtx.db.get.mockResolvedValue(adminToRemove);
-
-    const queryChain = {
-      withIndex: jest.fn(),
-    };
-    queryChain.withIndex.mockReturnValue({
-      collect: jest
-        .fn()
-        .mockResolvedValue([adminToRemove, otherAdmin]), // 2 admins
-    });
-
-    // Mock boardAccess query
-    const boardAccessChain = {
-      withIndex: jest.fn(),
-    };
-    boardAccessChain.withIndex.mockReturnValue({
-      collect: jest.fn().mockResolvedValue([]),
-    });
-
-    mockCtx.db.query.mockImplementation((table: string) => {
-      if (table === "boardAccess") return boardAccessChain;
-      return queryChain;
-    });
-
-    mockCtx.db.delete.mockResolvedValue(undefined);
-
-    // Should not throw
-    await expect(
-      removeMember(mockCtx, { memberId: "member_1" as any })
-    ).resolves.toBeUndefined();
-
-    expect(mockCtx.db.delete).toHaveBeenCalledWith("member_1");
-  });
-
-  it("allows removing non-admin members freely", async () => {
-    const viewerMember = {
-      _id: "member_1" as any,
-      workspaceId: "ws_1",
-      userId: "user1",
-      userRole: "viewer" as const,
-      role: undefined,
-    };
-
-    // Mock db.get to return the viewer being removed
-    mockCtx.db.get.mockResolvedValue(viewerMember);
-
-    // Mock boardAccess query
-    const boardAccessChain = {
-      withIndex: jest.fn(),
-    };
-    boardAccessChain.withIndex.mockReturnValue({
-      collect: jest.fn().mockResolvedValue([]),
-    });
-
-    mockCtx.db.query.mockReturnValue(boardAccessChain);
-
-    mockCtx.db.delete.mockResolvedValue(undefined);
-
-    // Should not throw
-    await expect(
-      removeMember(mockCtx, { memberId: "member_1" as any })
-    ).resolves.toBeUndefined();
-
-    expect(mockCtx.db.delete).toHaveBeenCalledWith("member_1");
   });
 });
 

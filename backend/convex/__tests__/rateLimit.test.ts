@@ -6,7 +6,7 @@ describe("rateLimit role-based quotas", () => {
       const ADMIN_TOKENS_PER_HOUR = 5000;
       const roleTier = "admin";
 
-      const tokensPerHour = roleTier === "admin" ? ADMIN_TOKENS_PER_HOUR : 1000;
+      const tokensPerHour = (roleTier as string) === "admin" ? ADMIN_TOKENS_PER_HOUR : 1000;
       expect(tokensPerHour).toBe(5000);
     });
 
@@ -14,7 +14,7 @@ describe("rateLimit role-based quotas", () => {
       const ADMIN_TOKENS_PER_DAY = 50000;
       const roleTier = "admin";
 
-      const tokensPerDay = roleTier === "admin" ? ADMIN_TOKENS_PER_DAY : 10000;
+      const tokensPerDay = (roleTier as string) === "admin" ? ADMIN_TOKENS_PER_DAY : 10000;
       expect(tokensPerDay).toBe(50000);
     });
 

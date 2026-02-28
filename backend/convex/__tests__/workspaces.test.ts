@@ -21,8 +21,8 @@ describe("workspaces", () => {
     it("throws NOT_FOUND when callerId is not a system admin", async () => {
       // Mock systemAdmins query to return no results
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          first: jest.fn().mockResolvedValueOnce(null),
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          first: jest.fn<any>().mockResolvedValueOnce(null),
         }),
       });
 
@@ -36,21 +36,21 @@ describe("workspaces", () => {
       // Mock systemAdmins query to return a result
       const sysAdmin = { _id: "admin_1" as any, userId: "admin_user_1" };
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          first: jest.fn().mockResolvedValueOnce(sysAdmin),
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          first: jest.fn<any>().mockResolvedValueOnce(sysAdmin),
         }),
       });
 
       // Mock slug uniqueness check
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          collect: jest.fn().mockResolvedValueOnce([]),
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          collect: jest.fn<any>().mockResolvedValueOnce([]),
         }),
       });
 
       // Mock workspaces count check
       mockCtx.db.query.mockReturnValueOnce({
-        collect: jest.fn().mockResolvedValueOnce([]),
+        collect: jest.fn<any>().mockResolvedValueOnce([]),
       });
 
       // Mock insert
@@ -105,8 +105,8 @@ describe("workspaces", () => {
     it("sets workspace as default when caller is admin", async () => {
       // Mock requireRole to pass
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          first: jest.fn().mockResolvedValueOnce({
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          first: jest.fn<any>().mockResolvedValueOnce({
             _id: "member_1" as any,
             userId: "admin_user_1",
             userRole: "admin",
@@ -123,8 +123,8 @@ describe("workspaces", () => {
 
       // Mock finding current default
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          collect: jest.fn().mockResolvedValueOnce([
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          collect: jest.fn<any>().mockResolvedValueOnce([
             { _id: "workspace_old" as any, isDefault: true },
           ]),
         }),
@@ -149,8 +149,8 @@ describe("workspaces", () => {
     it("sets budget on workspace when caller is admin", async () => {
       // Mock requireRole to pass
       mockCtx.db.query.mockReturnValueOnce({
-        withIndex: jest.fn().mockReturnValueOnce({
-          first: jest.fn().mockResolvedValueOnce({
+        withIndex: jest.fn<any>().mockReturnValueOnce({
+          first: jest.fn<any>().mockResolvedValueOnce({
             _id: "member_1" as any,
             userId: "admin_user_1",
             userRole: "admin",
