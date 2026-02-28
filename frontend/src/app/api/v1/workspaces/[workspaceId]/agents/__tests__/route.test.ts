@@ -29,6 +29,10 @@ jest.mock("@/lib/agent-auth");
 jest.mock("@/lib/api/rbac", () => ({
   requireWorkspaceRole: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("@/lib/validators/agentValidators", () => ({
+  validateAgentInput: jest.fn((schema, data) => data),
+  RegisterAgentSchema: {},
+}));
 jest.mock("@/lib/constants/business", () => ({
   AGENT_STATUS: {
     ACTIVE: "active",
