@@ -199,6 +199,7 @@ describe("workspaces", () => {
     it("allows admin to set budget without alertThreshold", async () => {
       const budget = {
         monthlyTokenLimit: 100000,
+        alertThreshold: undefined,
       };
 
       expect(budget).toHaveProperty("monthlyTokenLimit");

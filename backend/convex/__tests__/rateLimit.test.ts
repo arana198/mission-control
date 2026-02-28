@@ -20,17 +20,19 @@ describe("rateLimit role-based quotas", () => {
 
     it("standard tier gets 1000 tokens/hour on first request", () => {
       const DEFAULT_TOKENS_PER_HOUR = 1000;
-      const roleTier = "standard";
+      const ADMIN_TOKENS_PER_HOUR = 5000;
+      const roleTier: string = "standard";
 
-      const tokensPerHour = roleTier === "admin" ? 5000 : DEFAULT_TOKENS_PER_HOUR;
+      const tokensPerHour = (roleTier as string) === "admin" ? ADMIN_TOKENS_PER_HOUR : DEFAULT_TOKENS_PER_HOUR;
       expect(tokensPerHour).toBe(1000);
     });
 
     it("standard tier gets 10000 tokens/day on first request", () => {
       const DEFAULT_TOKENS_PER_DAY = 10000;
-      const roleTier = "standard";
+      const ADMIN_TOKENS_PER_DAY = 50000;
+      const roleTier: string = "standard";
 
-      const tokensPerDay = roleTier === "admin" ? 50000 : DEFAULT_TOKENS_PER_DAY;
+      const tokensPerDay = (roleTier as string) === "admin" ? ADMIN_TOKENS_PER_DAY : DEFAULT_TOKENS_PER_DAY;
       expect(tokensPerDay).toBe(10000);
     });
 
