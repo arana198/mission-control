@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const callerId = request.headers.get("x-api-key-id");
     if (!callerId) {
       return NextResponse.json(
-        createErrorResponseObject(401, "Unauthorized", "API key required", pathname),
+        createErrorResponseObject(401, "unauthorized", "Unauthorized", "API key required", pathname, requestId),
         { status: 401 }
       );
     }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch {
       return NextResponse.json(
-        createErrorResponseObject(400, "Bad Request", "Invalid JSON body", pathname),
+        createErrorResponseObject(400, "invalid_request", "Bad Request", "Invalid JSON body", pathname, requestId),
         { status: 400 }
       );
     }
@@ -63,9 +63,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         createErrorResponseObject(
           400,
-          "Bad Request",
+          "validation_error",
+          "Missing Required Fields",
           "name, slug, and missionStatement are required",
-          pathname
+          pathname,
+          requestId
         ),
         { status: 400 }
       );
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
       // System admin check failed
       if (errorMsg.includes("NOT_FOUND") || errorMsg.includes("Unauthorized")) {
         return NextResponse.json(
-          createErrorResponseObject(403, "Forbidden", "Insufficient permissions", pathname),
+          createErrorResponseObject(403, "forbidden", "Forbidden", "Insufficient permissions to create workspace", pathname, requestId),
           { status: 403 }
         );
       }
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
       // Slug already exists or other validation error
       if (errorMsg.includes("duplicate") || errorMsg.includes("UNIQUE")) {
         return NextResponse.json(
-          createErrorResponseObject(409, "Conflict", "Workspace slug already exists", pathname),
+          createErrorResponseObject(409, "conflict", "Conflict", "Workspace slug already exists", pathname, requestId),
           { status: 409 }
         );
       }
@@ -116,14 +118,14 @@ export async function POST(request: NextRequest) {
       // Generic server error
       console.error("[/api/admin/workspaces POST] Convex error:", err);
       return NextResponse.json(
-        createErrorResponseObject(500, "Internal Server Error", "Failed to create workspace", pathname),
+        createErrorResponseObject(500, "internal_server_error", "Internal Server Error", "Failed to create workspace", pathname, requestId),
         { status: 500 }
       );
     }
   } catch (err: any) {
     console.error("[/api/admin/workspaces POST] Unexpected error:", err);
     return NextResponse.json(
-      createErrorResponseObject(500, "Internal Server Error", "An unexpected error occurred", pathname),
+      createErrorResponseObject(500, "internal_server_error", "Internal Server Error", "An unexpected error occurred", pathname, requestId),
       { status: 500 }
     );
   }

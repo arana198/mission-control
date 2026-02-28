@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/errors";
 import { generateRequestId } from "@/lib/api/responses";
 import { extractAuth, isAuthRequired } from "@/lib/api/auth";
+import { requireWorkspaceRole } from "@/lib/api/rbac";
 
 const log = createLogger("api:v1:workspaces:tasks:detail");
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -490,8 +491,31 @@ export async function DELETE(
       }
     }
 
+    // Validate workspace membership using RBAC (via middleware-injected headers)
+    const callerId = request.headers.get("x-api-key-id");
+    if (!callerId) {
+      return NextResponse.json(
+        createErrorResponseObject(401, "unauthorized", "Unauthorized", "API key required", pathname, requestId),
+        { status: 401 }
+      );
+    }
+
+    try {
+      await requireWorkspaceRole(workspaceId, callerId, "admin");
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return NextResponse.json(
+          createErrorResponseObject(404, "not_found", "Not Found", "Workspace not found", pathname, requestId),
+          { status: 404 }
+        );
+      }
+      throw err;
+    }
+
     // Call Convex — delete task
     const deleted = await convex.mutation(api.tasks.deleteTask, {
+      workspaceId,
+      callerId,
       taskId,
       deletedBy: "user",
     });

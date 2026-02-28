@@ -26,6 +26,9 @@ jest.mock("@/convex/_generated/api", () => ({
   },
 }));
 jest.mock("@/lib/agent-auth");
+jest.mock("@/lib/api/rbac", () => ({
+  requireWorkspaceRole: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("@/lib/constants/business", () => ({
   AGENT_STATUS: {
     ACTIVE: "active",
@@ -71,6 +74,7 @@ describe("GET /api/v1/workspaces/{workspaceId}/agents", () => {
         method: "GET",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -169,6 +173,7 @@ describe("GET /api/v1/workspaces/{workspaceId}/agents", () => {
         method: "GET",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -192,6 +197,7 @@ describe("GET /api/v1/workspaces/{workspaceId}/agents", () => {
         method: "GET",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -215,6 +221,7 @@ describe("GET /api/v1/workspaces/{workspaceId}/agents", () => {
         method: "GET",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -251,6 +258,7 @@ describe("POST /api/v1/workspaces/{workspaceId}/agents", () => {
         headers: {
           "Content-Type": "application/json",
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
         body: JSON.stringify(body),
       }
@@ -298,6 +306,7 @@ describe("POST /api/v1/workspaces/{workspaceId}/agents", () => {
         headers: {
           "Content-Type": "application/json",
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
         body: JSON.stringify(body),
       }
@@ -420,6 +429,7 @@ describe("POST /api/v1/workspaces/{workspaceId}/agents", () => {
         headers: {
           "Content-Type": "application/json",
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
         body: JSON.stringify(body),
       }
@@ -457,6 +467,7 @@ describe("POST /api/v1/workspaces/{workspaceId}/agents", () => {
         headers: {
           "Content-Type": "application/json",
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
         body: JSON.stringify(body),
       }

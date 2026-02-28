@@ -1,6 +1,5 @@
 import { v as convexVal } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { ConvexError } from "convex/server";
 import { batchDelete } from "./utils/batchDelete";
 import { ApiError, wrapConvexHandler } from "../lib/errors";
 import { requireRole } from "./organizationMembers";
@@ -91,7 +90,7 @@ export const create = mutation({
       .withIndex("by_user", (q: any) => q.eq("userId", callerId))
       .first();
     if (!sysAdmin) {
-      throw new ConvexError("NOT_FOUND");
+      throw ApiError.notFound("System admin", { callerId });
     }
 
     // Validate slug format: lowercase, alphanumeric, hyphens only

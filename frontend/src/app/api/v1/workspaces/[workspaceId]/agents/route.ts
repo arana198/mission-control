@@ -26,6 +26,7 @@ import {
   createListResponseObject,
   validateWorkspaceAccess,
   getWorkspaceIdFromUrl,
+  createErrorResponseObject,
 } from "@/lib/api/routeHelpers";
 import {
   ValidationError,
@@ -115,7 +116,7 @@ export async function GET(
     const callerId = request.headers.get("x-api-key-id");
     if (!callerId) {
       return NextResponse.json(
-        createErrorResponseObject(401, "Unauthorized", "API key required", request.url),
+        createErrorResponseObject(401, "unauthorized", "Unauthorized", "API key required", pathname, requestId),
         { status: 401 }
       );
     }
@@ -125,7 +126,7 @@ export async function GET(
     } catch (err) {
       if (err instanceof NotFoundError) {
         return NextResponse.json(
-          createErrorResponseObject(404, "Not Found", "", request.url),
+          createErrorResponseObject(404, "not_found", "Not Found", "Workspace not found", pathname, requestId),
           { status: 404 }
         );
       }
@@ -324,7 +325,7 @@ export async function POST(
     const callerId = request.headers.get("x-api-key-id");
     if (!callerId) {
       return NextResponse.json(
-        createErrorResponseObject(401, "Unauthorized", "API key required", request.url),
+        createErrorResponseObject(401, "unauthorized", "Unauthorized", "API key required", pathname, requestId),
         { status: 401 }
       );
     }
@@ -334,7 +335,7 @@ export async function POST(
     } catch (err) {
       if (err instanceof NotFoundError) {
         return NextResponse.json(
-          createErrorResponseObject(404, "Not Found", "", request.url),
+          createErrorResponseObject(404, "not_found", "Not Found", "Workspace not found", pathname, requestId),
           { status: 404 }
         );
       }

@@ -33,6 +33,9 @@ jest.mock("@/lib/api/auth", () => ({
   isAuthRequired: jest.fn(() => false),
   extractAuth: jest.fn(),
 }));
+jest.mock("@/lib/api/rbac", () => ({
+  requireWorkspaceRole: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("@/lib/utils/logger", () => ({
   createLogger: jest.fn(() => ({
     info: jest.fn(),
@@ -423,6 +426,7 @@ describe("DELETE /api/v1/workspaces/{workspaceId}/tasks/{taskId}", () => {
         method: "DELETE",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -441,6 +445,7 @@ describe("DELETE /api/v1/workspaces/{workspaceId}/tasks/{taskId}", () => {
         method: "DELETE",
         headers: {
           authorization: "Bearer token-123",
+          "x-api-key-id": "caller-123",
         },
       }
     );
@@ -459,6 +464,9 @@ describe("DELETE /api/v1/workspaces/{workspaceId}/tasks/{taskId}", () => {
       "http://localhost:3000/api/v1/workspaces/ws-123/tasks/nonexistent",
       {
         method: "DELETE",
+        headers: {
+          "x-api-key-id": "caller-123",
+        },
       }
     );
 
@@ -476,6 +484,9 @@ describe("DELETE /api/v1/workspaces/{workspaceId}/tasks/{taskId}", () => {
       "http://localhost:3000/api/v1/workspaces/ws-123/tasks/task-123",
       {
         method: "DELETE",
+        headers: {
+          "x-api-key-id": "caller-123",
+        },
       }
     );
 
