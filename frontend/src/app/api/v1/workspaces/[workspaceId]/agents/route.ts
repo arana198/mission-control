@@ -34,6 +34,7 @@ import {
 } from "@/lib/api/errors";
 import { generateRequestId } from "@/lib/api/responses";
 import { extractAuth, isAuthRequired } from "@/lib/api/auth";
+import { requireWorkspaceRole } from "@/lib/api/rbac";
 
 const log = createLogger("api:v1:agents");
 
@@ -110,8 +111,26 @@ export async function GET(
     const searchParams = new URL(request.url).searchParams;
     const paginationParams = parsePaginationFromRequest(searchParams, 20);
 
-    // TODO: Validate workspace access when workspace context is available
-    // validateWorkspaceAccess(workspaceId, userWorkspaceIds);
+    // Validate workspace membership using RBAC (via middleware-injected headers)
+    const callerId = request.headers.get("x-api-key-id");
+    if (!callerId) {
+      return NextResponse.json(
+        createErrorResponseObject(401, "Unauthorized", "API key required", request.url),
+        { status: 401 }
+      );
+    }
+
+    try {
+      await requireWorkspaceRole(workspaceId, callerId, "viewer");
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return NextResponse.json(
+          createErrorResponseObject(404, "Not Found", "", request.url),
+          { status: 404 }
+        );
+      }
+      throw err;
+    }
 
     // Query agents from Convex
     const convex = getConvexClient();
@@ -299,6 +318,27 @@ export async function POST(
 
     if (!body) {
       throw new ValidationError("Request body is required", pathname);
+    }
+
+    // Validate workspace membership using RBAC (via middleware-injected headers)
+    const callerId = request.headers.get("x-api-key-id");
+    if (!callerId) {
+      return NextResponse.json(
+        createErrorResponseObject(401, "Unauthorized", "API key required", request.url),
+        { status: 401 }
+      );
+    }
+
+    try {
+      await requireWorkspaceRole(workspaceId, callerId, "collaborator");
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return NextResponse.json(
+          createErrorResponseObject(404, "Not Found", "", request.url),
+          { status: 404 }
+        );
+      }
+      throw err;
     }
 
     // Validate input against schema

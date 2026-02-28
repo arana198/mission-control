@@ -56,6 +56,11 @@ export function middleware(request: NextRequest) {
   const timestamp = Date.now();
 
   try {
+    // Admin routes bypass workspace middleware
+    if (pathname.startsWith("/api/admin/")) {
+      return NextResponse.next();
+    }
+
     // Step 1: Check if auth is required for this endpoint
     const authRequired = isAuthRequired(pathname);
 
@@ -142,6 +147,10 @@ export function middleware(request: NextRequest) {
     if (context.agentId) {
       response.headers.set("x-agent-id", context.agentId);
     }
+
+    // Note: Role lookup is optional here — route handlers call requireWorkspaceRole themselves.
+    // We set a placeholder; the actual role is verified per-request in rbac.ts.
+    response.headers.set("x-caller-role", "pending");
 
     return response;
   } catch (err) {
